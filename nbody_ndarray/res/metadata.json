@@ -1,0 +1,74 @@
+{
+"aot_data": {
+  "kernels": {"compute_force": {
+      "tasks": [{
+          "name": "compute_force_c46_00",
+          "src": "nbody_aot/compute_force_c46_00.glsl",
+          "workgroup_size": 1,
+          "num_groups": 1},{
+          "name": "compute_force_c46_01",
+          "src": "nbody_aot/compute_force_c46_01.glsl",
+          "workgroup_size": 128,
+          "num_groups": 256},{
+          "name": "compute_force_c46_02",
+          "src": "nbody_aot/compute_force_c46_02.glsl",
+          "workgroup_size": 1,
+          "num_groups": 1},{
+          "name": "compute_force_c46_03",
+          "src": "nbody_aot/compute_force_c46_03.glsl",
+          "workgroup_size": 128,
+          "num_groups": 256},{
+          "name": "compute_force_c46_04",
+          "src": "nbody_aot/compute_force_c46_04.glsl",
+          "workgroup_size": 1,
+          "num_groups": 1},{
+          "name": "compute_force_c46_05",
+          "src": "nbody_aot/compute_force_c46_05.glsl",
+          "workgroup_size": 128,
+          "num_groups": 256}],
+      "arg_count": 3,
+      "ret_count": 0,
+      "args_buf_size": 160,
+      "ret_buf_size": 0,
+      "scalar_args": {},
+      "arr_args": {"2": {
+          "field_dim": 1,
+          "is_scalar": false,
+          "element_shape": [2],
+          "shape_offset_in_bytes_in_args_buf": 128},"1": {
+          "field_dim": 1,
+          "is_scalar": false,
+          "element_shape": [2],
+          "shape_offset_in_bytes_in_args_buf": 96},"0": {
+          "field_dim": 1,
+          "is_scalar": false,
+          "element_shape": [2],
+          "shape_offset_in_bytes_in_args_buf": 64}},
+      "used.arr_arg_to_bind_idx": {"1": 6,"0": 5,"2": 4}},"initialize": {
+      "tasks": [{
+          "name": "initialize_c44_00",
+          "src": "nbody_aot/initialize_c44_00.glsl",
+          "workgroup_size": 1,
+          "num_groups": 1},{
+          "name": "initialize_c44_01",
+          "src": "nbody_aot/initialize_c44_01.glsl",
+          "workgroup_size": 128,
+          "num_groups": 256}],
+      "arg_count": 2,
+      "ret_count": 0,
+      "args_buf_size": 128,
+      "ret_buf_size": 0,
+      "scalar_args": {},
+      "arr_args": {"1": {
+          "field_dim": 1,
+          "is_scalar": false,
+          "element_shape": [2],
+          "shape_offset_in_bytes_in_args_buf": 96},"0": {
+          "field_dim": 1,
+          "is_scalar": false,
+          "element_shape": [2],
+          "shape_offset_in_bytes_in_args_buf": 64}},
+      "used.arr_arg_to_bind_idx": {"1": 5,"0": 4}}},
+  "kernel_tmpls": {},
+  "fields": [],
+  "root_buffer_size": 0}}
