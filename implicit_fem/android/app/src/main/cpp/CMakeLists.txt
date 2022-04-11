@@ -7,7 +7,14 @@ endif()
 set(TAICHI_REPO_DIR $ENV{TAICHI_REPO_DIR})
 
 # build main native library
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/)
+set(JNILIBS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/)
+
+if (EXISTS "${JNILIBS_PATH}/libtaichi_export_core.so")
+  link_directories(${JNILIBS_PATH})
+else()
+  message(FATAL_ERROR "Please copy libtaichi_export_core.so to ${JNILIBS_PATH}")
+endif()
+
 add_library(taichi-implicit-fem SHARED implicit_fem.cpp)
 
 target_compile_options(taichi-implicit-fem PUBLIC -Wall -Wextra -std=c++17 -DTI_WITH_VULKAN -DTI_INCLUDED)
