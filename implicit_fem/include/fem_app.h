@@ -28,18 +28,6 @@ void set_ctx_arg_devalloc(taichi::lang::RuntimeContext& host_ctx, int arg_id,
   host_ctx.extra_args[arg_id][2] = z;
 }
 
-float* map(taichi::lang::vulkan::VkRuntime& vulkan_runtime,
-           taichi::lang::DeviceAllocation& alloc) {
-  float* device_arr_ptr =
-      reinterpret_cast<float*>(vulkan_runtime.get_ti_device()->map(alloc));
-  return device_arr_ptr;
-}
-
-void unmap(taichi::lang::vulkan::VkRuntime& vulkan_runtime,
-           taichi::lang::DeviceAllocation& alloc) {
-  vulkan_runtime.get_ti_device()->unmap(alloc);
-}
-
 void load_data(taichi::lang::vulkan::VkRuntime* vulkan_runtime,
                taichi::lang::DeviceAllocation& alloc, const void* data,
                size_t size) {
