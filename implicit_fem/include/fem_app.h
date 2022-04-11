@@ -436,7 +436,7 @@ class FemApp {
       cmd_list->bind_resources(resource_binder);
       constexpr int num_indices =
           sizeof(kBoxIndices) / sizeof(kBoxIndices[0][0]);
-      cmd_list->set_line_width(3.0f);
+      cmd_list->set_line_width(8.0f);
       cmd_list->draw_indexed(num_indices);
     }
     // Draw mesh
