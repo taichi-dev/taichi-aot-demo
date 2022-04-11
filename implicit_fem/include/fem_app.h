@@ -14,8 +14,9 @@
 #include "box_data.h"
 #include "mesh_data.h"
 
-constexpr float DT = 5e-3;
+constexpr float DT = 7.5e-3;
 constexpr int NUM_SUBSTEPS = 2;
+constexpr int CG_ITERS = 8;
 
 void set_ctx_arg_devalloc(taichi::lang::RuntimeContext& host_ctx, int arg_id,
                           taichi::lang::DeviceAllocation& alloc, int x, int y,
@@ -336,7 +337,6 @@ class FemApp {
       // init_r_2()
       loaded_kernels_.init_r_2_kernel->launch(&host_ctx_);
 
-      constexpr int CG_ITERS = 7;
       for (int i = 0; i < CG_ITERS; i++) {
         // matmul_edge(mul_ans, p0, edges);
         set_ctx_arg_devalloc(host_ctx_, 0, devalloc_mul_ans_, N_VERTS, 3, 1);
@@ -417,7 +417,7 @@ class FemApp {
         glm::radians(55.0f), float(width_) / float(height_), 0.1f, 10.0f);
     constants->proj[1][1] *= -1.0f;
 #ifdef ANDROID
-    constexpr float kCameraZ = 4.5f;
+    constexpr float kCameraZ = 4.8f;
 #else
     constexpr float kCameraZ = 3.0f;
 #endif

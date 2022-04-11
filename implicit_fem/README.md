@@ -26,10 +26,12 @@ python setup.py clean && TAICHI_CMAKE_ARGS="-DTI_WITH_VULKAN:BOOL=ON -DTI_WITH_C
 ```
 
 ## Android Demo
-If you are building Taichi with custom changes, make sure to override the prebuilt binaries in: `app/src/main/jniLibs/arm64-v8a/`
+If you are building Taichi with custom changes, make sure to copy the prebuilt `libtaichi_export_core.so` to: `app/src/main/jniLibs/arm64-v8a/`
 ```
 export TAICHI_REPO_DIR=/path/github/taichi/
+export ANDROID_SDK_ROOT=/path/to/Andriod/Sdk
 cd android
+ln -s ${TAICHI_REPO_DIR}/build/libtaichi_export_core.so app/src/main/jniLibs/arm64-v8a/
 ./gradlew assembleDebug
 adb install ./app/build/outputs/apk/debug/app-debug.apk
 adb push ../shaders /data/local/tmp/
