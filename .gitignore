@@ -1,3 +1,13 @@
 /mpm88_android/.gradle/
 /mpm88_android/app/.cxx/
 /mpm88_android/app/build/
+android/.gradle
+android/local.properties
+android/.idea
+android/app/.cxx
+android/app/build
+desktop/build
+.vscode
+__pycache__/
+*.pyc
+python/imgui.ini
