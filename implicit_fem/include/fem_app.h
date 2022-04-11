@@ -417,9 +417,9 @@ class FemApp {
         glm::radians(55.0f), float(width_) / float(height_), 0.1f, 10.0f);
     constants->proj[1][1] *= -1.0f;
 #ifdef ANDROID
-    constexpr float kCameraZ = 5.0f;
+    constexpr float kCameraZ = 4.5f;
 #else
-    constexpr float kCameraZ = 2.95f;
+    constexpr float kCameraZ = 3.0f;
 #endif
     constants->view = glm::lookAt(glm::vec3(0.0, 0.0, kCameraZ),
                                   glm::vec3(0, 0, 0), glm::vec3(0, 1.0, 0));
@@ -436,6 +436,7 @@ class FemApp {
       cmd_list->bind_resources(resource_binder);
       constexpr int num_indices =
           sizeof(kBoxIndices) / sizeof(kBoxIndices[0][0]);
+      cmd_list->set_line_width(8.0f);
       cmd_list->draw_indexed(num_indices);
     }
     // Draw mesh
