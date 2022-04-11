@@ -18,6 +18,7 @@ constexpr float DT = 7.5e-3;
 constexpr int NUM_SUBSTEPS = 2;
 constexpr int CG_ITERS = 8;
 
+/*
 void set_ctx_arg_devalloc(taichi::lang::RuntimeContext& host_ctx, int arg_id,
                           taichi::lang::DeviceAllocation& alloc, int x, int y,
                           int z) {
@@ -27,6 +28,7 @@ void set_ctx_arg_devalloc(taichi::lang::RuntimeContext& host_ctx, int arg_id,
   host_ctx.extra_args[arg_id][1] = y;
   host_ctx.extra_args[arg_id][2] = z;
 }
+*/
 
 void load_data(taichi::lang::vulkan::VkRuntime* vulkan_runtime,
                taichi::lang::DeviceAllocation& alloc, const void* data,
@@ -167,7 +169,7 @@ class FemApp {
     alloc_params.usage = taichi::lang::AllocUsage::Storage;
     // vertices
     alloc_params.size = N_CELLS * 4 * sizeof(int);
-    devalloc_v_ertices_ = device_->allocate_memory(alloc_params);
+    devalloc_vertices_ = device_->allocate_memory(alloc_params);
     // edges
     alloc_params.size = N_EDGES * 2 * sizeof(int);
     devalloc_edges_ = device_->allocate_memory(alloc_params);
@@ -177,12 +179,12 @@ class FemApp {
 
     alloc_params.size = sizeof(float);
     devalloc_alpha_scalar_ = device_->allocate_memory(alloc_params);
-    devalloc_b_eta_scalar_ = device_->allocate_memory(alloc_params);
+    devalloc_beta_scalar_ = device_->allocate_memory(alloc_params);
 
     load_data(vulkan_runtime_.get(), devalloc_indices_, indices_data,
               sizeof(indices_data));
     load_data(vulkan_runtime_.get(), devalloc_c2e_, c2e_data, sizeof(c2e_data));
-    load_data(vulkan_runtime_.get(), devalloc_v_ertices_, vertices_data,
+    load_data(vulkan_runtime_.get(), devalloc_vertices_, vertices_data,
               sizeof(vertices_data));
     load_data(vulkan_runtime_.get(), devalloc_ox_, ox_data, sizeof(ox_data));
     load_data(vulkan_runtime_.get(), devalloc_edges_, edges_data,
@@ -192,16 +194,16 @@ class FemApp {
     host_ctx_.result_buffer = host_result_buffer_.data();
     loaded_kernels_.clear_field_kernel->launch(&host_ctx_);
 
-    set_ctx_arg_devalloc(host_ctx_, 0, devalloc_x_, N_VERTS, 3, 1);
-    set_ctx_arg_devalloc(host_ctx_, 1, devalloc_v_, N_VERTS, 3, 1);
-    set_ctx_arg_devalloc(host_ctx_, 2, devalloc_f_, N_VERTS, 3, 1);
-    set_ctx_arg_devalloc(host_ctx_, 3, devalloc_ox_, N_VERTS, 3, 1);
-    set_ctx_arg_devalloc(host_ctx_, 4, devalloc_v_ertices_, N_CELLS, 4, 1);
+    host_ctx_.set_arg_devalloc(0, devalloc_x_, {N_VERTS, 3, 1});
+    host_ctx_.set_arg_devalloc(1, devalloc_v_, {N_VERTS, 3, 1});
+    host_ctx_.set_arg_devalloc(2, devalloc_f_, {N_VERTS, 3, 1});
+    host_ctx_.set_arg_devalloc(3, devalloc_ox_, {N_VERTS, 3, 1});
+    host_ctx_.set_arg_devalloc(4, devalloc_vertices_, {N_CELLS, 4, 1});
     // init(x, v, f, ox, vertices)
     loaded_kernels_.init_kernel->launch(&host_ctx_);
     // get_matrix(c2e, vertices)
-    set_ctx_arg_devalloc(host_ctx_, 0, devalloc_c2e_, N_CELLS, 6, 1);
-    set_ctx_arg_devalloc(host_ctx_, 1, devalloc_v_ertices_, N_CELLS, 4, 1);
+    host_ctx_.set_arg_devalloc(0, devalloc_c2e_, {N_CELLS, 6, 1});
+    host_ctx_.set_arg_devalloc(1, devalloc_vertices_, {N_CELLS, 4, 1});
     loaded_kernels_.get_matrix_kernel->launch(&host_ctx_);
     vulkan_runtime_->synchronize();
 
@@ -283,100 +285,100 @@ class FemApp {
     using namespace taichi::lang;
     for (int i = 0; i < NUM_SUBSTEPS; i++) {
       // get_force(x, f, vertices)
-      set_ctx_arg_devalloc(host_ctx_, 0, devalloc_x_, N_VERTS, 3, 1);
-      set_ctx_arg_devalloc(host_ctx_, 1, devalloc_f_, N_VERTS, 3, 1);
-      set_ctx_arg_devalloc(host_ctx_, 2, devalloc_v_ertices_, N_CELLS, 4, 1);
+      host_ctx_.set_arg_devalloc(0, devalloc_x_, {N_VERTS, 3, 1});
+      host_ctx_.set_arg_devalloc(1, devalloc_f_, {N_VERTS, 3, 1});
+      host_ctx_.set_arg_devalloc(2, devalloc_vertices_, {N_CELLS, 4, 1});
       host_ctx_.set_arg<float>(3, g_x);
       host_ctx_.set_arg<float>(4, g_y);
       host_ctx_.set_arg<float>(5, g_z);
       loaded_kernels_.get_force_kernel->launch(&host_ctx_);
       // get_b(v, b, f)
-      set_ctx_arg_devalloc(host_ctx_, 0, devalloc_v_, N_VERTS, 3, 1);
-      set_ctx_arg_devalloc(host_ctx_, 1, devalloc_b_, N_VERTS, 3, 1);
-      set_ctx_arg_devalloc(host_ctx_, 2, devalloc_f_, N_VERTS, 3, 1);
+      host_ctx_.set_arg_devalloc(0, devalloc_v_, {N_VERTS, 3, 1});
+      host_ctx_.set_arg_devalloc(1, devalloc_b_, {N_VERTS, 3, 1});
+      host_ctx_.set_arg_devalloc(2, devalloc_f_, {N_VERTS, 3, 1});
       loaded_kernels_.get_b_kernel->launch(&host_ctx_);
 
       // matmul_edge(mul_ans, v, edges)
-      set_ctx_arg_devalloc(host_ctx_, 0, devalloc_mul_ans_, N_VERTS, 3, 1);
-      set_ctx_arg_devalloc(host_ctx_, 1, devalloc_v_, N_VERTS, 3, 1);
-      set_ctx_arg_devalloc(host_ctx_, 2, devalloc_edges_, N_EDGES, 2, 1);
+      host_ctx_.set_arg_devalloc(0, devalloc_mul_ans_, {N_VERTS, 3, 1});
+      host_ctx_.set_arg_devalloc(1, devalloc_v_, {N_VERTS, 3, 1});
+      host_ctx_.set_arg_devalloc(2, devalloc_edges_, {N_EDGES, 2, 1});
       loaded_kernels_.matmul_edge_kernel->launch(&host_ctx_);
       // add(r0, b, -1, mul_ans)
-      set_ctx_arg_devalloc(host_ctx_, 0, devalloc_r0_, N_VERTS, 3, 1);
-      set_ctx_arg_devalloc(host_ctx_, 1, devalloc_b_, N_VERTS, 3, 1);
+      host_ctx_.set_arg_devalloc(0, devalloc_r0_, {N_VERTS, 3, 1});
+      host_ctx_.set_arg_devalloc(1, devalloc_b_, {N_VERTS, 3, 1});
       host_ctx_.set_arg<float>(2, -1.0f);
-      set_ctx_arg_devalloc(host_ctx_, 3, devalloc_mul_ans_, N_VERTS, 3, 1);
+      host_ctx_.set_arg_devalloc(3, devalloc_mul_ans_, {N_VERTS, 3, 1});
       loaded_kernels_.add_kernel->launch(&host_ctx_);
       // ndarray_to_ndarray(p0, r0)
-      set_ctx_arg_devalloc(host_ctx_, 0, devalloc_p0_, N_VERTS, 3, 1);
-      set_ctx_arg_devalloc(host_ctx_, 1, devalloc_r0_, N_VERTS, 3, 1);
+      host_ctx_.set_arg_devalloc(0, devalloc_p0_, {N_VERTS, 3, 1});
+      host_ctx_.set_arg_devalloc(1, devalloc_r0_, {N_VERTS, 3, 1});
       loaded_kernels_.ndarray_to_ndarray_kernel->launch(&host_ctx_);
       // dot2scalar(r0, r0)
-      set_ctx_arg_devalloc(host_ctx_, 0, devalloc_r0_, N_VERTS, 3, 1);
-      set_ctx_arg_devalloc(host_ctx_, 1, devalloc_r0_, N_VERTS, 3, 1);
+      host_ctx_.set_arg_devalloc(0, devalloc_r0_, {N_VERTS, 3, 1});
+      host_ctx_.set_arg_devalloc(1, devalloc_r0_, {N_VERTS, 3, 1});
       loaded_kernels_.dot2scalar_kernel->launch(&host_ctx_);
       // init_r_2()
       loaded_kernels_.init_r_2_kernel->launch(&host_ctx_);
 
       for (int i = 0; i < CG_ITERS; i++) {
         // matmul_edge(mul_ans, p0, edges);
-        set_ctx_arg_devalloc(host_ctx_, 0, devalloc_mul_ans_, N_VERTS, 3, 1);
-        set_ctx_arg_devalloc(host_ctx_, 1, devalloc_p0_, N_VERTS, 3, 1);
-        set_ctx_arg_devalloc(host_ctx_, 2, devalloc_edges_, N_EDGES, 2, 1);
+        host_ctx_.set_arg_devalloc(0, devalloc_mul_ans_, {N_VERTS, 3, 1});
+        host_ctx_.set_arg_devalloc(1, devalloc_p0_, {N_VERTS, 3, 1});
+        host_ctx_.set_arg_devalloc(2, devalloc_edges_, {N_EDGES, 2, 1});
         loaded_kernels_.matmul_edge_kernel->launch(&host_ctx_);
         // dot2scalar(p0, mul_ans)
-        set_ctx_arg_devalloc(host_ctx_, 0, devalloc_p0_, N_VERTS, 3, 1);
-        set_ctx_arg_devalloc(host_ctx_, 1, devalloc_mul_ans_, N_VERTS, 3, 1);
+        host_ctx_.set_arg_devalloc(0, devalloc_p0_, {N_VERTS, 3, 1});
+        host_ctx_.set_arg_devalloc(1, devalloc_mul_ans_, {N_VERTS, 3, 1});
         loaded_kernels_.dot2scalar_kernel->launch(&host_ctx_);
-        set_ctx_arg_devalloc(host_ctx_, 0, devalloc_alpha_scalar_, 1, 1, 1);
+        host_ctx_.set_arg_devalloc(0, devalloc_alpha_scalar_, {1, 1, 1});
         loaded_kernels_.update_alpha_kernel->launch(&host_ctx_);
         // add(v, v, alpha, p0)
-        set_ctx_arg_devalloc(host_ctx_, 0, devalloc_v_, N_VERTS, 3, 1);
-        set_ctx_arg_devalloc(host_ctx_, 1, devalloc_v_, N_VERTS, 3, 1);
+        host_ctx_.set_arg_devalloc(0, devalloc_v_, {N_VERTS, 3, 1});
+        host_ctx_.set_arg_devalloc(1, devalloc_v_, {N_VERTS, 3, 1});
         host_ctx_.set_arg<float>(2, 1.0f);
-        set_ctx_arg_devalloc(host_ctx_, 3, devalloc_alpha_scalar_, 1, 1, 1);
-        set_ctx_arg_devalloc(host_ctx_, 4, devalloc_p0_, N_VERTS, 3, 1);
+        host_ctx_.set_arg_devalloc(3, devalloc_alpha_scalar_, {1, 1, 1});
+        host_ctx_.set_arg_devalloc(4, devalloc_p0_, {N_VERTS, 3, 1});
         loaded_kernels_.add_scalar_ndarray_kernel->launch(&host_ctx_);
         // add(r0, r0, -alpha, mul_ans)
-        set_ctx_arg_devalloc(host_ctx_, 0, devalloc_r0_, N_VERTS, 3, 1);
-        set_ctx_arg_devalloc(host_ctx_, 1, devalloc_r0_, N_VERTS, 3, 1);
+        host_ctx_.set_arg_devalloc(0, devalloc_r0_, {N_VERTS, 3, 1});
+        host_ctx_.set_arg_devalloc(1, devalloc_r0_, {N_VERTS, 3, 1});
         host_ctx_.set_arg<float>(2, -1.0f);
-        set_ctx_arg_devalloc(host_ctx_, 3, devalloc_alpha_scalar_, 1, 1, 1);
-        set_ctx_arg_devalloc(host_ctx_, 4, devalloc_mul_ans_, N_VERTS, 3, 1);
+        host_ctx_.set_arg_devalloc(3, devalloc_alpha_scalar_, {1, 1, 1});
+        host_ctx_.set_arg_devalloc(4, devalloc_mul_ans_, {N_VERTS, 3, 1});
         loaded_kernels_.add_scalar_ndarray_kernel->launch(&host_ctx_);
 
         // r_2_new = dot(r0, r0)
-        set_ctx_arg_devalloc(host_ctx_, 0, devalloc_r0_, N_VERTS, 3, 1);
-        set_ctx_arg_devalloc(host_ctx_, 1, devalloc_r0_, N_VERTS, 3, 1);
+        host_ctx_.set_arg_devalloc(0, devalloc_r0_, {N_VERTS, 3, 1});
+        host_ctx_.set_arg_devalloc(1, devalloc_r0_, {N_VERTS, 3, 1});
         loaded_kernels_.dot2scalar_kernel->launch(&host_ctx_);
 
-        set_ctx_arg_devalloc(host_ctx_, 0, devalloc_b_eta_scalar_, 1, 1, 1);
+        host_ctx_.set_arg_devalloc(0, devalloc_beta_scalar_, {1, 1, 1});
         loaded_kernels_.update_beta_r_2_kernel->launch(&host_ctx_);
 
         // add(p0, r0, beta, p0)
-        set_ctx_arg_devalloc(host_ctx_, 0, devalloc_p0_, N_VERTS, 3, 1);
-        set_ctx_arg_devalloc(host_ctx_, 1, devalloc_r0_, N_VERTS, 3, 1);
+        host_ctx_.set_arg_devalloc(0, devalloc_p0_, {N_VERTS, 3, 1});
+        host_ctx_.set_arg_devalloc(1, devalloc_r0_, {N_VERTS, 3, 1});
         host_ctx_.set_arg<float>(2, 1.0f);
-        set_ctx_arg_devalloc(host_ctx_, 3, devalloc_b_eta_scalar_, 1, 1, 1);
-        set_ctx_arg_devalloc(host_ctx_, 4, devalloc_p0_, N_VERTS, 3, 1);
+        host_ctx_.set_arg_devalloc(3, devalloc_beta_scalar_, {1, 1, 1});
+        host_ctx_.set_arg_devalloc(4, devalloc_p0_, {N_VERTS, 3, 1});
         loaded_kernels_.add_scalar_ndarray_kernel->launch(&host_ctx_);
       }
 
       // fill_ndarray(f, 0)
-      set_ctx_arg_devalloc(host_ctx_, 0, devalloc_f_, N_VERTS, 3, 1);
+      host_ctx_.set_arg_devalloc(0, devalloc_f_, {N_VERTS, 3, 1});
       host_ctx_.set_arg<float>(1, 0);
       loaded_kernels_.fill_ndarray_kernel->launch(&host_ctx_);
 
       // add(x, x, dt, v)
-      set_ctx_arg_devalloc(host_ctx_, 0, devalloc_x_, N_VERTS, 3, 1);
-      set_ctx_arg_devalloc(host_ctx_, 1, devalloc_x_, N_VERTS, 3, 1);
+      host_ctx_.set_arg_devalloc(0, devalloc_x_, {N_VERTS, 3, 1});
+      host_ctx_.set_arg_devalloc(1, devalloc_x_, {N_VERTS, 3, 1});
       host_ctx_.set_arg<float>(2, DT);
-      set_ctx_arg_devalloc(host_ctx_, 3, devalloc_v_, N_VERTS, 3, 1);
+      host_ctx_.set_arg_devalloc(3, devalloc_v_, {N_VERTS, 3, 1});
       loaded_kernels_.add_kernel->launch(&host_ctx_);
     }
     // floor_bound(x, v)
-    set_ctx_arg_devalloc(host_ctx_, 0, devalloc_x_, N_VERTS, 3, 1);
-    set_ctx_arg_devalloc(host_ctx_, 1, devalloc_v_, N_VERTS, 3, 1);
+    host_ctx_.set_arg_devalloc(0, devalloc_x_, {N_VERTS, 3, 1});
+    host_ctx_.set_arg_devalloc(1, devalloc_v_, {N_VERTS, 3, 1});
     loaded_kernels_.floor_bound_kernel->launch(&host_ctx_);
     vulkan_runtime_->synchronize();
 
@@ -448,11 +450,11 @@ class FemApp {
     device_->dealloc_memory(devalloc_r0_);
     device_->dealloc_memory(devalloc_p0_);
     device_->dealloc_memory(devalloc_indices_);
-    device_->dealloc_memory(devalloc_v_ertices_);
+    device_->dealloc_memory(devalloc_vertices_);
     device_->dealloc_memory(devalloc_edges_);
     device_->dealloc_memory(devalloc_ox_);
     device_->dealloc_memory(devalloc_alpha_scalar_);
-    device_->dealloc_memory(devalloc_b_eta_scalar_);
+    device_->dealloc_memory(devalloc_beta_scalar_);
 
     device_->dealloc_memory(render_constants_);
     device_->destroy_image(depth_allocation_);
@@ -512,11 +514,11 @@ class FemApp {
   taichi::lang::DeviceAllocation devalloc_r0_;
   taichi::lang::DeviceAllocation devalloc_p0_;
   taichi::lang::DeviceAllocation devalloc_indices_;
-  taichi::lang::DeviceAllocation devalloc_v_ertices_;
+  taichi::lang::DeviceAllocation devalloc_vertices_;
   taichi::lang::DeviceAllocation devalloc_edges_;
   taichi::lang::DeviceAllocation devalloc_ox_;
   taichi::lang::DeviceAllocation devalloc_alpha_scalar_;
-  taichi::lang::DeviceAllocation devalloc_b_eta_scalar_;
+  taichi::lang::DeviceAllocation devalloc_beta_scalar_;
 
   std::unique_ptr<taichi::lang::Surface> surface_{nullptr};
   std::unique_ptr<taichi::lang::Pipeline> render_box_pipeline_{nullptr};
