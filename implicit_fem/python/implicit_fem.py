@@ -36,8 +36,8 @@ E, nu = 5e5, 0.0
 mu, la = E / (2 * (1 + nu)), E * nu / ((1 + nu) * (1 - 2 * nu))  # lambda = 0
 density = 1000.0
 epsilon = 1e-5
-dt = 2.5e-3
-num_substeps = int(1e-2 / dt + 0.5)
+dt = 7.5e-3
+num_substeps = int(2e-2 / dt + 0.5)
 
 x = ti.Vector.ndarray(args.dim, dtype=ti.f32, shape=n_verts)
 v = ti.Vector.ndarray(args.dim, dtype=ti.f32, shape=n_verts)
