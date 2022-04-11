@@ -28,13 +28,6 @@ void set_ctx_arg_devalloc(taichi::lang::RuntimeContext& host_ctx, int arg_id,
   host_ctx.extra_args[arg_id][2] = z;
 }
 
-// TODO: provide a proper API from taichi
-void set_ctx_arg_float(taichi::lang::RuntimeContext& host_ctx, int arg_id,
-                       float x) {
-  host_ctx.set_arg(arg_id, x);
-  host_ctx.set_device_allocation(arg_id, false);
-}
-
 float* map(taichi::lang::vulkan::VkRuntime& vulkan_runtime,
            taichi::lang::DeviceAllocation& alloc) {
   float* device_arr_ptr =
@@ -305,9 +298,9 @@ class FemApp {
       set_ctx_arg_devalloc(host_ctx_, 0, devalloc_x_, N_VERTS, 3, 1);
       set_ctx_arg_devalloc(host_ctx_, 1, devalloc_f_, N_VERTS, 3, 1);
       set_ctx_arg_devalloc(host_ctx_, 2, devalloc_v_ertices_, N_CELLS, 4, 1);
-      set_ctx_arg_float(host_ctx_, 3, g_x);
-      set_ctx_arg_float(host_ctx_, 4, g_y);
-      set_ctx_arg_float(host_ctx_, 5, g_z);
+      host_ctx_.set_arg<float>(3, g_x);
+      host_ctx_.set_arg<float>(4, g_y);
+      host_ctx_.set_arg<float>(5, g_z);
       loaded_kernels_.get_force_kernel->launch(&host_ctx_);
       // get_b(v, b, f)
       set_ctx_arg_devalloc(host_ctx_, 0, devalloc_v_, N_VERTS, 3, 1);
@@ -323,7 +316,7 @@ class FemApp {
       // add(r0, b, -1, mul_ans)
       set_ctx_arg_devalloc(host_ctx_, 0, devalloc_r0_, N_VERTS, 3, 1);
       set_ctx_arg_devalloc(host_ctx_, 1, devalloc_b_, N_VERTS, 3, 1);
-      set_ctx_arg_float(host_ctx_, 2, -1.0f);
+      host_ctx_.set_arg<float>(2, -1.0f);
       set_ctx_arg_devalloc(host_ctx_, 3, devalloc_mul_ans_, N_VERTS, 3, 1);
       loaded_kernels_.add_kernel->launch(&host_ctx_);
       // ndarray_to_ndarray(p0, r0)
@@ -352,14 +345,14 @@ class FemApp {
         // add(v, v, alpha, p0)
         set_ctx_arg_devalloc(host_ctx_, 0, devalloc_v_, N_VERTS, 3, 1);
         set_ctx_arg_devalloc(host_ctx_, 1, devalloc_v_, N_VERTS, 3, 1);
-        set_ctx_arg_float(host_ctx_, 2, 1.0f);
+        host_ctx_.set_arg<float>(2, 1.0f);
         set_ctx_arg_devalloc(host_ctx_, 3, devalloc_alpha_scalar_, 1, 1, 1);
         set_ctx_arg_devalloc(host_ctx_, 4, devalloc_p0_, N_VERTS, 3, 1);
         loaded_kernels_.add_scalar_ndarray_kernel->launch(&host_ctx_);
         // add(r0, r0, -alpha, mul_ans)
         set_ctx_arg_devalloc(host_ctx_, 0, devalloc_r0_, N_VERTS, 3, 1);
         set_ctx_arg_devalloc(host_ctx_, 1, devalloc_r0_, N_VERTS, 3, 1);
-        set_ctx_arg_float(host_ctx_, 2, -1.0f);
+        host_ctx_.set_arg<float>(2, -1.0f);
         set_ctx_arg_devalloc(host_ctx_, 3, devalloc_alpha_scalar_, 1, 1, 1);
         set_ctx_arg_devalloc(host_ctx_, 4, devalloc_mul_ans_, N_VERTS, 3, 1);
         loaded_kernels_.add_scalar_ndarray_kernel->launch(&host_ctx_);
@@ -375,7 +368,7 @@ class FemApp {
         // add(p0, r0, beta, p0)
         set_ctx_arg_devalloc(host_ctx_, 0, devalloc_p0_, N_VERTS, 3, 1);
         set_ctx_arg_devalloc(host_ctx_, 1, devalloc_r0_, N_VERTS, 3, 1);
-        set_ctx_arg_float(host_ctx_, 2, 1.0f);
+        host_ctx_.set_arg<float>(2, 1.0f);
         set_ctx_arg_devalloc(host_ctx_, 3, devalloc_b_eta_scalar_, 1, 1, 1);
         set_ctx_arg_devalloc(host_ctx_, 4, devalloc_p0_, N_VERTS, 3, 1);
         loaded_kernels_.add_scalar_ndarray_kernel->launch(&host_ctx_);
@@ -383,13 +376,13 @@ class FemApp {
 
       // fill_ndarray(f, 0)
       set_ctx_arg_devalloc(host_ctx_, 0, devalloc_f_, N_VERTS, 3, 1);
-      set_ctx_arg_float(host_ctx_, 1, 0);
+      host_ctx_.set_arg<float>(1, 0);
       loaded_kernels_.fill_ndarray_kernel->launch(&host_ctx_);
 
       // add(x, x, dt, v)
       set_ctx_arg_devalloc(host_ctx_, 0, devalloc_x_, N_VERTS, 3, 1);
       set_ctx_arg_devalloc(host_ctx_, 1, devalloc_x_, N_VERTS, 3, 1);
-      set_ctx_arg_float(host_ctx_, 2, DT);
+      host_ctx_.set_arg<float>(2, DT);
       set_ctx_arg_devalloc(host_ctx_, 3, devalloc_v_, N_VERTS, 3, 1);
       loaded_kernels_.add_kernel->launch(&host_ctx_);
     }
