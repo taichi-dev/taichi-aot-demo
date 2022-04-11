@@ -403,7 +403,7 @@ class FemApp {
     auto stream = device_->get_graphics_stream();
     auto cmd_list = stream->new_command_list();
     bool color_clear = true;
-    std::vector<float> clear_colors = {0.2, 0.5, 0.8, 1};
+    std::vector<float> clear_colors = {0.285, 0.257, 0.269, 1};
     auto image = surface_->get_target_image();
     cmd_list->begin_renderpass(
         /*xmin=*/0, /*ymin=*/0, /*xmax=*/width_,
