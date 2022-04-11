@@ -514,11 +514,10 @@ class FemApp {
     device_->dealloc_memory(devalloc_alpha_scalar_);
     device_->dealloc_memory(devalloc_b_eta_scalar_);
 
+    device_->dealloc_memory(devalloc_box_indices_);
+    device_->dealloc_memory(devalloc_box_verts_);
     device_->dealloc_memory(render_constants_);
     device_->destroy_image(depth_allocation_);
-
-    vulkan_runtime_ = nullptr;
-    embedded_device_ = nullptr;
   }
 
  private:

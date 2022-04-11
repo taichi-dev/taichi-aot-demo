@@ -61,7 +61,7 @@ def intersect_scene(pos, dir):
     return t, albedo, emissive, hit_norm
 
 @ti.func
-def cosine_weighted_hemisphere(pos, norm):
+def cosine_weighted_hemisphere(norm):
     u0 = ti.random()
     u1 = ti.random()
     a = 1.0 - 2.0 * u0
@@ -71,6 +71,24 @@ def cosine_weighted_hemisphere(pos, norm):
         norm.x + b * ti.cos(phi),
         norm.y + b * ti.sin(phi),
         norm.z + a])
+
+@ti.func
+def sign(v):
+    return -1 if v < 0 else 1
+
+@ti.func
+def rand_sphere():
+    u = ti.Vector([ti.random(), ti.random()]) * 2.0 - 1.0
+    d = 1.0 - (abs(u[0]) + abs(u[1]))
+    r = 1.0 - abs(d)
+
+    phi = 0.0 if (r == 0.0) else ((np.pi / 4.0) * ((abs(u[1]) - abs(u[0])) / r + 1.0))
+    f = r * ti.sqrt(2 - r * r)
+    return ti.Vector([
+        f * sign(u[0]) * ti.cos(phi),
+        f * sign(u[1]) * ti.sin(phi),
+        sign(d) * (1.0 - r * r)])
+
 
 @ti.func
 def integrate(pos, dir):
@@ -87,7 +105,7 @@ def integrate(pos, dir):
             break
         throughput *= albedo
         pos = hit_p
-        dir = cosine_weighted_hemisphere(pos, hit_norm)
+        dir = cosine_weighted_hemisphere(hit_norm)
         pos = pos + hit_norm * 1e-5
     
     return throughput * Lin
@@ -149,6 +167,72 @@ def down_sample(img_down : ti.template(), img : ti.template()):
         img_down[i // 16, j // 16] += img[i, j]
     for i, j in img_down:
         img_down[i, j] /= 8000.0 * 16.0 * 16.0
+
+@ti.func
+def sh_l0():
+    return ti.sqrt(1.0 / (4.0 * np.pi))
+
+@ti.func
+def sh_l1_y0(n):
+    return ti.sqrt(3.0 / (4.0 * np.pi)) * n.x
+
+@ti.func
+def sh_l1_y1(n):
+    return ti.sqrt(3.0 / (4.0 * np.pi)) * n.z
+
+@ti.func
+def sh_l1_y2(n):
+    return ti.sqrt(3.0 / (4.0 * np.pi)) * n.y
+
+@ti.func
+def sh_l2_y0(n):
+    return ti.sqrt(15 / (4.0 * np.pi)) * n.x * n.y
+
+@ti.func
+def sh_l2_y1(n):
+    return ti.sqrt(15 / (4.0 * np.pi)) * n.y * n.z
+
+@ti.func
+def sh_l2_y2(n):
+    return ti.sqrt(5 / (16.0 * np.pi)) * (3.0 * n.z * n.z - 1.0)
+
+@ti.func
+def sh_l2_y3(n):
+    return ti.sqrt(15 / (8.0 * np.pi)) * n.x * n.z
+
+@ti.func
+def sh_l2_y4(n):
+    return ti.sqrt(15 / (32.0 * np.pi)) * (n.x * n.x - n.y * n.y)
+
+
+@ti.kernel
+def bake_sh(sh : ti.template()):
+    for i in range(8000):
+        sphere_norm = rand_sphere()
+
+        radiance = ti.Vector([0.0, 0.0, 0.0])
+
+        for s in range(100):
+            dir = cosine_weighted_hemisphere(sphere_norm)
+            radiance += integrate(ti.Vector([0.0, 0.0, 0.0]), dir)
+        
+        radiance *= 0.01
+
+        # if radiance.x > 10.0:
+        #     radiance *= 0.0
+
+        sh[0] += radiance * sh_l0()
+        
+        sh[1] += radiance * sh_l1_y0(sphere_norm)
+        sh[2] += radiance * sh_l1_y1(sphere_norm)
+        sh[3] += radiance * sh_l1_y2(sphere_norm)
+        
+        sh[4] += radiance * sh_l2_y0(sphere_norm)
+        sh[5] += radiance * sh_l2_y1(sphere_norm)
+        sh[6] += radiance * sh_l2_y2(sphere_norm)
+        sh[7] += radiance * sh_l2_y3(sphere_norm)
+        sh[8] += radiance * sh_l2_y4(sphere_norm)
+
     
 window = ti.ui.Window(name="cornell box", res=res)
 canvas = window.get_canvas()
@@ -165,7 +249,7 @@ ceiling_wall = ti.Vector.field(3, dtype=ti.f32, shape=res)
 bottom_wall = ti.Vector.field(3, dtype=ti.f32, shape=res)
 back_wall = ti.Vector.field(3, dtype=ti.f32, shape=res)
 
-sh = ti.Vector.field(3, dtype=ti.f32, shape=res)
+sh = ti.Vector.field(3, dtype=ti.f32, shape=(9))
 
 down_sample_walls = ti.Vector.field(3, dtype=ti.f32, shape=(512 // 16, 512 // 16))
 
@@ -200,7 +284,6 @@ for i in range(80):
     canvas.set_image(display_img)
     window.show()
 
-
 def gen_code(arr):
     code = "    {\n"
     for i in range(arr.shape[0]):
@@ -232,3 +315,9 @@ cfile.write(code)
 cfile.close()
 
 # Bake SH
+
+bake_sh(sh)
+sh_np = sh.to_numpy() / 1000.0
+
+for i in range(9):
+    print("vec3({}, {}, {}),".format(sh_np[i, 0], sh_np[i, 1], sh_np[i, 2]))
