@@ -11,7 +11,7 @@
 #include <memory>
 #include <vector>
 
-#include "box_data.h"
+#include "box_color_data.h"
 #include "mesh_data.h"
 
 constexpr float DT = 7.5e-3;
@@ -54,6 +54,39 @@ void load_data(taichi::lang::vulkan::VkRuntime* vulkan_runtime,
       reinterpret_cast<char*>(vulkan_runtime->get_ti_device()->map(alloc));
   std::memcpy(device_arr_ptr, data, size);
   vulkan_runtime->get_ti_device()->unmap(alloc);
+}
+
+struct ColorVertex {
+  glm::vec3 pos;
+  glm::vec3 color;
+};
+
+void build_wall(int face, std::vector<ColorVertex> &vertices, std::vector<int> &indices, glm::vec3 axis_x, glm::vec3 axis_y, glm::vec3 base) {
+  int base_vertex = int(vertices.size());
+
+  for (int j = 0; j < 32; j++) {
+    for (int i = 0; i < 32; i++) {
+      glm::vec3 pos = base + axis_x * ((float(i) / 31.0f) * 2.0f - 1.0f) + axis_y * ((float(j) / 31.0f) * 2.0f - 1.0f);
+      vertices.push_back(ColorVertex{ pos, box_color_data[face][i + j * 32] });
+    }
+  }
+
+  for (int j = 0; j < 31; j++) {
+    for (int i = 0; i < 31; i++) {
+      int i00 = base_vertex + (i + j * 32);
+      int i01 = base_vertex + (i + (j + 1) * 32);
+      int i10 = base_vertex + ((i + 1) + j * 32);
+      int i11 = base_vertex + ((i + 1) + (j + 1) * 32);
+
+      indices.push_back(i00);
+      indices.push_back(i01);
+      indices.push_back(i10);
+
+      indices.push_back(i01);
+      indices.push_back(i10);
+      indices.push_back(i11);
+    }
+  }
 }
 
 class FemApp {
@@ -225,8 +258,16 @@ class FemApp {
     vulkan_runtime_->synchronize();
 
     {
+      build_wall(0, cornell_box_vertices_, cornell_box_indicies_, glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0), glm::vec3(-1.0, 0.0, 0.0));
+      build_wall(1, cornell_box_vertices_, cornell_box_indicies_, glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0, 0.0, 0.0));
+      build_wall(2, cornell_box_vertices_, cornell_box_indicies_, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+      build_wall(3, cornell_box_vertices_, cornell_box_indicies_, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+      build_wall(4, cornell_box_vertices_, cornell_box_indicies_, glm::vec3(0.0, 1.0, 0.0), glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, 0.0, -1.0));
+    }
+
+    {
       auto vert_code = taichi::ui::read_file(
-          path_prefix + "/shaders/render/surface.vert.spv");
+          path_prefix + "/shaders/render/box.vert.spv");
       auto frag_code =
           taichi::ui::read_file(path_prefix + "/shaders/render/box.frag.spv");
 
@@ -237,17 +278,20 @@ class FemApp {
                    vert_code.size(), PipelineStageType::vertex};
 
       RasterParams raster_params;
-      raster_params.prim_topology = TopologyType::Lines;
-      raster_params.polygon_mode = PolygonMode::Line;
+      raster_params.prim_topology = TopologyType::Triangles;
+      raster_params.polygon_mode = PolygonMode::Fill;
       raster_params.depth_test = true;
       raster_params.depth_write = true;
 
       std::vector<VertexInputBinding> vertex_inputs = {
-          {/*binding=*/0, /*stride=*/3 * sizeof(float), /*instance=*/false}};
+          {/*binding=*/0, /*stride=*/6 * sizeof(float), /*instance=*/false}};
       std::vector<VertexInputAttribute> vertex_attribs;
       vertex_attribs.push_back({/*location=*/0, /*binding=*/0,
                                 /*format=*/BufferFormat::rgb32f,
                                 /*offset=*/0});
+      vertex_attribs.push_back({/*location=*/1, /*binding=*/0,
+                                /*format=*/BufferFormat::rgb32f,
+                                /*offset=*/3 * sizeof(float)});
 
       render_box_pipeline_ = device_->create_raster_pipeline(
           source, raster_params, vertex_inputs, vertex_attribs);
@@ -255,16 +299,16 @@ class FemApp {
       alloc_params = Device::AllocParams{};
       alloc_params.host_write = true;
       // x
-      alloc_params.size = sizeof(kBoxVertices);
+      alloc_params.size = sizeof(ColorVertex) * cornell_box_vertices_.size();
       alloc_params.usage = taichi::lang::AllocUsage::Vertex;
       devalloc_box_verts_ = device_->allocate_memory(alloc_params);
-      alloc_params.size = sizeof(kBoxIndices);
+      alloc_params.size = sizeof(int) * cornell_box_indicies_.size();
       alloc_params.usage = taichi::lang::AllocUsage::Index;
       devalloc_box_indices_ = device_->allocate_memory(alloc_params);
-      load_data(vulkan_runtime_.get(), devalloc_box_verts_, kBoxVertices,
-                sizeof(kBoxVertices));
-      load_data(vulkan_runtime_.get(), devalloc_box_indices_, kBoxIndices,
-                sizeof(kBoxIndices));
+      load_data(vulkan_runtime_.get(), devalloc_box_verts_, cornell_box_vertices_.data(),
+                sizeof(ColorVertex) * cornell_box_vertices_.size());
+      load_data(vulkan_runtime_.get(), devalloc_box_indices_, cornell_box_indicies_.data(),
+                sizeof(int) * cornell_box_indicies_.size());
     }
     {
       auto vert_code = taichi::ui::read_file(
@@ -403,7 +447,7 @@ class FemApp {
     auto stream = device_->get_graphics_stream();
     auto cmd_list = stream->new_command_list();
     bool color_clear = true;
-    std::vector<float> clear_colors = {0.285, 0.257, 0.269, 1};
+    std::vector<float> clear_colors = {0.03, 0.05, 0.08, 1};
     auto image = surface_->get_target_image();
     cmd_list->begin_renderpass(
         /*xmin=*/0, /*ymin=*/0, /*xmax=*/width_,
@@ -434,10 +478,7 @@ class FemApp {
 
       cmd_list->bind_pipeline(render_box_pipeline_.get());
       cmd_list->bind_resources(resource_binder);
-      constexpr int num_indices =
-          sizeof(kBoxIndices) / sizeof(kBoxIndices[0][0]);
-      cmd_list->set_line_width(8.0f);
-      cmd_list->draw_indexed(num_indices);
+      cmd_list->draw_indexed(cornell_box_indicies_.size());
     }
     // Draw mesh
     {
@@ -473,11 +514,10 @@ class FemApp {
     device_->dealloc_memory(devalloc_alpha_scalar_);
     device_->dealloc_memory(devalloc_b_eta_scalar_);
 
+    device_->dealloc_memory(devalloc_box_indices_);
+    device_->dealloc_memory(devalloc_box_verts_);
     device_->dealloc_memory(render_constants_);
     device_->destroy_image(depth_allocation_);
-
-    vulkan_runtime_ = nullptr;
-    embedded_device_ = nullptr;
   }
 
  private:
@@ -518,6 +558,9 @@ class FemApp {
   std::unique_ptr<taichi::lang::aot::Module> module_{nullptr};
   ImplicitFemKernels loaded_kernels_;
   taichi::lang::RuntimeContext host_ctx_;
+
+  std::vector<ColorVertex> cornell_box_vertices_;
+  std::vector<int> cornell_box_indicies_;
 
   int width_{0};
   int height_{0};
