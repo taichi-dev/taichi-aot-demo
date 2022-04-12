@@ -26,6 +26,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -136,44 +137,49 @@ public class VKSurfaceView extends SurfaceView implements SurfaceHolder.Callback
             }
         }
 
-
-        private void copyAssets(String shadersRoot) {
+        private void copyAssetsDir(String assetRoot) {
             AssetManager assetManager = mContext.getAssets();
-            String[] files = null;
-//            String shadersRoot = "shaders/aot/implicit_fem/";
+            File dstDir = new File(mContext.getExternalCacheDir().getAbsolutePath() + "/" + assetRoot);
+            if (!dstDir.exists()) {
+                dstDir.mkdirs();
+            }
             try {
-                files = assetManager.list(shadersRoot);
+                String[] fileList = assetManager.list(assetRoot);
+                for (int i = 0; i < fileList.length; ++i) {
+                    String fileName = fileList[i];
+                    InputStream sourceStream = null;
+                    try {
+                        sourceStream = assetManager.open(assetRoot + '/' + fileName);
+                    } catch(IOException e) {
+                        copyAssetsDir(assetRoot + '/' + fileName);
+                        continue;
+                    }
+                    copyAssetFile(sourceStream, dstDir, fileName);
+                }
             } catch (IOException e) {
                 Log.e("tag", "Failed to get asset file list.", e);
             }
-            if (files != null) for (String filename : files) {
-                InputStream in = null;
-                OutputStream out = null;
-                try {
-                    in = assetManager.open(shadersRoot + filename);
-                    File outDir = new File(mContext.getExternalCacheDir().getAbsolutePath() + "/" + shadersRoot);
-                    outDir.mkdirs();
-                    File outFile = new File(outDir.getAbsolutePath(), filename);
-                    out = new FileOutputStream(outFile);
-                    copyFile(in, out);
-                } catch(IOException e) {
-                    Log.e("tag", "Failed to copy asset file: " + filename, e);
+        }
+
+        private void copyAssetFile(InputStream sourceStream, File destinationDirectory, String fileName) throws IOException {
+            File outFile = new File(destinationDirectory.getAbsolutePath(), fileName);
+            OutputStream out = null;
+            try {
+                out = new FileOutputStream(outFile);
+                copyFile(sourceStream, out);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            finally {
+                if (sourceStream != null) {
+                    try {
+                        sourceStream.close();
+                    } catch (IOException e) {}
                 }
-                finally {
-                    if (in != null) {
-                        try {
-                            in.close();
-                        } catch (IOException e) {
-                            // NOOP
-                        }
-                    }
-                    if (out != null) {
-                        try {
-                            out.close();
-                        } catch (IOException e) {
-                            // NOOP
-                        }
-                    }
+                if (out != null) {
+                    try {
+                        out.close();
+                    } catch (IOException e) {}
                 }
             }
         }
@@ -217,9 +223,9 @@ public class VKSurfaceView extends SurfaceView implements SurfaceHolder.Callback
                                 // In case of OpenGL, no need to create a GLSurfaceView here, we can do it in the
                                 // native code
 
-                                copyAssets("shaders/aot/implicit_fem/");
-                                copyAssets("shaders/render/");
-
+//                                copyAssets("shaders/aot/implicit_fem/");
+//                                copyAssets("shaders/render/");
+                                copyAssetsDir("shaders");
                                 NativeLib.init(mContext.getAssets(), mHolder.getSurface(), mContext.getExternalCacheDir().getAbsolutePath());
 
                                 changed = true;
