@@ -28,13 +28,13 @@ FemApp *app;
 extern "C" JNIEXPORT void JNICALL
 Java_com_taichigraphics_aot_1demos_implicit_1fem_NativeLib_init(JNIEnv *env, jclass,
                                                         jobject assets,
-                                                        jobject surface) {
+                                                        jobject surface, jstring external_dir) {
   native_window = ANativeWindow_fromSurface(env, surface);
 
   app = new FemApp();
   app->run_init(
       /*width=*/ANativeWindow_getWidth(native_window),
-      /*height=*/ANativeWindow_getHeight(native_window), "/data/local/tmp/",
+      /*height=*/ANativeWindow_getHeight(native_window), "/storage/emulated/0/Android/data/com.taichigraphics.aot_demos.implicit_fem/cache/",
       native_window);
 #if 0
   // Sanity check to make sure the shaders are running properly, we should have
