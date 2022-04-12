@@ -1,6 +1,8 @@
 // BEGIN_INCLUDE(all)
 #include <android/log.h>
+#include <android/sensor.h>
 #include <android_native_app_glue.h>
+// #include <hardware/sensors.h>
 #include <errno.h>
 #include <jni.h>
 
@@ -22,6 +24,7 @@
 struct engine {
   struct android_app *app{nullptr};
   std::unique_ptr<FemApp> fem{nullptr};
+  ASensorVector gravity;
   bool init{false};
 };
 
@@ -34,6 +37,9 @@ static int engine_init_display(struct engine *engine) {
       /*width=*/ANativeWindow_getWidth(window),
       /*height=*/ANativeWindow_getHeight(window), "/data/local/tmp/", window);
   engine->init = true;
+  engine->gravity.x = 0;
+  engine->gravity.y = -9.8f;
+  engine->gravity.z = 0;
 
   return 0;
 }
@@ -46,7 +52,8 @@ static void engine_draw_frame(struct engine *engine) {
     // No display.
     return;
   }
-  engine->fem->run_render_loop();
+  engine->fem->run_render_loop(engine->gravity.x, engine->gravity.y,
+                               engine->gravity.z);
 }
 
 static void engine_term_display(struct engine *engine) {
@@ -85,16 +92,41 @@ void android_main(struct android_app *state) {
   state->onInputEvent = engine_handle_input;
   engine.app = state;
 
-  while (1) {
-    // Read all pending events.
-    int ident;
-    int events;
-    struct android_poll_source *source;
+  ASensorManager *sensor_manager = ASensorManager_getInstanceForPackage(
+      "com.taichigraphics.aot_demos.implicit_fem");
+  if (!sensor_manager) {
+    fprintf(stderr, "Failed to get a sensor manager\n");
+    return;
+  }
+  ASensorList sensor_list;
+  int sensor_count = ASensorManager_getSensorList(sensor_manager, &sensor_list);
+  ALOGI("Found %d sensors\n", sensor_count);
+  for (int i = 0; i < sensor_count; i++) {
+    ALOGI("Found %s\n", ASensor_getName(sensor_list[i]));
+  }
+  constexpr int kLooperId = 1;
+  ASensorEventQueue *queue = ASensorManager_createEventQueue(
+      sensor_manager, ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS),
+      kLooperId, NULL /* no callback */, NULL /* no data */);
+  if (!queue) {
+    fprintf(stderr, "Failed to create a sensor event queue\n");
+    return;
+  }
 
-    // If not animating, we will block forever waiting for events.
-    // If animating, we loop until all events are read, then continue
-    // to draw the next frame of animation.
-    while ((ident = ALooper_pollAll(0, NULL, &events, (void **)&source)) >= 0) {
+  while (1) {
+    const ASensor *sensor = ASensorManager_getDefaultSensor(
+        sensor_manager, ASENSOR_TYPE_ACCELEROMETER);
+
+    if (sensor && !ASensorEventQueue_enableSensor(queue, sensor)) {
+      // Read all pending events.
+      int ident;
+      int events;
+      struct android_poll_source *source;
+
+      // If not animating, we will block forever waiting for events.
+      // If animating, we loop until all events are read, then continue
+      // to draw the next frame of animation.
+      ident = ALooper_pollAll(5, NULL, &events, (void **)&source);
       // Process this event.
       ALOGI("ident=%d", ident);
       if (source != NULL) {
@@ -106,7 +138,19 @@ void android_main(struct android_app *state) {
         engine_term_display(&engine);
         return;
       }
+      if (ident == kLooperId) {
+        ASensorEvent data;
+        constexpr int kNumEvents = 1;
+        if (ASensorEventQueue_getEvents(queue, &data, kNumEvents)) {
+          const auto accl = data.acceleration;
+          ALOGI("Acceleration: x = %f, y = %f, z = %f\n", accl.x, accl.y,
+                accl.z);
+          engine.gravity = accl;
+        }
+      }
+      // ASensorEventQueue_disableSensor(queue, sensor);
     }
+
     ALOGI("loop");
 
     engine_draw_frame(&engine);
