@@ -26,7 +26,7 @@ def intersect_scene(pos, dir):
         albedo = ti.Vector([0.8, 0.1, 0.03])
         t = d
         hit_norm = ti.Vector([1.0, 0.0, 0.0])
-    
+
     # Right wall
     d, hit_p = intersect_plane(pos, dir, ti.Vector([1.0, 0.0, 0.0]), ti.Vector([-1.0, 0.0, 0.0]))
     if d > 1e-5 and d < t and hit_p.y >= -1.0 and hit_p.y <= 1.0 and hit_p.z >= -1.0 and hit_p.z <= 1.0:
@@ -57,7 +57,7 @@ def intersect_scene(pos, dir):
         albedo = ti.Vector([0.7, 0.7, 0.7])
         t = d
         hit_norm = ti.Vector([0.0, 0.0, 1.0])
-    
+
     return t, albedo, emissive, hit_norm
 
 @ti.func
@@ -107,7 +107,7 @@ def integrate(pos, dir):
         pos = hit_p
         dir = cosine_weighted_hemisphere(hit_norm)
         pos = pos + hit_norm * 1e-5
-    
+
     return throughput * Lin
 
 res = (512, 512)
@@ -215,25 +215,25 @@ def bake_sh(sh : ti.template()):
         for s in range(100):
             dir = cosine_weighted_hemisphere(sphere_norm)
             radiance += integrate(ti.Vector([0.0, 0.0, 0.0]), dir)
-        
+
         radiance *= 0.01
 
         # if radiance.x > 10.0:
         #     radiance *= 0.0
 
         sh[0] += radiance * sh_l0()
-        
+
         sh[1] += radiance * sh_l1_y0(sphere_norm)
         sh[2] += radiance * sh_l1_y1(sphere_norm)
         sh[3] += radiance * sh_l1_y2(sphere_norm)
-        
+
         sh[4] += radiance * sh_l2_y0(sphere_norm)
         sh[5] += radiance * sh_l2_y1(sphere_norm)
         sh[6] += radiance * sh_l2_y2(sphere_norm)
         sh[7] += radiance * sh_l2_y3(sphere_norm)
         sh[8] += radiance * sh_l2_y4(sphere_norm)
 
-    
+
 window = ti.ui.Window(name="cornell box", res=res)
 canvas = window.get_canvas()
 # Scene integrate
@@ -310,7 +310,7 @@ code += gen_code(down_sample_walls.to_numpy().reshape(32 * 32, 3))
 
 code += "};"
 
-cfile = open("box_color_data.h", "wt")
+cfile = open("../include/box_color_data.h", "wt")
 cfile.write(code)
 cfile.close()
 
