@@ -1,15 +1,14 @@
-#include <android/asset_manager.h>
-#include <android/asset_manager_jni.h>
+// BEGIN_INCLUDE(all)
 #include <android/log.h>
-#include <android/looper.h>
-#include <android/native_window_jni.h>
-#include <assert.h>
+#include <android_native_app_glue.h>
+#include <errno.h>
 #include <jni.h>
-#include <stdint.h>
 
-#include <chrono>
-#include <map>
-#include <vector>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
+#include <initializer_list>
+#include <memory>
 
 #include "fem_app.h"
 
@@ -20,66 +19,97 @@
   ((void)__android_log_print(ANDROID_LOG_ERROR, "TaichiTest", "%s: " fmt, \
                              __FUNCTION__, ##__VA_ARGS__))
 
-//#define ONLY_INIT
+struct engine {
+  struct android_app *app{nullptr};
+  std::unique_ptr<FemApp> fem{nullptr};
+  bool init{false};
+};
 
-ANativeWindow *native_window;
-FemApp *app;
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_taichigraphics_aot_1demos_implicit_1fem_NativeLib_init(JNIEnv *env, jclass,
-                                                        jobject assets,
-                                                        jobject surface) {
-  native_window = ANativeWindow_fromSurface(env, surface);
-
-  app = new FemApp();
-  app->run_init(
-      /*width=*/ANativeWindow_getWidth(native_window),
-      /*height=*/ANativeWindow_getHeight(native_window), "/data/local/tmp/",
-      native_window);
-#if 0
-  // Sanity check to make sure the shaders are running properly, we should have
-  // the same float values as the python scripts aot->get_field("x");
-  float x[10];
-  vulkan_runtime->synchronize();
-  vulkan_runtime->read_memory((uint8_t *)x, 0, 5 * 2 * sizeof(taichi::float32));
-
-  for (int i = 0; i < 10; i += 2) {
-    ALOGI("[%f, %f]\n", x[i], x[i + 1]);
+static int engine_init_display(struct engine *engine) {
+  if (!engine->fem) {
+    engine->fem = std::make_unique<FemApp>();
   }
-#endif
+  auto *window = engine->app->window;
+  engine->fem->run_init(
+      /*width=*/ANativeWindow_getWidth(window),
+      /*height=*/ANativeWindow_getHeight(window), "/data/local/tmp/", window);
+  engine->init = true;
+
+  return 0;
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_taichigraphics_aot_1demos_implicit_1fem_NativeLib_destroy(JNIEnv *env, jclass,
-                                                           jobject surface) {
-  app->cleanup();
-  delete app;
+/**
+ * Just the current frame in the display.
+ */
+static void engine_draw_frame(struct engine *engine) {
+  if (!engine->init) {
+    // No display.
+    return;
+  }
+  engine->fem->run_render_loop();
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_taichigraphics_aot_1demos_implicit_1fem_NativeLib_pause(JNIEnv *env, jclass,
-                                                         jobject surface) {}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_taichigraphics_aot_1demos_implicit_1fem_NativeLib_resume(JNIEnv *env, jclass,
-                                                          jobject surface) {}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_taichigraphics_aot_1demos_implicit_1fem_NativeLib_resize(JNIEnv *, jclass,
-                                                          jobject, jint width,
-                                                          jint height) {
-  ALOGI("Resize requested for %dx%d", width, height);
+static void engine_term_display(struct engine *engine) {
+  // @TODO: to implement
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_taichigraphics_aot_1demos_implicit_1fem_NativeLib_render(JNIEnv *env, jclass,
-                                                          jobject surface,
-                                                          float g_x, float g_y,
-                                                          float g_z) {
-  ALOGI("Acceleration: g_x = %f, g_y = %f, g_z = %f", g_x, g_y, g_z);
-  float a_x = g_x > 2 || g_x < -2 ? -g_x * 8 : 0;
-  float a_y = g_y > 2 || g_y < -2 ? -g_y * 8 : 0;
-  float a_z = g_z > 2 || g_z < -2 ? -g_z * 8 : 0;
-
-  app->run_render_loop(a_x, a_y, a_z);
+static int32_t engine_handle_input(struct android_app *app,
+                                   AInputEvent *event) {
+  // Implement input with Taichi Kernel
+  return 0;
 }
+
+static void engine_handle_cmd(struct android_app *app, int32_t cmd) {
+  struct engine *engine = (struct engine *)app->userData;
+  switch (cmd) {
+    case APP_CMD_INIT_WINDOW:
+      // The window is being shown, get it ready.
+      if (engine->app->window != NULL) {
+        engine_init_display(engine);
+        engine_draw_frame(engine);
+      }
+      break;
+    case APP_CMD_TERM_WINDOW:
+      // The window is being hidden or closed, clean it up.
+      engine_term_display(engine);
+      break;
+  }
+}
+
+void android_main(struct android_app *state) {
+  struct engine engine;
+
+  memset(&engine, 0, sizeof(engine));
+  state->userData = &engine;
+  state->onAppCmd = engine_handle_cmd;
+  state->onInputEvent = engine_handle_input;
+  engine.app = state;
+
+  while (1) {
+    // Read all pending events.
+    int ident;
+    int events;
+    struct android_poll_source *source;
+
+    // If not animating, we will block forever waiting for events.
+    // If animating, we loop until all events are read, then continue
+    // to draw the next frame of animation.
+    while ((ident = ALooper_pollAll(0, NULL, &events, (void **)&source)) >= 0) {
+      // Process this event.
+      ALOGI("ident=%d", ident);
+      if (source != NULL) {
+        source->process(state, source);
+      }
+
+      // Check if we are exiting.
+      if (state->destroyRequested != 0) {
+        engine_term_display(&engine);
+        return;
+      }
+    }
+    ALOGI("loop");
+
+    engine_draw_frame(&engine);
+  }
+}
+// END_INCLUDE(all)

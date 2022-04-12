@@ -1,17 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.taichigraphics.aot_demos.implicit_fem">
 
-    <application
-        android:allowBackup="false"
-        android:fullBackupContent="false"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools"
+          package="com.taichigraphics.aot_demos.implicit_fem">
+
+        <!-- This .apk has no Java code itself, so set hasCode to false. -->
+        <application
+            android:allowBackup="false"
+            android:fullBackupContent="false"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:supportsRtl="true"
+            android:hasCode="false">
+
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            tools:node="remove" />
 
         <activity
-            android:name="com.taichigraphics.aot_demos.implicit_fem.MainActivity"
+            android:name="android.app.NativeActivity"
             android:exported="true"
             android:theme="@style/AppTheme">
+            <!-- Tell NativeActivity the name of our .so -->
+            <meta-data android:name="android.app.lib_name"
+                        android:value="taichi-implicit-fem" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
