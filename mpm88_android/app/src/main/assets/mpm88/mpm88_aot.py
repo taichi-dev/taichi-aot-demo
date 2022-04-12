@@ -98,6 +98,6 @@ def init(pos: ti.any_arr(element_dim=1)):
 #    gui.show()
 
 m = ti.aot.Module(ti.vulkan)
-m.add_kernel(init, (pos, ))
-m.add_kernel(substep, (pos, ))
+m.add_kernel(init, {'pos': pos, })
+m.add_kernel(substep, {'pos': pos, })
 m.save('.', 'mpm88')
