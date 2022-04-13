@@ -38,6 +38,7 @@ density = 1000.0
 epsilon = 1e-5
 dt = 7.5e-3
 num_substeps = int(2e-2 / dt + 0.5)
+aspect_ratio = 2.0
 
 x = ti.Vector.ndarray(args.dim, dtype=ti.f32, shape=n_verts)
 v = ti.Vector.ndarray(args.dim, dtype=ti.f32, shape=n_verts)
@@ -281,14 +282,15 @@ def init(x: ti.types.ndarray(), v: ti.types.ndarray(), f: ti.types.ndarray(),
 
 @ti.kernel
 def floor_bound(x: ti.types.ndarray(), v: ti.types.ndarray()):
+    bounds = ti.Vector([1, aspect_ratio, 1])
     for u in x:
         for i in ti.static(range(3)):
-            if x[u][i] < -1:
-                x[u][i] = -1
+            if x[u][i] < -bounds[i]:
+                x[u][i] = -bounds[i]
                 if v[u][i] < 0:
                     v[u][i] = 0
-            if x[u][i] > 1:
-                x[u][i] = 1
+            if x[u][i] > bounds[i]:
+                x[u][i] = bounds[i]
                 if v[u][i] > 0:
                     v[u][i] = 0
 
@@ -374,7 +376,7 @@ def convert_to_field(x: ti.types.ndarray(), y: ti.template()):
 
 
 def run_ggui():
-    res = (800, 600)
+    res = (800, 800*aspect_ratio)
     window = ti.ui.Window("Implicit FEM", res, vsync=True)
 
     canvas = window.get_canvas()

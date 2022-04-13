@@ -434,7 +434,7 @@ class FemApp {
 #ifdef ANDROID
     constexpr float kCameraZ = 4.8f;
 #else
-    constexpr float kCameraZ = 3.0f;
+    constexpr float kCameraZ = 4.8f;
 #endif
     constants->view = glm::lookAt(glm::vec3(0.0, 0.0, kCameraZ),
                                   glm::vec3(0, 0, 0), glm::vec3(0, 1.0, 0));
