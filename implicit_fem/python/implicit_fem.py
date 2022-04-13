@@ -376,7 +376,7 @@ def convert_to_field(x: ti.types.ndarray(), y: ti.template()):
 
 
 def run_ggui():
-    res = (800, 800*aspect_ratio)
+    res = (600, int(600*aspect_ratio))
     window = ti.ui.Window("Implicit FEM", res, vsync=True)
 
     canvas = window.get_canvas()
