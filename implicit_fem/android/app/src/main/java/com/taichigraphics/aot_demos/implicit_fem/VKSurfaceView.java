@@ -21,8 +21,16 @@ import android.content.res.AssetManager;
 import android.view.SurfaceHolder;
 import android.view.Surface;
 import android.view.SurfaceView;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class VKSurfaceView extends SurfaceView implements SurfaceHolder.Callback2 {
     private static final String TAG = "VKSurfaceView";
@@ -102,7 +110,7 @@ public class VKSurfaceView extends SurfaceView implements SurfaceHolder.Callback
         private boolean mWaitingForSurface;
         private boolean mSizeChanged;
         private boolean mPaused;
-
+        private String[] assetPaths;
         RendererThread(@NonNull final Context context) {
             super();
 
@@ -128,6 +136,62 @@ public class VKSurfaceView extends SurfaceView implements SurfaceHolder.Callback
                 sRendererThreadManager.threadExiting(this);
             }
         }
+
+        private void copyAssetsDir(String assetRoot) {
+            AssetManager assetManager = mContext.getAssets();
+            File dstDir = new File(mContext.getExternalCacheDir().getAbsolutePath() + "/" + assetRoot);
+            if (!dstDir.exists()) {
+                dstDir.mkdirs();
+            }
+            try {
+                String[] fileList = assetManager.list(assetRoot);
+                for (int i = 0; i < fileList.length; ++i) {
+                    String fileName = fileList[i];
+                    InputStream sourceStream = null;
+                    try {
+                        sourceStream = assetManager.open(assetRoot + '/' + fileName);
+                    } catch(IOException e) {
+                        copyAssetsDir(assetRoot + '/' + fileName);
+                        continue;
+                    }
+                    copyAssetFile(sourceStream, dstDir, fileName);
+                }
+            } catch (IOException e) {
+                Log.e("tag", "Failed to get asset file list.", e);
+            }
+        }
+
+        private void copyAssetFile(InputStream sourceStream, File destinationDirectory, String fileName) throws IOException {
+            File outFile = new File(destinationDirectory.getAbsolutePath(), fileName);
+            OutputStream out = null;
+            try {
+                out = new FileOutputStream(outFile);
+                copyFile(sourceStream, out);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            finally {
+                if (sourceStream != null) {
+                    try {
+                        sourceStream.close();
+                    } catch (IOException e) {}
+                }
+                if (out != null) {
+                    try {
+                        out.close();
+                    } catch (IOException e) {}
+                }
+            }
+        }
+
+        private void copyFile(InputStream in, OutputStream out) throws IOException {
+            byte[] buffer = new byte[1024];
+            int read;
+            while((read = in.read(buffer)) != -1){
+                out.write(buffer, 0, read);
+            }
+        }
+
 
         private void guardedRun() throws InterruptedException {
             while (!isDone()) {
@@ -158,7 +222,11 @@ public class VKSurfaceView extends SurfaceView implements SurfaceHolder.Callback
                                 // Create VK/GL Context in native library by passing the Native Window (Surface)
                                 // In case of OpenGL, no need to create a GLSurfaceView here, we can do it in the
                                 // native code
-                                NativeLib.init(mContext.getAssets(), mHolder.getSurface());
+
+//                                copyAssets("shaders/aot/implicit_fem/");
+//                                copyAssets("shaders/render/");
+                                copyAssetsDir("shaders");
+                                NativeLib.init(mContext.getAssets(), mHolder.getSurface(), mContext.getExternalCacheDir().getAbsolutePath());
 
                                 changed = true;
                                 mWaitingForSurface = false;
@@ -269,7 +337,7 @@ class NativeLib {
         System.loadLibrary("taichi-implicit-fem");
     }
 
-    public static native void init(AssetManager assets, Surface surface);
+    public static native void init(AssetManager assets, Surface surface, String external_dir);
     public static native void destroy(Surface surface);
     public static native void pause(Surface surface);
     public static native void resume(Surface surface);
