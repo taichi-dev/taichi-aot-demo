@@ -17,6 +17,7 @@
 constexpr float DT = 7.5e-3;
 constexpr int NUM_SUBSTEPS = 2;
 constexpr int CG_ITERS = 8;
+constexpr float ASPECT_RATIO = 2.0f;
 
 void load_data(taichi::lang::vulkan::VkRuntime* vulkan_runtime,
                taichi::lang::DeviceAllocation& alloc, const void* data,
@@ -32,13 +33,17 @@ struct ColorVertex {
   glm::vec3 color;
 };
 
-void build_wall(int face, std::vector<ColorVertex> &vertices, std::vector<int> &indices, glm::vec3 axis_x, glm::vec3 axis_y, glm::vec3 base) {
+void build_wall(int face, std::vector<ColorVertex>& vertices,
+                std::vector<int>& indices, glm::vec3 axis_x, glm::vec3 axis_y,
+                glm::vec3 base) {
   int base_vertex = int(vertices.size());
 
   for (int j = 0; j < 32; j++) {
     for (int i = 0; i < 32; i++) {
-      glm::vec3 pos = base + axis_x * ((float(i) / 31.0f) * 2.0f - 1.0f) + axis_y * ((float(j) / 31.0f) * 2.0f - 1.0f);
-      vertices.push_back(ColorVertex{ pos, box_color_data[face][i + j * 32] });
+      glm::vec3 pos = base + axis_x * ((float(i) / 31.0f) * 2.0f - 1.0f) +
+                      axis_y * ((float(j) / 31.0f) * 2.0f - 1.0f);
+      pos.y *= ASPECT_RATIO;
+      vertices.push_back(ColorVertex{pos, box_color_data[face][i + j * 32]});
     }
   }
 
@@ -229,16 +234,26 @@ class FemApp {
     vulkan_runtime_->synchronize();
 
     {
-      build_wall(0, cornell_box_vertices_, cornell_box_indicies_, glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0), glm::vec3(-1.0, 0.0, 0.0));
-      build_wall(1, cornell_box_vertices_, cornell_box_indicies_, glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0, 0.0, 0.0));
-      build_wall(2, cornell_box_vertices_, cornell_box_indicies_, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-      build_wall(3, cornell_box_vertices_, cornell_box_indicies_, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
-      build_wall(4, cornell_box_vertices_, cornell_box_indicies_, glm::vec3(0.0, 1.0, 0.0), glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, 0.0, -1.0));
+      build_wall(0, cornell_box_vertices_, cornell_box_indicies_,
+                 glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
+                 glm::vec3(-1.0, 0.0, 0.0));
+      build_wall(1, cornell_box_vertices_, cornell_box_indicies_,
+                 glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
+                 glm::vec3(1.0, 0.0, 0.0));
+      build_wall(2, cornell_box_vertices_, cornell_box_indicies_,
+                 glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0, 0.0, 0.0),
+                 glm::vec3(0.0, 1.0, 0.0));
+      build_wall(3, cornell_box_vertices_, cornell_box_indicies_,
+                 glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0, 0.0, 0.0),
+                 glm::vec3(0.0, -1.0, 0.0));
+      build_wall(4, cornell_box_vertices_, cornell_box_indicies_,
+                 glm::vec3(0.0, 1.0, 0.0), glm::vec3(1.0, 0.0, 0.0),
+                 glm::vec3(0.0, 0.0, -1.0));
     }
 
     {
-      auto vert_code = taichi::ui::read_file(
-          path_prefix + "/shaders/render/box.vert.spv");
+      auto vert_code =
+          taichi::ui::read_file(path_prefix + "/shaders/render/box.vert.spv");
       auto frag_code =
           taichi::ui::read_file(path_prefix + "/shaders/render/box.frag.spv");
 
@@ -276,9 +291,11 @@ class FemApp {
       alloc_params.size = sizeof(int) * cornell_box_indicies_.size();
       alloc_params.usage = taichi::lang::AllocUsage::Index;
       devalloc_box_indices_ = device_->allocate_memory(alloc_params);
-      load_data(vulkan_runtime_.get(), devalloc_box_verts_, cornell_box_vertices_.data(),
+      load_data(vulkan_runtime_.get(), devalloc_box_verts_,
+                cornell_box_vertices_.data(),
                 sizeof(ColorVertex) * cornell_box_vertices_.size());
-      load_data(vulkan_runtime_.get(), devalloc_box_indices_, cornell_box_indicies_.data(),
+      load_data(vulkan_runtime_.get(), devalloc_box_indices_,
+                cornell_box_indicies_.data(),
                 sizeof(int) * cornell_box_indicies_.size());
     }
     {
@@ -434,7 +451,7 @@ class FemApp {
 #ifdef ANDROID
     constexpr float kCameraZ = 4.8f;
 #else
-    constexpr float kCameraZ = 3.0f;
+    constexpr float kCameraZ = 4.8f;
 #endif
     constants->view = glm::lookAt(glm::vec3(0.0, 0.0, kCameraZ),
                                   glm::vec3(0, 0, 0), glm::vec3(0, 1.0, 0));
