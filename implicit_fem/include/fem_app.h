@@ -432,7 +432,7 @@ class FemApp {
         glm::radians(55.0f), float(width_) / float(height_), 0.1f, 10.0f);
     constants->proj[1][1] *= -1.0f;
 #ifdef ANDROID
-    constexpr float kCameraZ = 4.8f;
+    constexpr float kCameraZ = 4.85f;
 #else
     constexpr float kCameraZ = 3.0f;
 #endif
