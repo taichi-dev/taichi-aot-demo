@@ -18,7 +18,7 @@ int main() {
   }
 
   FemApp app;
-  app.run_init(/*width=*/512, /*height=*/512, "../../", window);
+  app.run_init(/*width=*/512, /*height=*/512, "../../android/app/src/main/assets", window);
 
   while (!glfwWindowShouldClose(window)) {
     app.run_render_loop();

@@ -304,7 +304,7 @@ def run_aot():
     if cwd != SCRIPT_PATH:
         raise RuntimeError(
             f'AOT must be done in the script path {SCRIPT_PATH}')
-    dir_name = os.path.join('..', 'shaders', 'aot', 'implicit_fem')
+    dir_name = os.path.join('..', 'android/app/src/main/assets', 'shaders', 'aot', 'implicit_fem')
     shutil.rmtree(dir_name, ignore_errors=True)
     pathlib.Path(dir_name).mkdir(parents=True, exist_ok=False)
 
