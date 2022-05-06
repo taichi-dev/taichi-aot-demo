@@ -35,7 +35,7 @@ If you are building Taichi with custom changes, make sure to copy the prebuilt `
 export TAICHI_REPO_DIR=/path/github/taichi/
 export ANDROID_SDK_ROOT=/path/to/Andriod/Sdk
 cd android
-ln -s ${TAICHI_REPO_DIR}/build/libtaichi_export_core.so app/src/main/jniLibs/arm64-v8a/
+ln -s ${TAICHI_REPO_DIR}/_skbuild/linux-x86_64-3.8/cmake-build/libtaichi_export_core.so app/src/main/jniLibs/arm64-v8a/
 ./gradlew assembleDebug
 adb install ./app/build/outputs/apk/debug/app-debug.apk
 ```

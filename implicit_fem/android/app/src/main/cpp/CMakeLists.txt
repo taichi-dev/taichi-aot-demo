@@ -15,6 +15,16 @@ else()
   message(FATAL_ERROR "Please copy libtaichi_export_core.so to ${JNILIBS_PATH}")
 endif()
 
+# build native_app_glue as a static lib
+set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
+add_library(native_app_glue STATIC
+    ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
+
+# Export ANativeActivity_onCreate(),
+# Refer to: https://github.com/android-ndk/ndk/issues/381.
+set(CMAKE_SHARED_LINKER_FLAGS
+    "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
+
 add_library(taichi-implicit-fem SHARED implicit_fem.cpp)
 
 target_compile_options(taichi-implicit-fem PUBLIC -Wall -Wextra -std=c++17 -DTI_WITH_VULKAN -DTI_INCLUDED)
@@ -31,5 +41,6 @@ target_include_directories(taichi-implicit-fem PUBLIC ${TAICHI_REPO_DIR}/externa
 target_include_directories(taichi-implicit-fem PUBLIC ${TAICHI_REPO_DIR}/external/spdlog/include/)
 target_include_directories(taichi-implicit-fem PUBLIC ${TAICHI_REPO_DIR}/external/VulkanMemoryAllocator/include/)
 target_include_directories(taichi-implicit-fem PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../include/)
+target_include_directories(taichi-implicit-fem PUBLIC ${ANDROID_NDK}/sources/android/native_app_glue)
 
-target_link_libraries(taichi-implicit-fem android log m vulkan taichi_export_core)
+target_link_libraries(taichi-implicit-fem android log m vulkan taichi_export_core native_app_glue)
