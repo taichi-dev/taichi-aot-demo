@@ -27,7 +27,7 @@
 #include "taichi/backends/vulkan/vulkan_program.h"
 #include "taichi/backends/vulkan/vulkan_common.h"
 #include "taichi/backends/vulkan/vulkan_loader.h"
-#include "taichi/backends/vulkan/runtime.h"
+#include "taichi/runtime/runtime.h"
 #include "taichi/backends/vulkan/aot_module_loader_impl.h"
 
 #include "taichi/ui/backends/vulkan/app_context.h"
