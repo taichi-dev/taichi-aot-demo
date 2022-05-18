@@ -1,5 +1,15 @@
 cmake_minimum_required(VERSION 3.8)
 
+project(implicit_fem)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+find_library(log-lib log)
+find_library(android-lib android)
+find_package(Vulkan)
+
+
 if (NOT DEFINED ENV{TAICHI_REPO_DIR})
     message(FATAL_ERROR "TAICHI_REPO_DIR not set")
 endif()
@@ -9,11 +19,6 @@ set(TAICHI_REPO_DIR $ENV{TAICHI_REPO_DIR})
 # build main native library
 set(JNILIBS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/)
 
-if (EXISTS "${JNILIBS_PATH}/libtaichi_export_core.so")
-  link_directories(${JNILIBS_PATH})
-else()
-  message(FATAL_ERROR "Please copy libtaichi_export_core.so to ${JNILIBS_PATH}")
-endif()
 
 # build native_app_glue as a static lib
 set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
@@ -27,7 +32,17 @@ set(CMAKE_SHARED_LINKER_FLAGS
 
 add_library(taichi-implicit-fem SHARED implicit_fem.cpp)
 
-target_compile_options(taichi-implicit-fem PUBLIC -Wall -Wextra -std=c++17 -DTI_WITH_VULKAN -DTI_INCLUDED)
+
+set(TI_WITH_VULKAN ON)
+set(TI_WITH_OPENGL OFF)
+set(TI_WITH_LLVM OFF)
+set(TI_WITH_CC OFF)
+set(TI_WITH_PYTHON OFF)
+set(TI_EXPORT_CORE ON)
+add_subdirectory(${TAICHI_REPO_DIR} taichi)
+
+
+target_compile_options(taichi-implicit-fem PUBLIC -Wall -Wextra -DTI_WITH_VULKAN -DTI_INCLUDED)
 
 target_include_directories(taichi-implicit-fem PUBLIC ${TAICHI_REPO_DIR}/)
 target_include_directories(taichi-implicit-fem PUBLIC ${TAICHI_REPO_DIR}/taichi/backends/vulkan)
@@ -43,4 +58,4 @@ target_include_directories(taichi-implicit-fem PUBLIC ${TAICHI_REPO_DIR}/externa
 target_include_directories(taichi-implicit-fem PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../include/)
 target_include_directories(taichi-implicit-fem PUBLIC ${ANDROID_NDK}/sources/android/native_app_glue)
 
-target_link_libraries(taichi-implicit-fem android log m vulkan taichi_export_core native_app_glue)
+target_link_libraries(taichi-implicit-fem android log m Vulkan native_app_glue taichi_isolated_core)
