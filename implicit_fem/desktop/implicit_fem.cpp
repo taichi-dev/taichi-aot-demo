@@ -1,6 +1,5 @@
 #include <inttypes.h>
 #include <signal.h>
-#include <unistd.h>
 
 #include <iostream>
 

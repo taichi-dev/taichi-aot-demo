@@ -2,3 +2,6 @@
 taichi-vk-launcher
 *.spv
 build
+
+/taichi/common/version.h
+/taichi/common/commit_hash.h
