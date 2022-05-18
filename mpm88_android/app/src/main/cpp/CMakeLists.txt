@@ -1,22 +1,19 @@
-#
-# Copyright (C) The Android Open Source Project
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+cmake_minimum_required(VERSION 3.8)
 
-cmake_minimum_required(VERSION 3.10.2)
+if (NOT DEFINED ENV{TAICHI_REPO_DIR})
+    message(FATAL_ERROR "TAICHI_REPO_DIR not set")
+endif()
 
-get_filename_component(root-dir ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../taichi/ ABSOLUTE)
+set(TAICHI_REPO_DIR $ENV{TAICHI_REPO_DIR})
+
+# build main native library
+set(JNILIBS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/)
+
+if (EXISTS "${JNILIBS_PATH}/libtaichi_export_core.so")
+  link_directories(${JNILIBS_PATH})
+else()
+  message(FATAL_ERROR "Please copy libtaichi_export_core.so to ${JNILIBS_PATH}")
+endif()
 
 # build native_app_glue as a static lib
 set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
@@ -30,31 +27,20 @@ set(CMAKE_SHARED_LINKER_FLAGS
 
 add_library(native-activity SHARED main.cpp)
 
-# Taichi build configuration
-include_directories(${root-dir})
-include_directories(${root-dir}/external/spdlog/include/)
-include_directories(${root-dir}/external/SPIRV-Tools/include/)
-include_directories(${root-dir}/external/volk/)
-include_directories(${root-dir}/external/VulkanMemoryAllocator/include/)
-include_directories(${root-dir}/external/Vulkan-Headers/include/)
-include_directories(${root-dir}/external/glm/)
-include_directories(${root-dir}/external/eigen/)
-include_directories(${root-dir}/taichi/ui/backends/vulkan/)
-include_directories(${root-dir}/taichi/backends/vulkan/)
-include_directories(${root-dir}/external/imgui/)
-include_directories(${root-dir}/external/imgui/backends/)
-target_compile_features(native-activity PUBLIC cxx_std_17)
-target_compile_options(native-activity PUBLIC -DTI_WITH_VULKAN -DTI_INCLUDED)
+target_compile_options(native-activity PUBLIC -Wall -Wextra -std=c++17 -DTI_WITH_VULKAN -DTI_INCLUDED)
 
-target_include_directories(native-activity PRIVATE
-    ${ANDROID_NDK}/sources/android/native_app_glue)
+target_include_directories(native-activity PUBLIC ${TAICHI_REPO_DIR}/)
+target_include_directories(native-activity PUBLIC ${TAICHI_REPO_DIR}/taichi/backends/vulkan)
+target_include_directories(native-activity PUBLIC ${TAICHI_REPO_DIR}/external/Vulkan-Headers/include/)
+target_include_directories(native-activity PUBLIC ${TAICHI_REPO_DIR}/external/SPIRV-Tools/include/)
+target_include_directories(native-activity PUBLIC ${TAICHI_REPO_DIR}/external/volk/)
+target_include_directories(native-activity PUBLIC ${TAICHI_REPO_DIR}/external/glm/)
+target_include_directories(native-activity PUBLIC ${TAICHI_REPO_DIR}/external/imgui/)
+target_include_directories(native-activity PUBLIC ${TAICHI_REPO_DIR}/external/imgui/backends)
+target_include_directories(native-activity PUBLIC ${TAICHI_REPO_DIR}/external/eigen/)
+target_include_directories(native-activity PUBLIC ${TAICHI_REPO_DIR}/external/spdlog/include/)
+target_include_directories(native-activity PUBLIC ${TAICHI_REPO_DIR}/external/VulkanMemoryAllocator/include/)
+target_include_directories(native-activity PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../include/)
+target_include_directories(native-activity PUBLIC ${ANDROID_NDK}/sources/android/native_app_glue)
 
-add_library(taichi_export_core SHARED IMPORTED)
-set_property(TARGET taichi_export_core PROPERTY IMPORTED_LOCATION "${root-dir}/build/libtaichi_export_core.so")
-
-# add lib dependencies
-target_link_libraries(native-activity
-    taichi_export_core
-    android
-    native_app_glue
-    log)
+target_link_libraries(native-activity android log m vulkan taichi_export_core native_app_glue)

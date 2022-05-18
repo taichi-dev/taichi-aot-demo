@@ -436,6 +436,7 @@ class FemApp {
     auto cmd_list = stream->new_command_list();
     bool color_clear = true;
     std::vector<float> clear_colors = {0.03, 0.05, 0.08, 1};
+    auto semaphore = surface_->acquire_next_image();
     auto image = surface_->get_target_image();
     cmd_list->begin_renderpass(
         /*xmin=*/0, /*ymin=*/0, /*xmax=*/width_,
@@ -481,7 +482,7 @@ class FemApp {
     }
 
     cmd_list->end_renderpass();
-    stream->submit_synced(cmd_list.get());
+    stream->submit_synced(cmd_list.get(), {semaphore});
 
     surface_->present_image();
   }
