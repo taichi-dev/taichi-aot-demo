@@ -16,21 +16,19 @@ android/  # android demo
 ```
 
 ## Desktop Demo
+
 ```
 export TAICHI_REPO_DIR=/path/github/taichi/
 cd desktop
 mkdir build
-cd build && cmake .. && make
+cd build && cmake .. && cmake --build . --config=Release
 ```
 
-Taichi built with
-
-```
-python setup.py clean && TAICHI_CMAKE_ARGS="-DTI_WITH_VULKAN:BOOL=ON -DTI_WITH_CUDA:BOOL=OFF -DTI_WITH_OPENGL:BOOL=OFF -DTI_WITH_LLVM:BOOL=OFF -DTI_EXPORT_CORE:BOOL=ON" python3 setup.py build_ext
-```
+Or you can open `desktop` as folder in Visual Studio 2019+ for better debugging experience.
 
 ## Android Demo
 If you are building Taichi with custom changes, make sure to copy the prebuilt `libtaichi_export_core.so` to: `app/src/main/jniLibs/arm64-v8a/`
+
 ```
 export TAICHI_REPO_DIR=/path/github/taichi/
 export ANDROID_SDK_ROOT=/path/to/Andriod/Sdk
@@ -40,11 +38,7 @@ ln -s ${TAICHI_REPO_DIR}/_skbuild/linux-x86_64-3.8/cmake-build/libtaichi_export_
 adb install ./app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Taichi built with
-```
-export ANDROID_NDK_ROOT="<path_to_android_ndk>"  # e.g. ~/Android/Sdk/ndk/22.1.7171670/
-python setup.py clean && TAICHI_CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_NATIVE_API_LEVEL=29 -DANDROID_ABI=arm64-v8a" python3 setup.py build_ext
-```
+Or you can open `android` in Android Studio Bumblebee Canary 13+ (2021.1.1.13+) for better debugging experience. Earlier releases have broken support for CMake object library and please refer to [this Android Studio issue](https://issuetracker.google.com/issues/198756433) for more information.
 
 ## Troubleshooting
 
