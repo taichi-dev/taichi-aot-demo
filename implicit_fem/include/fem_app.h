@@ -1,6 +1,6 @@
 #pragma once
 
-#include <taichi/backends/vulkan/aot_module_loader_impl.h>
+#include <taichi/runtime/gfx/aot_module_loader_impl.h>
 #include <taichi/backends/vulkan/vulkan_common.h>
 #include <taichi/backends/vulkan/vulkan_loader.h>
 #include <taichi/backends/vulkan/vulkan_program.h>
@@ -19,7 +19,7 @@ constexpr int NUM_SUBSTEPS = 2;
 constexpr int CG_ITERS = 8;
 constexpr float ASPECT_RATIO = 2.0f;
 
-void load_data(taichi::lang::vulkan::VkRuntime* vulkan_runtime,
+void load_data(taichi::lang::gfx::GfxRuntime* vulkan_runtime,
                taichi::lang::DeviceAllocation& alloc, const void* data,
                size_t size) {
   char* const device_arr_ptr =
@@ -130,14 +130,14 @@ class FemApp {
 
     // Initialize our Vulkan Program pipeline
     host_result_buffer_.resize(taichi_result_buffer_entries);
-    taichi::lang::vulkan::VkRuntime::Params params;
+    taichi::lang::gfx::GfxRuntime::Params params;
     params.host_result_buffer = host_result_buffer_.data();
     params.device = embedded_device_->device();
     vulkan_runtime_ =
-        std::make_unique<taichi::lang::vulkan::VkRuntime>(std::move(params));
+        std::make_unique<taichi::lang::gfx::GfxRuntime>(std::move(params));
 
     std::string shader_source = path_prefix + "/shaders/aot/implicit_fem";
-    taichi::lang::vulkan::AotModuleParams aot_params{shader_source,
+    taichi::lang::gfx::AotModuleParams aot_params{shader_source,
                                                      vulkan_runtime_.get()};
     module_ = taichi::lang::aot::Module::load(taichi::Arch::vulkan, aot_params);
     auto root_size = module_->get_root_size();
@@ -543,7 +543,7 @@ class FemApp {
   std::unique_ptr<taichi::lang::vulkan::VulkanDeviceCreator> embedded_device_{
       nullptr};
   taichi::lang::vulkan::VulkanDevice* device_{nullptr};
-  std::unique_ptr<taichi::lang::vulkan::VkRuntime> vulkan_runtime_{nullptr};
+  std::unique_ptr<taichi::lang::gfx::GfxRuntime> vulkan_runtime_{nullptr};
   std::unique_ptr<taichi::lang::aot::Module> module_{nullptr};
   ImplicitFemKernels loaded_kernels_;
   taichi::lang::RuntimeContext host_ctx_;
