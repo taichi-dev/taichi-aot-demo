@@ -16,17 +16,18 @@ android/  # android demo
 ```
 
 ## Desktop Demo
-```
-export TAICHI_REPO_DIR=/path/github/taichi/
-cd desktop
-mkdir build
-cd build && cmake .. && make
-```
-
 Taichi built with
 
 ```
 python setup.py clean && TAICHI_CMAKE_ARGS="-DTI_WITH_VULKAN:BOOL=ON -DTI_WITH_CUDA:BOOL=OFF -DTI_WITH_OPENGL:BOOL=OFF -DTI_WITH_LLVM:BOOL=OFF -DTI_EXPORT_CORE:BOOL=ON" python3 setup.py build_ext
+```
+Upon successful completion, the build artifacts should be located at `_skbuild/*/cmake-install` within the taichi directory. Then, provide this path to CMake as 
+
+```
+cd desktop
+mkdir build && cd build
+cmake -DCMAKE_PREFIX_PATH=/path_github_taichi/_skbuild/your_system_version/cmake-install ..
+make
 ```
 
 ## Android Demo
