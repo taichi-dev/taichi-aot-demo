@@ -2,20 +2,27 @@ import argparse
 import os
 
 from taichi.examples.patterns import taichi_logo
+from taichi.lang.impl import grouped
 
 import taichi as ti
 
 ti.init(arch=ti.cuda, debug=True)
 
 n = 512
-x = ti.field(dtype=ti.i32)
 res = n + n // 4 + n // 16 + n // 64
 img = ti.field(dtype=ti.f32, shape=(res, res))
 
+x = ti.field(dtype=ti.i32)
 block1 = ti.root.pointer(ti.ij, n // 64)
 block2 = block1.pointer(ti.ij, 4)
 block3 = block2.pointer(ti.ij, 4)
 block3.dense(ti.ij, 4).place(x)
+
+arr = ti.ndarray(ti.f32, shape=img.shape)
+@ti.kernel
+def img_to_ndarray(arr: ti.types.ndarray()):
+    for I in grouped(img):
+        arr[I] = img[I]
 
 
 @ti.kernel
@@ -80,7 +87,8 @@ def save_kernels(arch, dirname):
     m.add_kernel(activate, template_args={})
     m.add_kernel(paint, template_args={})
     m.add_kernel(check_img_value, template_args={})
-
+    m.add_kernel(img_to_ndarray, template_args={'arr': arr})
+    
     m.add_field("x", x)
     m.add_field("img", img)
 

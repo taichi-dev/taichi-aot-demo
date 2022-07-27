@@ -9,13 +9,11 @@ if("${TAICHI_REPO}" STREQUAL "")
     message(FATAL_ERROR "Set TAICHI_REPO with -DTAICHI_REPO=.. ")
 endif()
 
-if("${C_API_LIB_NAME}" STREQUAL "")
-    message(FATAL_ERROR "Set C_API_LIB_NAME with -DC_API_LIB_NAME=.. ")
-endif()
-
 add_executable(taichi_sparse taichi_sparse.cpp)
-target_compile_options(taichi_sparse PUBLIC -Wall -Wextra -DTI_WITH_CUDA -DTI_WITH_LLVM -DTI_INCLUDED)
+#target_compile_options(taichi_sparse PUBLIC -DTI_WITH_VULKAN=ON -DTI_WITH_CUDA -DTI_WITH_LLVM -DTI_INCLUDED)
+target_compile_options(taichi_sparse PUBLIC -Wall -Wextra -DTI_WITH_VULKAN=ON -DTI_INCLUDED)
 
+# C-API Dependencies
 target_include_directories(taichi_sparse
   PRIVATE
     ${PROJECT_SOURCE_DIR}
@@ -29,4 +27,21 @@ target_link_directories(taichi_sparse
     ${TAICHI_REPO}/build
   )
 
-target_link_libraries(taichi_sparse PUBLIC ${C_API_LIB_NAME})
+target_link_libraries(taichi_sparse PUBLIC taichi_c_api)
+
+# GUI Dependencies
+target_include_directories(taichi_sparse 
+    PUBLIC 
+        ${TAICHI_REPO}
+        ${TAICHI_REPO}/taichi/backends/vulkan
+        ${TAICHI_REPO}/external/Vulkan-Headers/include/
+        ${TAICHI_REPO}/external/SPIRV-Tools/include/
+        ${TAICHI_REPO}/external/volk/
+        ${TAICHI_REPO}/external/glm/
+        ${TAICHI_REPO}/external/imgui/
+        ${TAICHI_REPO}/external/glfw/include
+        ${TAICHI_REPO}/external/imgui/backends
+        ${TAICHI_REPO}/external/eigen/
+        ${TAICHI_REPO}/external/spdlog/include/
+        ${TAICHI_REPO}/external/VulkanMemoryAllocator/include/
+        )
