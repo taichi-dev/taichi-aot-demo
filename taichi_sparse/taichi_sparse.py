@@ -6,11 +6,16 @@ from taichi.lang.impl import grouped
 
 import taichi as ti
 
-ti.init(arch=ti.cuda, debug=True)
+arch = ti.cuda
+
+ti.init(arch=arch)
 
 n = 512
-res = n + n // 4 + n // 16 + n // 64
-img = ti.field(dtype=ti.f32, shape=(res, res))
+img_h = 1024
+img_w = 1024
+img_c = 4
+
+img = ti.field(dtype=ti.f32, shape=(img_h, img_w))
 
 x = ti.field(dtype=ti.i32)
 block1 = ti.root.pointer(ti.ij, n // 64)
@@ -18,20 +23,12 @@ block2 = block1.pointer(ti.ij, 4)
 block3 = block2.pointer(ti.ij, 4)
 block3.dense(ti.ij, 4).place(x)
 
-arr = ti.ndarray(ti.f32, shape=img.shape)
+arr = ti.ndarray(ti.f32, shape=(img_h, img_w, img_c))
 @ti.kernel
 def img_to_ndarray(arr: ti.types.ndarray()):
     for I in grouped(img):
-        arr[I] = img[I]
-
-
-@ti.kernel
-def check_img_value():
-    s: ti.f32 = 0
-    for i in ti.static(range(20)):
-        s += img[i, i]
-    print(s)
-    assert s == 15.25
+        for c in range(img_c):
+            arr[I, c] = img[I]
 
 
 @ti.kernel
@@ -86,7 +83,6 @@ def save_kernels(arch, dirname):
     m.add_kernel(block1_deactivate_all, template_args={})
     m.add_kernel(activate, template_args={})
     m.add_kernel(paint, template_args={})
-    m.add_kernel(check_img_value, template_args={})
     m.add_kernel(img_to_ndarray, template_args={'arr': arr})
     
     m.add_field("x", x)
@@ -100,4 +96,4 @@ args = parser.parse_args()
 
 if __name__ == '__main__':
     assert args.dir is not None
-    save_kernels(arch=ti.cuda, dirname=args.dir)
+    save_kernels(arch=arch, dirname=args.dir)
