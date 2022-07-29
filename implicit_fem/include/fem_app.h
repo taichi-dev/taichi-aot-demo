@@ -95,7 +95,8 @@ class FemApp {
 #endif  // ANDROID
     // Create a Vulkan Device
     taichi::lang::vulkan::VulkanDeviceCreator::Params evd_params;
-    evd_params.api_version = VK_API_VERSION_1_2;
+    // DONT specify an api_version or you'll have to specify all extensions to be enabled
+    evd_params.api_version = std::nullopt;
     evd_params.additional_instance_extensions = extensions;
     evd_params.additional_device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     evd_params.is_for_ui = false;
