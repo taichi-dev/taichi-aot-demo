@@ -140,13 +140,15 @@ static void taichi_sparse_test(TiArch arch, const std::string& folder_dir) {
     ti_launch_kernel(runtime, k_block1_deactivate_all, 0, &args[0]);
     ti_launch_kernel(runtime, k_activate, arg_count, &args[0]);
     ti_launch_kernel(runtime, k_paint, 0, &args[0]);
-    
+
     // Render Image on GGUI
     ti_launch_kernel(runtime, k_img_to_ndarray, arg_count, &arr_args[0]);
     
     ti_wait(runtime);
     
     gui_helper.step();
+
+
   }
 
   ti_destroy_aot_module(aot_mod);

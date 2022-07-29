@@ -10,8 +10,8 @@ if("${TAICHI_REPO}" STREQUAL "")
 endif()
 
 add_executable(taichi_sparse taichi_sparse.cpp)
-#target_compile_options(taichi_sparse PUBLIC -DTI_WITH_VULKAN=ON -DTI_WITH_CUDA -DTI_WITH_LLVM -DTI_INCLUDED)
-target_compile_options(taichi_sparse PUBLIC -DTI_WITH_CUDA -DTI_WITH_LLVM -DTI_WITH_VULKAN=ON -DTI_INCLUDED)
+#target_compile_options(taichi_sparse PUBLIC -DTI_WITH_CUDA -DTI_WITH_LLVM -DTI_WITH_VULKAN=ON -DTI_INCLUDED)
+target_compile_options(taichi_sparse PUBLIC -DTI_WITH_VULKAN=ON -DTI_INCLUDED)
 
 # C-API Dependencies
 target_include_directories(taichi_sparse
@@ -44,5 +44,4 @@ target_include_directories(taichi_sparse
         ${TAICHI_REPO}/external/eigen/
         ${TAICHI_REPO}/external/spdlog/include/
         ${TAICHI_REPO}/external/VulkanMemoryAllocator/include/
-        /home/taichigraphics/workspace/LLVM/taichi-llvm-10.0.0-linux/include
         )
