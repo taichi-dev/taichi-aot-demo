@@ -1,17 +1,18 @@
 {
 "aot_data": {
-  "kernels": {"update_beta_r_2": {
+  "kernels": {"update_alpha": {
       "tasks": [{
           "type": "serial",
           "range_hint": "",
-          "name": "update_beta_r_2_c80_0_k0024_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/update_beta_r_2_c80_0_k0024_vk_0_t00.spv",
+          "name": "update_alpha_c82_0_k0023_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/update_alpha_c82_0_k0023_vk_0_t00.spv",
           "gpu_block_size": 1,
           "buffer_binds": [{
               "buffer": {
                 "type": 0,
                 "id": 0},
-              "binding": 2}]}],
+              "binding": 2}],
+          "texture_binds": []}],
       "args_count": 1,
       "rets_count": 0,
       "args_buffer_size": 4,
@@ -22,34 +23,91 @@
           "field_dim": 0,
           "element_shape": [],
           "shape_offset_in_args_buf": 0,
-          "bind_index": 0}}},"update_alpha": {
+          "bind_index": 0}}},"init_r_2": {
       "tasks": [{
           "type": "serial",
           "range_hint": "",
-          "name": "update_alpha_c78_0_k0023_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/update_alpha_c78_0_k0023_vk_0_t00.spv",
+          "name": "init_r_2_c80_0_k0022_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/init_r_2_c80_0_k0022_vk_0_t00.spv",
           "gpu_block_size": 1,
           "buffer_binds": [{
               "buffer": {
                 "type": 0,
                 "id": 0},
-              "binding": 2}]}],
-      "args_count": 1,
+              "binding": 2}],
+          "texture_binds": []}],
+      "args_count": 0,
       "rets_count": 0,
-      "args_buffer_size": 4,
+      "args_buffer_size": 0,
       "rets_buffer_size": 0,
       "scalar_args": {},
-      "arr_args": {"0": {
-          "dtype_name": "f32",
-          "field_dim": 0,
-          "element_shape": [],
+      "arr_args": {}},"clear_field": {
+      "tasks": [{
+          "type": "range_for",
+          "range_hint": "4096",
+          "name": "clear_field_c60_0_k0021_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/clear_field_c60_0_k0021_vk_0_t00.spv",
+          "gpu_block_size": 128,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 0,
+                "id": 0},
+              "binding": 2}],
+          "texture_binds": []},{
+          "type": "range_for",
+          "range_hint": "1024",
+          "name": "clear_field_c60_0_k0021_vk_1_t01",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/clear_field_c60_0_k0021_vk_1_t01.spv",
+          "gpu_block_size": 128,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 0,
+                "id": 0},
+              "binding": 2}],
+          "texture_binds": []}],
+      "args_count": 0,
+      "rets_count": 0,
+      "args_buffer_size": 0,
+      "rets_buffer_size": 0,
+      "scalar_args": {},
+      "arr_args": {}},"get_matrix": {
+      "tasks": [{
+          "type": "range_for",
+          "range_hint": "",
+          "name": "get_matrix_c64_0_k0013_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/get_matrix_c64_0_k0013_vk_0_t00.spv",
+          "gpu_block_size": 128,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 0,
+                "id": 0},
+              "binding": 3},{
+              "buffer": {
+                "type": 2,
+                "id": -1},
+              "binding": 0}],
+          "texture_binds": []}],
+      "args_count": 2,
+      "rets_count": 0,
+      "args_buffer_size": 8,
+      "rets_buffer_size": 0,
+      "scalar_args": {},
+      "arr_args": {"1": {
+          "dtype_name": "i32",
+          "field_dim": 1,
+          "element_shape": [4],
+          "shape_offset_in_args_buf": 4,
+          "bind_index": 0},"0": {
+          "dtype_name": "i32",
+          "field_dim": 1,
+          "element_shape": [6],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0}}},"get_force": {
       "tasks": [{
           "type": "range_for",
           "range_hint": "",
-          "name": "get_force_c58_0_k0006_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/get_force_c58_0_k0006_vk_0_t00.spv",
+          "name": "get_force_c62_0_k0006_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/get_force_c62_0_k0006_vk_0_t00.spv",
           "gpu_block_size": 128,
           "buffer_binds": [{
               "buffer": {
@@ -59,38 +117,68 @@
               "buffer": {
                 "type": 2,
                 "id": -1},
-              "binding": 0}]},{
+              "binding": 0}],
+          "texture_binds": []},{
           "type": "range_for",
           "range_hint": "",
-          "name": "get_force_c58_0_k0006_vk_1_t01",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/get_force_c58_0_k0006_vk_1_t01.spv",
+          "name": "get_force_c62_0_k0006_vk_1_t01",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/get_force_c62_0_k0006_vk_1_t01.spv",
           "gpu_block_size": 128,
           "buffer_binds": [{
               "buffer": {
-                "type": 0,
-                "id": 0},
-              "binding": 2},{
-              "buffer": {
                 "type": 2,
                 "id": -1},
-              "binding": 0}]}],
+              "binding": 0},{
+              "buffer": {
+                "type": 0,
+                "id": 0},
+              "binding": 2}],
+          "texture_binds": []}],
       "args_count": 6,
       "rets_count": 0,
       "args_buffer_size": 24,
       "rets_buffer_size": 0,
       "scalar_args": {"5": {
           "dtype_name": "f32",
-          "offset_in_args_buf": 20},"4": {
+          "offset_in_args_buf": 20},"3": {
           "dtype_name": "f32",
-          "offset_in_args_buf": 16},"3": {
+          "offset_in_args_buf": 12},"4": {
           "dtype_name": "f32",
-          "offset_in_args_buf": 12}},
+          "offset_in_args_buf": 16}},
       "arr_args": {"2": {
           "dtype_name": "i32",
           "field_dim": 1,
           "element_shape": [4],
           "shape_offset_in_args_buf": 8,
+          "bind_index": 0},"0": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 0,
           "bind_index": 0},"1": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 4,
+          "bind_index": 0}}},"floor_bound": {
+      "tasks": [{
+          "type": "range_for",
+          "range_hint": "",
+          "name": "floor_bound_c90_0_k0011_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/floor_bound_c90_0_k0011_vk_0_t00.spv",
+          "gpu_block_size": 128,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 2,
+                "id": -1},
+              "binding": 0}],
+          "texture_binds": []}],
+      "args_count": 2,
+      "rets_count": 0,
+      "args_buffer_size": 8,
+      "rets_buffer_size": 0,
+      "scalar_args": {},
+      "arr_args": {"1": {
           "dtype_name": "f32",
           "field_dim": 1,
           "element_shape": [3],
@@ -100,12 +188,118 @@
           "field_dim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
+          "bind_index": 0}}},"add_scalar_ndarray": {
+      "tasks": [{
+          "type": "range_for",
+          "range_hint": "",
+          "name": "add_scalar_ndarray_c70_0_k0016_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/add_scalar_ndarray_c70_0_k0016_vk_0_t00.spv",
+          "gpu_block_size": 128,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 2,
+                "id": -1},
+              "binding": 0}],
+          "texture_binds": []}],
+      "args_count": 5,
+      "rets_count": 0,
+      "args_buffer_size": 20,
+      "rets_buffer_size": 0,
+      "scalar_args": {"2": {
+          "dtype_name": "f32",
+          "offset_in_args_buf": 8}},
+      "arr_args": {"4": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 16,
+          "bind_index": 0},"3": {
+          "dtype_name": "f32",
+          "field_dim": 0,
+          "element_shape": [],
+          "shape_offset_in_args_buf": 12,
+          "bind_index": 0},"0": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 0,
+          "bind_index": 0},"1": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 4,
+          "bind_index": 0}}},"dot2scalar": {
+      "tasks": [{
+          "type": "serial",
+          "range_hint": "",
+          "name": "dot2scalar_c72_0_k0017_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/dot2scalar_c72_0_k0017_vk_0_t00.spv",
+          "gpu_block_size": 1,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 0,
+                "id": 0},
+              "binding": 2}],
+          "texture_binds": []},{
+          "type": "range_for",
+          "range_hint": "",
+          "name": "dot2scalar_c72_0_k0017_vk_1_t01",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/dot2scalar_c72_0_k0017_vk_1_t01.spv",
+          "gpu_block_size": 128,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 2,
+                "id": -1},
+              "binding": 0},{
+              "buffer": {
+                "type": 0,
+                "id": 0},
+              "binding": 4}],
+          "texture_binds": []}],
+      "args_count": 2,
+      "rets_count": 0,
+      "args_buffer_size": 8,
+      "rets_buffer_size": 0,
+      "scalar_args": {},
+      "arr_args": {"1": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 4,
+          "bind_index": 0},"0": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 0,
+          "bind_index": 0}}},"update_beta_r_2": {
+      "tasks": [{
+          "type": "serial",
+          "range_hint": "",
+          "name": "update_beta_r_2_c84_0_k0024_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/update_beta_r_2_c84_0_k0024_vk_0_t00.spv",
+          "gpu_block_size": 1,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 0,
+                "id": 0},
+              "binding": 2}],
+          "texture_binds": []}],
+      "args_count": 1,
+      "rets_count": 0,
+      "args_buffer_size": 4,
+      "rets_buffer_size": 0,
+      "scalar_args": {},
+      "arr_args": {"0": {
+          "dtype_name": "f32",
+          "field_dim": 0,
+          "element_shape": [],
+          "shape_offset_in_args_buf": 0,
           "bind_index": 0}}},"init": {
       "tasks": [{
           "type": "range_for",
           "range_hint": "",
-          "name": "init_c84_0_k0008_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/init_c84_0_k0008_vk_0_t00.spv",
+          "name": "init_c88_0_k0008_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/init_c88_0_k0008_vk_0_t00.spv",
           "gpu_block_size": 128,
           "buffer_binds": [{
               "buffer": {
@@ -115,11 +309,12 @@
               "buffer": {
                 "type": 2,
                 "id": -1},
-              "binding": 0}]},{
+              "binding": 0}],
+          "texture_binds": []},{
           "type": "range_for",
           "range_hint": "",
-          "name": "init_c84_0_k0008_vk_1_t01",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/init_c84_0_k0008_vk_1_t01.spv",
+          "name": "init_c88_0_k0008_vk_1_t01",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/init_c88_0_k0008_vk_1_t01.spv",
           "gpu_block_size": 128,
           "buffer_binds": [{
               "buffer": {
@@ -129,7 +324,8 @@
               "buffer": {
                 "type": 2,
                 "id": -1},
-              "binding": 0}]}],
+              "binding": 0}],
+          "texture_binds": []}],
       "args_count": 5,
       "rets_count": 0,
       "args_buffer_size": 20,
@@ -150,94 +346,74 @@
           "field_dim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 8,
+          "bind_index": 0},"0": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 0,
           "bind_index": 0},"1": {
           "dtype_name": "f32",
           "field_dim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 4,
-          "bind_index": 0},"0": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 0,
-          "bind_index": 0}}},"floor_bound": {
+          "bind_index": 0}}},"get_b": {
       "tasks": [{
           "type": "range_for",
           "range_hint": "",
-          "name": "floor_bound_c86_0_k0011_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/floor_bound_c86_0_k0011_vk_0_t00.spv",
+          "name": "get_b_c74_0_k0018_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/get_b_c74_0_k0018_vk_0_t00.spv",
           "gpu_block_size": 128,
           "buffer_binds": [{
               "buffer": {
                 "type": 2,
                 "id": -1},
-              "binding": 0}]}],
-      "args_count": 2,
-      "rets_count": 0,
-      "args_buffer_size": 8,
-      "rets_buffer_size": 0,
-      "scalar_args": {},
-      "arr_args": {"1": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 4,
-          "bind_index": 0},"0": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 0,
-          "bind_index": 0}}},"get_matrix": {
-      "tasks": [{
-          "type": "range_for",
-          "range_hint": "",
-          "name": "get_matrix_c60_0_k0013_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/get_matrix_c60_0_k0013_vk_0_t00.spv",
-          "gpu_block_size": 128,
-          "buffer_binds": [{
+              "binding": 0},{
               "buffer": {
                 "type": 0,
                 "id": 0},
-              "binding": 3},{
-              "buffer": {
-                "type": 2,
-                "id": -1},
-              "binding": 0}]}],
-      "args_count": 2,
+              "binding": 2}],
+          "texture_binds": []}],
+      "args_count": 3,
       "rets_count": 0,
-      "args_buffer_size": 8,
+      "args_buffer_size": 12,
       "rets_buffer_size": 0,
       "scalar_args": {},
-      "arr_args": {"1": {
-          "dtype_name": "i32",
+      "arr_args": {"2": {
+          "dtype_name": "f32",
           "field_dim": 1,
-          "element_shape": [4],
-          "shape_offset_in_args_buf": 4,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 8,
           "bind_index": 0},"0": {
-          "dtype_name": "i32",
+          "dtype_name": "f32",
           "field_dim": 1,
-          "element_shape": [6],
+          "element_shape": [3],
           "shape_offset_in_args_buf": 0,
+          "bind_index": 0},"1": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 4,
           "bind_index": 0}}},"matmul_edge": {
       "tasks": [{
           "type": "range_for",
           "range_hint": "",
-          "name": "matmul_edge_c62_0_k0014_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/matmul_edge_c62_0_k0014_vk_0_t00.spv",
+          "name": "matmul_edge_c66_0_k0014_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/matmul_edge_c66_0_k0014_vk_0_t00.spv",
           "gpu_block_size": 128,
           "buffer_binds": [{
               "buffer": {
-                "type": 0,
-                "id": 0},
-              "binding": 2},{
-              "buffer": {
                 "type": 2,
                 "id": -1},
-              "binding": 0}]},{
+              "binding": 0},{
+              "buffer": {
+                "type": 0,
+                "id": 0},
+              "binding": 2}],
+          "texture_binds": []},{
           "type": "range_for",
           "range_hint": "",
-          "name": "matmul_edge_c62_0_k0014_vk_1_t01",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/matmul_edge_c62_0_k0014_vk_1_t01.spv",
+          "name": "matmul_edge_c66_0_k0014_vk_1_t01",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/matmul_edge_c66_0_k0014_vk_1_t01.spv",
           "gpu_block_size": 128,
           "buffer_binds": [{
               "buffer": {
@@ -247,7 +423,8 @@
               "buffer": {
                 "type": 2,
                 "id": -1},
-              "binding": 0}]}],
+              "binding": 0}],
+          "texture_binds": []}],
       "args_count": 3,
       "rets_count": 0,
       "args_buffer_size": 12,
@@ -258,7 +435,70 @@
           "field_dim": 1,
           "element_shape": [2],
           "shape_offset_in_args_buf": 8,
+          "bind_index": 0},"0": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 0,
           "bind_index": 0},"1": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 4,
+          "bind_index": 0}}},"add": {
+      "tasks": [{
+          "type": "range_for",
+          "range_hint": "",
+          "name": "add_c68_0_k0015_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/add_c68_0_k0015_vk_0_t00.spv",
+          "gpu_block_size": 128,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 2,
+                "id": -1},
+              "binding": 0}],
+          "texture_binds": []}],
+      "args_count": 4,
+      "rets_count": 0,
+      "args_buffer_size": 16,
+      "rets_buffer_size": 0,
+      "scalar_args": {"2": {
+          "dtype_name": "f32",
+          "offset_in_args_buf": 8}},
+      "arr_args": {"3": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 12,
+          "bind_index": 0},"0": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 0,
+          "bind_index": 0},"1": {
+          "dtype_name": "f32",
+          "field_dim": 1,
+          "element_shape": [3],
+          "shape_offset_in_args_buf": 4,
+          "bind_index": 0}}},"ndarray_to_ndarray": {
+      "tasks": [{
+          "type": "range_for",
+          "range_hint": "",
+          "name": "ndarray_to_ndarray_c76_0_k0019_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/ndarray_to_ndarray_c76_0_k0019_vk_0_t00.spv",
+          "gpu_block_size": 128,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 2,
+                "id": -1},
+              "binding": 0}],
+          "texture_binds": []}],
+      "args_count": 2,
+      "rets_count": 0,
+      "args_buffer_size": 8,
+      "rets_buffer_size": 0,
+      "scalar_args": {},
+      "arr_args": {"1": {
           "dtype_name": "f32",
           "field_dim": 1,
           "element_shape": [3],
@@ -272,14 +512,15 @@
       "tasks": [{
           "type": "range_for",
           "range_hint": "",
-          "name": "fill_ndarray_c74_0_k0020_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/fill_ndarray_c74_0_k0020_vk_0_t00.spv",
+          "name": "fill_ndarray_c78_0_k0020_vk_0_t00",
+          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/fill_ndarray_c78_0_k0020_vk_0_t00.spv",
           "gpu_block_size": 128,
           "buffer_binds": [{
               "buffer": {
                 "type": 2,
                 "id": -1},
-              "binding": 0}]}],
+              "binding": 0}],
+          "texture_binds": []}],
       "args_count": 2,
       "rets_count": 0,
       "args_buffer_size": 8,
@@ -292,228 +533,7 @@
           "field_dim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
-          "bind_index": 0}}},"add": {
-      "tasks": [{
-          "type": "range_for",
-          "range_hint": "",
-          "name": "add_c64_0_k0015_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/add_c64_0_k0015_vk_0_t00.spv",
-          "gpu_block_size": 128,
-          "buffer_binds": [{
-              "buffer": {
-                "type": 2,
-                "id": -1},
-              "binding": 0}]}],
-      "args_count": 4,
-      "rets_count": 0,
-      "args_buffer_size": 16,
-      "rets_buffer_size": 0,
-      "scalar_args": {"2": {
-          "dtype_name": "f32",
-          "offset_in_args_buf": 8}},
-      "arr_args": {"3": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 12,
-          "bind_index": 0},"1": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 4,
-          "bind_index": 0},"0": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 0,
-          "bind_index": 0}}},"dot2scalar": {
-      "tasks": [{
-          "type": "serial",
-          "range_hint": "",
-          "name": "dot2scalar_c68_0_k0017_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/dot2scalar_c68_0_k0017_vk_0_t00.spv",
-          "gpu_block_size": 1,
-          "buffer_binds": [{
-              "buffer": {
-                "type": 0,
-                "id": 0},
-              "binding": 2}]},{
-          "type": "range_for",
-          "range_hint": "",
-          "name": "dot2scalar_c68_0_k0017_vk_1_t01",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/dot2scalar_c68_0_k0017_vk_1_t01.spv",
-          "gpu_block_size": 128,
-          "buffer_binds": [{
-              "buffer": {
-                "type": 0,
-                "id": 0},
-              "binding": 4},{
-              "buffer": {
-                "type": 2,
-                "id": -1},
-              "binding": 0}]}],
-      "args_count": 2,
-      "rets_count": 0,
-      "args_buffer_size": 8,
-      "rets_buffer_size": 0,
-      "scalar_args": {},
-      "arr_args": {"1": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 4,
-          "bind_index": 0},"0": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 0,
-          "bind_index": 0}}},"add_scalar_ndarray": {
-      "tasks": [{
-          "type": "range_for",
-          "range_hint": "",
-          "name": "add_scalar_ndarray_c66_0_k0016_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/add_scalar_ndarray_c66_0_k0016_vk_0_t00.spv",
-          "gpu_block_size": 128,
-          "buffer_binds": [{
-              "buffer": {
-                "type": 2,
-                "id": -1},
-              "binding": 0}]}],
-      "args_count": 5,
-      "rets_count": 0,
-      "args_buffer_size": 20,
-      "rets_buffer_size": 0,
-      "scalar_args": {"2": {
-          "dtype_name": "f32",
-          "offset_in_args_buf": 8}},
-      "arr_args": {"4": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 16,
-          "bind_index": 0},"3": {
-          "dtype_name": "f32",
-          "field_dim": 0,
-          "element_shape": [],
-          "shape_offset_in_args_buf": 12,
-          "bind_index": 0},"1": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 4,
-          "bind_index": 0},"0": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 0,
-          "bind_index": 0}}},"get_b": {
-      "tasks": [{
-          "type": "range_for",
-          "range_hint": "",
-          "name": "get_b_c70_0_k0018_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/get_b_c70_0_k0018_vk_0_t00.spv",
-          "gpu_block_size": 128,
-          "buffer_binds": [{
-              "buffer": {
-                "type": 0,
-                "id": 0},
-              "binding": 2},{
-              "buffer": {
-                "type": 2,
-                "id": -1},
-              "binding": 0}]}],
-      "args_count": 3,
-      "rets_count": 0,
-      "args_buffer_size": 12,
-      "rets_buffer_size": 0,
-      "scalar_args": {},
-      "arr_args": {"2": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 8,
-          "bind_index": 0},"1": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 4,
-          "bind_index": 0},"0": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 0,
-          "bind_index": 0}}},"init_r_2": {
-      "tasks": [{
-          "type": "serial",
-          "range_hint": "",
-          "name": "init_r_2_c76_0_k0022_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/init_r_2_c76_0_k0022_vk_0_t00.spv",
-          "gpu_block_size": 1,
-          "buffer_binds": [{
-              "buffer": {
-                "type": 0,
-                "id": 0},
-              "binding": 2}]}],
-      "args_count": 0,
-      "rets_count": 0,
-      "args_buffer_size": 0,
-      "rets_buffer_size": 0,
-      "scalar_args": {},
-      "arr_args": {}},"ndarray_to_ndarray": {
-      "tasks": [{
-          "type": "range_for",
-          "range_hint": "",
-          "name": "ndarray_to_ndarray_c72_0_k0019_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/ndarray_to_ndarray_c72_0_k0019_vk_0_t00.spv",
-          "gpu_block_size": 128,
-          "buffer_binds": [{
-              "buffer": {
-                "type": 2,
-                "id": -1},
-              "binding": 0}]}],
-      "args_count": 2,
-      "rets_count": 0,
-      "args_buffer_size": 8,
-      "rets_buffer_size": 0,
-      "scalar_args": {},
-      "arr_args": {"1": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 4,
-          "bind_index": 0},"0": {
-          "dtype_name": "f32",
-          "field_dim": 1,
-          "element_shape": [3],
-          "shape_offset_in_args_buf": 0,
-          "bind_index": 0}}},"clear_field": {
-      "tasks": [{
-          "type": "range_for",
-          "range_hint": "4096",
-          "name": "clear_field_c56_0_k0021_vk_0_t00",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/clear_field_c56_0_k0021_vk_0_t00.spv",
-          "gpu_block_size": 128,
-          "buffer_binds": [{
-              "buffer": {
-                "type": 0,
-                "id": 0},
-              "binding": 2}]},{
-          "type": "range_for",
-          "range_hint": "1024",
-          "name": "clear_field_c56_0_k0021_vk_1_t01",
-          "source_path": "../android/app/src/main/assets/shaders/aot/implicit_fem/clear_field_c56_0_k0021_vk_1_t01.spv",
-          "gpu_block_size": 128,
-          "buffer_binds": [{
-              "buffer": {
-                "type": 0,
-                "id": 0},
-              "binding": 2}]}],
-      "args_count": 0,
-      "rets_count": 0,
-      "args_buffer_size": 0,
-      "rets_buffer_size": 0,
-      "scalar_args": {},
-      "arr_args": {}}},
+          "bind_index": 0}}}},
   "kernel_tmpls": {},
   "fields": [],
   "root_buffer_size": 122888}}
