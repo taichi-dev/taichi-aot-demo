@@ -11,8 +11,8 @@ arch = ti.cuda
 ti.init(arch=arch)
 
 n = 512
-img_h = 1024
-img_w = 1024
+img_h = 680
+img_w = 680
 img_c = 4
 
 img = ti.field(dtype=ti.f32, shape=(img_h, img_w))

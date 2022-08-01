@@ -13,8 +13,8 @@
 #include <taichi/gui/gui.h>
 #include <taichi/ui/backends/vulkan/renderer.h>
 
-constexpr int img_h = 1024;
-constexpr int img_w = 1024;
+constexpr int img_h = 680;
+constexpr int img_w = 680;
 constexpr int img_c = 4;
 
 struct guiHelper {
@@ -41,6 +41,7 @@ struct guiHelper {
       app_config.show_window = false;
       app_config.package_path = "."; // make it flexible later
       app_config.ti_arch = taichi::Arch::cuda;
+      app_config.is_packed_mode = true;
 
       // Create GUI & renderer
       renderer = std::make_unique<taichi::ui::vulkan::Renderer>();
