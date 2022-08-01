@@ -8,6 +8,7 @@
 
 #include "taichi_core_impl.h"
 #include "taichi/taichi_core.h"
+#include "taichi/taichi_vulkan.h"
 
 namespace demo {
 namespace {
@@ -92,8 +93,9 @@ std::vector<T> ReadDataToHost(taichi::lang::DeviceAllocation &alloc,
 class MPM88DemoImpl {
 public:
   MPM88DemoImpl(const std::string& aot_path,
-                TiArch arch) {
-    InitTaichiRuntime(arch);
+                TiArch arch,
+                taichi::lang::vulkan::VulkanDevice * vk_device) {
+    InitTaichiRuntime(arch, vk_device);
 
     module_ = ti_load_aot_module(runtime_, aot_path.c_str());
 
@@ -245,12 +247,28 @@ private:
     TiArgument arr_arg_;
   };
 
-  void InitTaichiRuntime(TiArch arch) {
-    runtime_ = ti_create_runtime(arch);
+  void InitTaichiRuntime(TiArch arch, taichi::lang::vulkan::VulkanDevice * vk_device) {
+    if(arch == TiArch::TI_ARCH_VULKAN) {
+      interop_info.api_version =
+          vk_device->get_cap(taichi::lang::DeviceCapability::vk_api_version);
+      interop_info.instance = vk_device->vk_instance();
+      interop_info.physical_device = vk_device->vk_physical_device();
+      interop_info.device = vk_device->vk_device();
+      interop_info.compute_queue = vk_device->compute_queue();
+      interop_info.compute_queue_family_index = vk_device->compute_queue_family_index();
+      interop_info.graphics_queue = vk_device->graphics_queue();
+      interop_info.graphics_queue_family_index = vk_device->graphics_queue_family_index();
+
+      runtime_ = ti_import_vulkan_runtime(&interop_info);
+
+    } else {
+        runtime_ = ti_create_runtime(arch);
+    }
   }
 
   TiRuntime runtime_;
   TiAotModule module_{nullptr};
+  TiVulkanRuntimeInteropInfo interop_info;
   
   std::unique_ptr<NdarrayAndMem> x_{nullptr};
   std::unique_ptr<NdarrayAndMem> v_{nullptr};
@@ -263,6 +281,7 @@ private:
   TiComputeGraph g_update_{nullptr};
   
   std::vector<TiNamedArgument> args_;
+
 };
 
 MPM88Demo::MPM88Demo(const std::string& aot_path,
@@ -296,8 +315,11 @@ MPM88Demo::MPM88Demo(const std::string& aot_path,
   gui_ = std::make_shared<taichi::ui::vulkan::Gui>(
       &renderer->app_context(), &renderer->swap_chain(), window);
 
+  taichi::lang::vulkan::VulkanDevice *device =
+      &(renderer->app_context().device());
+
   // Create Taichi Device for computation
-  impl_ = std::make_unique<MPM88DemoImpl>(aot_path, get_c_api_arch(arch_name));
+  impl_ = std::make_unique<MPM88DemoImpl>(aot_path, get_c_api_arch(arch_name), device);
 
   // Describe information to render the circle with Vulkan
   f_info.valid = true;

@@ -17,13 +17,54 @@ constexpr int img_h = 680;
 constexpr int img_w = 680;
 constexpr int img_c = 4;
 
+static taichi::Arch get_taichi_arch(const std::string& arch_name_) {
+    if(arch_name_ == "cuda") {
+        return taichi::Arch::cuda;
+    }
+
+    if(arch_name_ == "x64") {
+        return taichi::Arch::x64;
+    }
+
+    TI_ERROR("Unkown arch_name");
+    return taichi::Arch::x64;
+}
+  
+static TiArch get_c_api_arch(const std::string& arch_name_) {
+    if(arch_name_ == "cuda") {
+        return TiArch::TI_ARCH_CUDA;
+    }
+
+    if(arch_name_ == "x64") {
+        return TiArch::TI_ARCH_X64;
+    }
+    
+    TI_ERROR("Unkown arch_name");
+    return TiArch::TI_ARCH_X64;
+}
+  
+static taichi::ui::FieldSource get_field_source(const std::string& arch_name_) {
+    if(arch_name_ == "cuda") {
+        return taichi::ui::FieldSource::TaichiCuda;
+    }
+
+    if(arch_name_ == "x64") {
+        return taichi::ui::FieldSource::TaichiX64;
+    }
+    
+    TI_ERROR("Unkown arch_name");
+    return taichi::ui::FieldSource::TaichiX64;
+}
+
+
 struct guiHelper {
     std::shared_ptr<taichi::ui::vulkan::Gui> gui_{nullptr};
     std::unique_ptr<taichi::ui::vulkan::Renderer> renderer{nullptr};
     GLFWwindow *window{nullptr};
     taichi::ui::SetImageInfo img_info;
 
-    explicit guiHelper(taichi::lang::DeviceAllocation& devalloc) {
+    explicit guiHelper(taichi::lang::DeviceAllocation& devalloc, 
+                       const std::string& arch_name) {
       glfwInit();
       glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
       window = glfwCreateWindow(img_h, img_w, "Taichi show", NULL, NULL);
@@ -40,7 +81,7 @@ struct guiHelper {
       app_config.vsync = true;
       app_config.show_window = false;
       app_config.package_path = "."; // make it flexible later
-      app_config.ti_arch = taichi::Arch::cuda;
+      app_config.ti_arch = get_taichi_arch(arch_name);
       app_config.is_packed_mode = true;
 
       // Create GUI & renderer
@@ -60,7 +101,7 @@ struct guiHelper {
       f_info.matrix_cols = 1;
       f_info.shape = { img_h, img_w };
 
-      f_info.field_source = taichi::ui::FieldSource::TaichiCuda;
+      f_info.field_source = get_field_source(arch_name);
       f_info.dtype = taichi::lang::PrimitiveType::f32;
       f_info.snode = nullptr;
       f_info.dev_alloc = devalloc;
@@ -87,8 +128,8 @@ struct guiHelper {
     }
 };
 
-static void taichi_sparse_test(TiArch arch, const std::string& folder_dir) {
-  TiRuntime runtime = ti_create_runtime(arch);
+static void taichi_sparse_test(const std::string& arch_name, const std::string& folder_dir) {
+  TiRuntime runtime = ti_create_runtime(get_c_api_arch(arch_name));
 
   // Load Aot and Kernel
   TiAotModule aot_mod = ti_load_aot_module(runtime, folder_dir.c_str());
@@ -128,7 +169,7 @@ static void taichi_sparse_test(TiArch arch, const std::string& folder_dir) {
   
   Runtime* real_runtime = (Runtime *)runtime;
   taichi::lang::DeviceAllocation devalloc = devmem2devalloc(*real_runtime, memory);
-  guiHelper gui_helper(devalloc);
+  guiHelper gui_helper(devalloc, arch_name);
 
   ti_launch_kernel(runtime, k_fill_img, 0, &args[0]);
   ti_wait(runtime);
@@ -157,11 +198,11 @@ static void taichi_sparse_test(TiArch arch, const std::string& folder_dir) {
 }
 
 int main(int argc, char *argv[]) {
-    assert(argc == 2);
+    assert(argc == 3);
     std::string folder_dir = argv[1];
+    std::string arch_name = argv[2];
 
-    TiArch arch = TiArch::TI_ARCH_CUDA;
-    taichi_sparse_test(arch, folder_dir);
+    taichi_sparse_test(arch_name, folder_dir);
 
     return 0;
 }

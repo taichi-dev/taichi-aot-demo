@@ -6,7 +6,19 @@ from taichi.lang.impl import grouped
 
 import taichi as ti
 
-arch = ti.cuda
+parser = argparse.ArgumentParser()
+parser.add_argument("--dir", type=str)
+parser.add_argument("--arch", type=str)
+args = parser.parse_args()
+
+if args.arch == "cuda":
+    arch = ti.cuda
+elif args.arch == "x64":
+    arch = ti.x64
+elif args.arch == "vulkan":
+    arch = ti.vulkan
+else:
+    assert False
 
 ti.init(arch=arch)
 
@@ -89,10 +101,6 @@ def save_kernels(arch, dirname):
     m.add_field("img", img)
 
     m.save(dirname, 'whatever')
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--dir", type=str)
-args = parser.parse_args()
 
 if __name__ == '__main__':
     assert args.dir is not None
