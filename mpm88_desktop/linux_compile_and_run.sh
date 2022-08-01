@@ -1,4 +1,4 @@
-BACKEND_NAME="vulkan" # cuda, x64, vulkan
+BACKEND_NAME="cuda" # cuda, x64, vulkan
 TAICHI_REPO="/home/taichigraphics/workspace/taichi"
 
 AOT_DIRECTORY="/tmp/aot_files"
