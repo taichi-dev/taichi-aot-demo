@@ -10,8 +10,9 @@ namespace demo {
 class MPM88DemoImpl;
 class MPM88Demo {
 public:
-  MPM88Demo(const std::string& aot_path);
+  MPM88Demo(const std::string& aot_path, const std::string& arch_name);
   ~MPM88Demo();
+
 
   void Step();
 

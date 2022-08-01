@@ -4,9 +4,17 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dir", type=str)
+parser.add_argument("--arch", type=str)
 args = parser.parse_args()
 
-arch = ti.vulkan
+if args.arch == "cuda":
+    arch = ti.cuda
+elif args.arch == "x64":
+    arch = ti.x64
+elif args.arch == "vulkan":
+    arch = ti.vulkan
+else:
+    assert False
 
 n_particles = 8192 * 5
 n_grid = 128

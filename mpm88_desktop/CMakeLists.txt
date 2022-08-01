@@ -7,29 +7,41 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_executable(mpm88 mpm88.cpp)
 
-target_compile_options(mpm88 PUBLIC -Wall -Wextra -DTI_WITH_LLVM -DTI_WITH_CUDA -DTI_WITH_VULKAN -DTI_INCLUDED -DTI_ARCH_x64)
-
-if (NOT DEFINED ENV{TAICHI_REPO_DIR})
-    message(FATAL_ERROR "TAICHI_REPO_DIR not set")
+if("${TAICHI_REPO}" STREQUAL "")
+    message(FATAL_ERROR "Set TAICHI_REPO with -DTAICHI_REPO=.. ")
 endif()
 
-set(TAICHI_REPO_DIR $ENV{TAICHI_REPO_DIR})
+target_compile_options(mpm88 PUBLIC -DTI_WITH_VULKAN=ON -DTI_INCLUDED)
 
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/)
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/taichi/backends/vulkan)
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/external/Vulkan-Headers/include/)
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/external/SPIRV-Tools/include/)
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/external/volk/)
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/external/glm/)
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/external/imgui/)
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/external/glfw/include)
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/external/imgui/backends)
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/external/eigen/)
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/external/spdlog/include/)
-target_include_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/external/VulkanMemoryAllocator/include/)
-target_include_directories(mpm88 PUBLIC /Users/zhanlueyang/workspace/llvm-10.0.0-m1)
+# C-API Dependencies
+target_include_directories(mpm88
+  PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    ${TAICHI_REPO}/c_api/include
+    ${TAICHI_REPO}/c_api/src
+  )
 
-target_link_directories(mpm88 PUBLIC ${TAICHI_REPO_DIR}/build)
+target_link_directories(mpm88
+  PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    ${TAICHI_REPO}/build
+  )
 
-target_link_libraries(mpm88 PUBLIC taichi_export_core)
+target_link_libraries(mpm88 PUBLIC taichi_c_api)
 
+# GUI Dependencies
+target_include_directories(mpm88 
+    PUBLIC 
+        ${TAICHI_REPO}
+        ${TAICHI_REPO}/taichi/backends/vulkan
+        ${TAICHI_REPO}/external/Vulkan-Headers/include/
+        ${TAICHI_REPO}/external/SPIRV-Tools/include/
+        ${TAICHI_REPO}/external/volk/
+        ${TAICHI_REPO}/external/glm/
+        ${TAICHI_REPO}/external/imgui/
+        ${TAICHI_REPO}/external/glfw/include
+        ${TAICHI_REPO}/external/imgui/backends
+        ${TAICHI_REPO}/external/eigen/
+        ${TAICHI_REPO}/external/spdlog/include/
+        ${TAICHI_REPO}/external/VulkanMemoryAllocator/include/
+        )
