@@ -14,6 +14,7 @@ namespace demo {
 namespace {
 constexpr int kNrParticles = 8192 * 2;
 constexpr int kNGrid = 128;
+constexpr size_t N_ITER = 50;
     
 static taichi::Arch get_taichi_arch(const std::string& arch_name_) {
     if(arch_name_ == "cuda") {
@@ -65,29 +66,6 @@ static taichi::ui::FieldSource get_field_source(const std::string& arch_name_) {
     TI_ERROR("Unkown arch_name");
     return taichi::ui::FieldSource::TaichiX64;
 }
-
-template <typename T>
-std::vector<T> ReadDataToHost(taichi::lang::DeviceAllocation &alloc,
-                    size_t size) {
-  taichi::lang::Device::AllocParams alloc_params;
-  alloc_params.host_write = false;
-  alloc_params.host_read = true;
-  alloc_params.size = size;
-  alloc_params.usage = taichi::lang::AllocUsage::Storage;
-  auto staging_buf = alloc.device->allocate_memory(alloc_params);
-  alloc.device->memcpy_internal(staging_buf.get_ptr(), alloc.get_ptr(), size);
-
-  char *const device_arr_ptr =
-      reinterpret_cast<char *>(alloc.device->map(staging_buf));
-  TI_ASSERT(device_arr_ptr);
-
-  size_t n = size /  sizeof(T);
-  std::vector<T> arr(n);
-  std::memcpy(arr.data(), device_arr_ptr, size);
-  alloc.device->unmap(staging_buf);
-  alloc.device->dealloc_memory(staging_buf);
-  return arr;
-}
 } // namespace
 
 class MPM88DemoImpl {
@@ -95,57 +73,78 @@ public:
   MPM88DemoImpl(const std::string& aot_path,
                 TiArch arch,
                 taichi::lang::vulkan::VulkanDevice * vk_device) {
-    InitTaichiRuntime(arch, vk_device);
+    InitTaichiRuntime(arch);
 
     module_ = ti_load_aot_module(runtime_, aot_path.c_str());
-
-    g_init_ = ti_get_aot_module_compute_graph(module_, "init");
-    g_update_ = ti_get_aot_module_compute_graph(module_, "update");
-
+    
     // Prepare Ndarray for model
     const std::vector<int> vec2_shape = {2};
     const std::vector<int> vec3_shape = {3};
     const std::vector<int> mat2_shape = {2, 2};
-
+    
     x_ = NdarrayAndMem::Make(runtime_,
                              TiDataType::TI_DATA_TYPE_F32,
-                             {kNrParticles}, vec2_shape,
-                             /*host_read=*/true, /*host_write=*/true);
+                             {kNrParticles}, vec2_shape, 
+                             /*host_read=*/false, /*host_write=*/false);
+
     v_ = NdarrayAndMem::Make(runtime_,
                              TiDataType::TI_DATA_TYPE_F32,
                              {kNrParticles}, vec2_shape);
+    
     pos_ = NdarrayAndMem::Make(runtime_, 
-                             TiDataType::TI_DATA_TYPE_F32,
-                               {kNrParticles}, vec3_shape);
+                               TiDataType::TI_DATA_TYPE_F32,
+                               {kNrParticles}, vec3_shape,
+                               false, false,
+                               vk_device);
+    
     C_ = NdarrayAndMem::Make(runtime_,
                              TiDataType::TI_DATA_TYPE_F32,
                              {kNrParticles}, mat2_shape);
+    
     J_ = NdarrayAndMem::Make(runtime_,
                              TiDataType::TI_DATA_TYPE_F32,
-                             {kNrParticles});
+                             {kNrParticles}, {});
 
     grid_v_ = NdarrayAndMem::Make(runtime_,
                                   TiDataType::TI_DATA_TYPE_F32,
                                   {kNGrid, kNGrid}, vec2_shape);
     grid_m_ = NdarrayAndMem::Make(runtime_,
                                   TiDataType::TI_DATA_TYPE_F32,
-                                  {kNGrid, kNGrid});
-    TiNamedArgument x_named_arg = {.name = "x", .argument = x_->argument()};
-    args_.emplace_back(std::move(x_named_arg));
-    TiNamedArgument v_named_arg = {.name = "v", .argument = v_->argument()};
-    args_.emplace_back(std::move(v_named_arg));
-    TiNamedArgument J_named_arg = {.name = "J", .argument = J_->argument()};
-    args_.emplace_back(std::move(J_named_arg));
-    TiNamedArgument C_named_arg = {.name = "C", .argument = C_->argument()};
-    args_.emplace_back(std::move(C_named_arg));
-    TiNamedArgument grid_v_named_arg = {.name = "grid_v", .argument = grid_v_->argument()};
-    args_.emplace_back(std::move(grid_v_named_arg));
-    TiNamedArgument grid_m_named_arg = {.name = "grid_m", .argument = grid_m_->argument()};
-    args_.emplace_back(std::move(grid_m_named_arg));
-    TiNamedArgument pos_named_arg = {.name = "pos", .argument = pos_->argument()};
-    args_.emplace_back(std::move(pos_named_arg));
+                                  {kNGrid, kNGrid}, {});
+    
+    k_init_particles_        = ti_get_aot_module_kernel(module_, "init_particles");
+    k_substep_g2p_           = ti_get_aot_module_kernel(module_, "substep_g2p");
+    k_substep_reset_grid_    = ti_get_aot_module_kernel(module_, "substep_reset_grid");
+    k_substep_p2g_           = ti_get_aot_module_kernel(module_, "substep_p2g");
+    k_substep_update_grid_v_ = ti_get_aot_module_kernel(module_, "substep_update_grid_v");
+  
+    k_init_particles_args_[0] = x_->argument();
+    k_init_particles_args_[1] = v_->argument();
+    k_init_particles_args_[2] = J_->argument();
 
-    Reset();
+    k_substep_reset_grid_args_[0] = grid_v_->argument();
+    k_substep_reset_grid_args_[1] = grid_m_->argument();
+
+    k_substep_p2g_args_[0] = x_->argument();
+    k_substep_p2g_args_[1] = v_->argument();
+    k_substep_p2g_args_[2] = C_->argument();
+    k_substep_p2g_args_[3] = J_->argument();
+    k_substep_p2g_args_[4] = grid_v_->argument();
+    k_substep_p2g_args_[5] = grid_m_->argument();
+
+    k_substep_update_grid_v_args_[0] = grid_v_->argument();
+    k_substep_update_grid_v_args_[1] = grid_m_->argument();
+    
+    k_substep_g2p_args_[0] = x_->argument();
+    k_substep_g2p_args_[1] = v_->argument();
+    k_substep_g2p_args_[2] = C_->argument();
+    k_substep_g2p_args_[3] = J_->argument();
+    k_substep_g2p_args_[4] = grid_v_->argument();
+    k_substep_g2p_args_[5] = pos_->argument();
+    
+    ti_launch_kernel(runtime_, k_init_particles_, 3, &k_init_particles_args_[0]);
+
+    ti_wait(runtime_);
   }
 
   ~MPM88DemoImpl() {
@@ -153,23 +152,17 @@ public:
       ti_destroy_runtime(runtime_);
   }
 
-  void Reset() {
-    ti_launch_compute_graph(runtime_, g_init_, args_.size(), args_.data());
-    ti_wait(runtime_);
-
-    // For debugging
-    //auto arr = ReadDataToHost<float>(x_->devalloc(), x_->ndarray().get_nelement() * x_->ndarray().get_element_size());
-    //for (int i = 0; i < arr.size(); i++) {
-    //  std::cout << arr[i] << std::endl;
-    //}
-  }
-
   void Step() {
-    ti_launch_compute_graph(runtime_, g_update_, args_.size(), args_.data());
+    for(size_t i = 0; i < N_ITER; i++) {
+        ti_launch_kernel(runtime_, k_substep_reset_grid_, 2, &k_substep_reset_grid_args_[0]);
+        ti_launch_kernel(runtime_, k_substep_p2g_, 6, &k_substep_p2g_args_[0]);
+        ti_launch_kernel(runtime_, k_substep_update_grid_v_, 2, &k_substep_update_grid_v_args_[0]);
+        ti_launch_kernel(runtime_, k_substep_g2p_, 6, &k_substep_g2p_args_[0]);
+    }
     ti_wait(runtime_);
   }
 
-  taichi::lang::DeviceAllocation pos() { return pos_->devalloc(); }
+  taichi::lang::DeviceAllocation& pos() { return pos_->devalloc_; }
 
 private:
   class NdarrayAndMem {
@@ -188,8 +181,11 @@ private:
     Make(TiRuntime runtime, 
          TiDataType dtype,
          const std::vector<int> &arr_shape,
-         const std::vector<int> &element_shape = {}, bool host_read = false,
-         bool host_write = false) {
+         const std::vector<int> &element_shape = {}, 
+         bool host_read = false,
+         bool host_write = false,
+         taichi::lang::vulkan::VulkanDevice* vk_device_ = nullptr
+         ) {
       // TODO: Cannot use data_type_size() until
       // https://github.com/taichi-dev/taichi/pull/5220.
       // uint64_t_t alloc_size = taichi::lang::data_type_size(dtype);
@@ -207,14 +203,33 @@ private:
       auto res = std::make_unique<NdarrayAndMem>();
       res->runtime_ = runtime;
       
-      TiMemoryAllocateInfo alloc_info;
-      alloc_info.size = alloc_size;
-      alloc_info.host_write = false;
-      alloc_info.host_read = false;
-      alloc_info.export_sharing = false;
-      alloc_info.usage = TiMemoryUsageFlagBits::TI_MEMORY_USAGE_STORAGE_BIT;
+      if(!vk_device_) {
+          TiMemoryAllocateInfo alloc_info;
+          alloc_info.size = alloc_size;
+          alloc_info.host_write = false;
+          alloc_info.host_read = false;
+          alloc_info.export_sharing = false;
+          alloc_info.usage = TiMemoryUsageFlagBits::TI_MEMORY_USAGE_STORAGE_BIT;
+            
+          res->memory_ = ti_allocate_memory(res->runtime_, &alloc_info);
+          res->devalloc_ = res->devalloc();
+      
+      } else {
 
-      res->memory_ = ti_allocate_memory(res->runtime_, &alloc_info);
+          taichi::lang::Device::AllocParams alloc_params;
+          alloc_params.host_read = false;
+          alloc_params.host_write = false;
+          alloc_params.size = alloc_size;
+          alloc_params.usage = taichi::lang::AllocUsage::Storage;
+          
+          res->devalloc_ = vk_device_->allocate_memory(alloc_params);
+
+          res->interop_info.buffer = vk_device_->get_vkbuffer(res->devalloc_).get()->buffer;
+          res->interop_info.size = vk_device_->get_vkbuffer(res->devalloc_).get()->size;
+          res->interop_info.usage = vk_device_->get_vkbuffer(res->devalloc_).get()->usage;
+
+          res->memory_ = ti_import_vulkan_memory(res->runtime_, &res->interop_info);
+      }
       
       TiNdShape shape;
       shape.dim_count = static_cast<uint32_t>(arr_shape.size());
@@ -240,30 +255,18 @@ private:
 
       return res;
     }
-
+    
+    TiVulkanMemoryInteropInfo interop_info;
+    taichi::lang::DeviceAllocation devalloc_;
+  
   private:
     TiRuntime runtime_;
     TiMemory memory_;
     TiArgument arr_arg_;
   };
 
-  void InitTaichiRuntime(TiArch arch, taichi::lang::vulkan::VulkanDevice * vk_device) {
-    if(arch == TiArch::TI_ARCH_VULKAN) {
-      interop_info.api_version =
-          vk_device->get_cap(taichi::lang::DeviceCapability::vk_api_version);
-      interop_info.instance = vk_device->vk_instance();
-      interop_info.physical_device = vk_device->vk_physical_device();
-      interop_info.device = vk_device->vk_device();
-      interop_info.compute_queue = vk_device->compute_queue();
-      interop_info.compute_queue_family_index = vk_device->compute_queue_family_index();
-      interop_info.graphics_queue = vk_device->graphics_queue();
-      interop_info.graphics_queue_family_index = vk_device->graphics_queue_family_index();
-
-      runtime_ = ti_import_vulkan_runtime(&interop_info);
-
-    } else {
-        runtime_ = ti_create_runtime(arch);
-    }
+  void InitTaichiRuntime(TiArch arch) {
+    runtime_ = ti_create_runtime(arch);
   }
 
   TiRuntime runtime_;
@@ -277,11 +280,18 @@ private:
   std::unique_ptr<NdarrayAndMem> grid_v_{nullptr};
   std::unique_ptr<NdarrayAndMem> grid_m_{nullptr};
   std::unique_ptr<NdarrayAndMem> pos_{nullptr};
-  TiComputeGraph g_init_{nullptr};
-  TiComputeGraph g_update_{nullptr};
   
-  std::vector<TiNamedArgument> args_;
+  TiKernel k_init_particles_{nullptr};
+  TiKernel k_substep_reset_grid_{nullptr};
+  TiKernel k_substep_p2g_{nullptr};
+  TiKernel k_substep_update_grid_v_{nullptr};
+  TiKernel k_substep_g2p_{nullptr};
 
+  TiArgument k_init_particles_args_[3];
+  TiArgument k_substep_reset_grid_args_[2];
+  TiArgument k_substep_p2g_args_[6];
+  TiArgument k_substep_update_grid_v_args_[2];
+  TiArgument k_substep_g2p_args_[6];
 };
 
 MPM88Demo::MPM88Demo(const std::string& aot_path,
@@ -314,10 +324,12 @@ MPM88Demo::MPM88Demo(const std::string& aot_path,
 
   gui_ = std::make_shared<taichi::ui::vulkan::Gui>(
       &renderer->app_context(), &renderer->swap_chain(), window);
-
-  taichi::lang::vulkan::VulkanDevice *device =
-      &(renderer->app_context().device());
-
+  
+  taichi::lang::vulkan::VulkanDevice *device = nullptr;
+  if(arch_name == "vulkan") {
+        device = &(renderer->app_context().device());
+  }
+  
   // Create Taichi Device for computation
   impl_ = std::make_unique<MPM88DemoImpl>(aot_path, get_c_api_arch(arch_name), device);
 
@@ -342,7 +354,6 @@ MPM88Demo::MPM88Demo(const std::string& aot_path,
 void MPM88Demo::Step() {
   while (!glfwWindowShouldClose(window)) {
     impl_->Step();
-
     // Render elements
     renderer->circles(circles);
     renderer->draw_frame(gui_.get());
@@ -352,6 +363,8 @@ void MPM88Demo::Step() {
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
+
+  ti_show_time();
 }
 
 MPM88Demo::~MPM88Demo() {
