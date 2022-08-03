@@ -363,8 +363,6 @@ void MPM88Demo::Step() {
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
-
-  ti_show_time();
 }
 
 MPM88Demo::~MPM88Demo() {
