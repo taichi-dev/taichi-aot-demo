@@ -1,0 +1,3 @@
+*.o
+taichi-vk-launcher
+build

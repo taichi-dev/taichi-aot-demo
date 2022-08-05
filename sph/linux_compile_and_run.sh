@@ -10,7 +10,7 @@ mkdir -p ${AOT_DIRECTORY}
 rm -rf build && mkdir build && cd build
 cmake .. -DTAICHI_REPO=${TAICHI_REPO} && make -j && cd ..
 
-python3 mpm88.py --dir=${AOT_DIRECTORY} --arch=${BACKEND_NAME}
+python3 sph.py --dir=${AOT_DIRECTORY} --arch=${BACKEND_NAME}
 
-echo "TI_LIB_DIR=${RUNTIME_LIB} ./build/mpm88 ${AOT_DIRECTORY} ${BACKEND_NAME}"
-TI_LIB_DIR=${RUNTIME_LIB} ./build/mpm88 ${AOT_DIRECTORY} ${BACKEND_NAME}
+echo "TI_LIB_DIR=${RUNTIME_LIB} ./build/sph ${AOT_DIRECTORY} ${BACKEND_NAME}"
+TI_LIB_DIR=${RUNTIME_LIB} ./build/sph ${AOT_DIRECTORY} ${BACKEND_NAME}
