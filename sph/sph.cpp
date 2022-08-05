@@ -11,6 +11,7 @@
 #include "taichi_core_impl.h"
 #include "taichi/taichi_core.h"
 #include "taichi/taichi_vulkan.h"
+#include "taichi/taichi_helpers.h"
 
 #define NR_PARTICLES 8000
 
@@ -18,82 +19,66 @@
 
 constexpr int SUBSTEPS = 5;
 
-class Ndarray {
-  public:
-    Ndarray() = default;
-    ~Ndarray() { }
-
-    const TiArgument& arg() const { return arr_arg_; }
-    taichi::lang::DeviceAllocation& devalloc() { return devalloc_; }
-
-    static std::unique_ptr<Ndarray>
-    Make(TiRuntime runtime, 
-         TiDataType dtype,
-         const std::vector<int> &arr_shape,
-         const std::vector<int> &element_shape = {}, 
-         bool host_read = false,
-         bool host_write = false) {
-
-      // TODO: Cannot use data_type_size() until
-      // https://github.com/taichi-dev/taichi/pull/5220.
-      // uint64_t_t alloc_size = taichi::lang::data_type_size(dtype);
-      
-      uint64_t alloc_size = 4;
-      assert(dtype == TiDataType::TI_DATA_TYPE_F32 || dtype == TiDataType::TI_DATA_TYPE_I32 || dtype == TiDataType::TI_DATA_TYPE_U32);
-
-      for (int s : arr_shape) {
-        alloc_size *= s;
-      }
-      for (int s : element_shape) {
-        alloc_size *= s;
-      }
-      
-      auto res = std::make_unique<Ndarray>();
-      
-      TiMemoryAllocateInfo alloc_info;
-      alloc_info.size = alloc_size;
-      alloc_info.host_write = host_write;
-      alloc_info.host_read = host_read;
-      alloc_info.export_sharing = false;
-      alloc_info.usage = TiMemoryUsageFlagBits::TI_MEMORY_USAGE_STORAGE_BIT;
-      
-      res->memory_ = ti_allocate_memory(runtime, &alloc_info);
-      
+static taichi::lang::DeviceAllocation get_devalloc(TiRuntime runtime, TiMemory memory) {
       Runtime* real_runtime = (Runtime *)runtime;
-      res->devalloc_ = devmem2devalloc(*real_runtime, res->memory_);
-      
+      return devmem2devalloc(*real_runtime, memory);
+}
+
+static taichi::lang::DeviceAllocation get_ndarray_with_imported_memory(TiRuntime runtime,
+                                                                       TiDataType dtype,
+                                                                       std::vector<int> arr_shape,
+                                                                       std::vector<int> element_shape,
+                                                                       taichi::lang::vulkan::VulkanDevice * vk_device,
+                                                                       TiNdarrayAndMem& ndarray) {
+      assert(dtype == TiDataType::TI_DATA_TYPE_F32);
+      size_t alloc_size = 4;
+
       TiNdShape shape;
       shape.dim_count = static_cast<uint32_t>(arr_shape.size());
       for(size_t i = 0; i < arr_shape.size(); i++) {
+        alloc_size *= arr_shape[i];
         shape.dims[i] = arr_shape[i];
       }
       
       TiNdShape e_shape;
       e_shape.dim_count = static_cast<uint32_t>(element_shape.size());
       for(size_t i = 0; i < element_shape.size(); i++) {
+        alloc_size *= element_shape[i];
         e_shape.dims[i] = element_shape[i];
       }
+      
+      taichi::lang::Device::AllocParams alloc_params;
+      alloc_params.host_read = false;
+      alloc_params.host_write = false;
+      alloc_params.size = alloc_size;
+      alloc_params.usage = taichi::lang::AllocUsage::Storage;
+      
+      auto res = vk_device->allocate_memory(alloc_params);
 
-      TiNdArray arg_array = {.memory = res->memory_,
+      TiVulkanMemoryInteropInfo interop_info;
+      interop_info.buffer = vk_device->get_vkbuffer(res).get()->buffer;
+      interop_info.size = vk_device->get_vkbuffer(res).get()->size;
+      interop_info.usage = vk_device->get_vkbuffer(res).get()->usage;
+    
+      ndarray.runtime_ = runtime;
+      ndarray.memory_ = ti_import_vulkan_memory(ndarray.runtime_, &interop_info);
+
+      TiNdArray arg_array = {.memory = ndarray.memory_,
                              .shape = std::move(shape),
                              .elem_shape = std::move(e_shape),
                              .elem_type = dtype};
 
       TiArgumentValue arg_value = {.ndarray = std::move(arg_array)};
         
-      res->arr_arg_ = {.type = TiArgumentType::TI_ARGUMENT_TYPE_NDARRAY,
+      ndarray.arg_ = {.type = TiArgumentType::TI_ARGUMENT_TYPE_NDARRAY,
                              .value = std::move(arg_value)};
-
+      
       return res;
-    }
-    
-  private:
-    TiMemory memory_;
-    TiArgument arr_arg_;
-    taichi::lang::DeviceAllocation devalloc_;
-};
+}
 
-taichi::Arch get_taichi_arch(TiArch arch) {
+
+
+static taichi::Arch get_taichi_arch(TiArch arch) {
     switch(arch) {
         case TiArch::TI_ARCH_VULKAN: {
             return taichi::Arch::vulkan;
@@ -110,7 +95,7 @@ taichi::Arch get_taichi_arch(TiArch arch) {
     }
 }
 
-taichi::ui::FieldSource get_field_source(TiArch arch) {
+static taichi::ui::FieldSource get_field_source(TiArch arch) {
     switch(arch) {
         case TiArch::TI_ARCH_VULKAN: {
             return taichi::ui::FieldSource::TaichiVulkan;
@@ -126,6 +111,7 @@ taichi::ui::FieldSource get_field_source(TiArch arch) {
         }
     }
 }
+
 
 void run(TiArch arch, const std::string& folder_dir) {
     /* --------------------- */
@@ -169,50 +155,75 @@ void run(TiArch arch, const std::string& folder_dir) {
     TiKernel k_update_force = ti_get_aot_module_kernel(aot_mod, "update_force");
     TiKernel k_advance = ti_get_aot_module_kernel(aot_mod, "advance");
     TiKernel k_boundary_handle = ti_get_aot_module_kernel(aot_mod, "boundary_handle");
+   
+    const std::vector<int> shape_1d = {NR_PARTICLES};
+    const std::vector<int> vec3_shape = {3};
     
-    auto N_ = Ndarray::Make(runtime,
-                       TiDataType::TI_DATA_TYPE_I32,
-                       {NR_PARTICLES}, 
-                       {});
-    auto den_ = Ndarray::Make(runtime,
-                         TiDataType::TI_DATA_TYPE_F32,
-                         {NR_PARTICLES}, 
-                         {});
-    auto pre_ = Ndarray::Make(runtime,
-                         TiDataType::TI_DATA_TYPE_F32,
-                         {NR_PARTICLES}, 
-                         {});
-    
-    auto pos_ = Ndarray::Make(runtime,
-                         TiDataType::TI_DATA_TYPE_F32,
-                         {NR_PARTICLES}, 
-                         {3});
-    auto vel_ = Ndarray::Make(runtime,
-                         TiDataType::TI_DATA_TYPE_F32,
-                         {NR_PARTICLES}, 
-                         {3});
-    auto acc_ = Ndarray::Make(runtime,
-                         TiDataType::TI_DATA_TYPE_F32,
-                         {NR_PARTICLES}, 
-                         {3});
-    auto boundary_box_ = Ndarray::Make(runtime,
-                                  TiDataType::TI_DATA_TYPE_F32,
-                                  {NR_PARTICLES},
-                                  {3},
-                                  false/*host_read*/,
-                                  false/*host_write*/);
-    auto spawn_box_ = Ndarray::Make(runtime,
-                               TiDataType::TI_DATA_TYPE_F32,
-                               {NR_PARTICLES}, 
-                               {3},
-                               false/*host_read*/,
-                               false/*host_write*/);
-    auto gravity_ = Ndarray::Make(runtime,
+    auto N_ = make_ndarray(runtime,
+                           TiDataType::TI_DATA_TYPE_I32,
+                           shape_1d.data(), 1,
+                           vec3_shape.data(), 1,
+                           false /*host_read*/, false /*host_write*/
+                           );
+    auto den_ = make_ndarray(runtime,
                              TiDataType::TI_DATA_TYPE_F32,
-                             {}, 
-                             {3},
+                             shape_1d.data(), 1,
+                             nullptr, 0,
+                             false /*host_read*/, false /*host_write*/
+                             );
+    auto pre_ = make_ndarray(runtime,
+                         TiDataType::TI_DATA_TYPE_F32,
+                         shape_1d.data(), 1,
+                         nullptr, 0,
+                         false /*host_read*/, false /*host_write*/
+                         );
+    
+    auto vel_ = make_ndarray(runtime,
+                         TiDataType::TI_DATA_TYPE_F32,
+                         shape_1d.data(), 1,
+                         vec3_shape.data(), 1,
+                         false /*host_read*/, false /*host_write*/
+                         );
+    auto acc_ = make_ndarray(runtime,
+                         TiDataType::TI_DATA_TYPE_F32,
+                         shape_1d.data(), 1,
+                         vec3_shape.data(), 1,
+                         false /*host_read*/, false /*host_write*/
+                         );
+    auto boundary_box_ = make_ndarray(runtime,
+                                  TiDataType::TI_DATA_TYPE_F32,
+                                  shape_1d.data(), 1,
+                                  vec3_shape.data(), 1,
+                                  false /*host_read*/, false /*host_write*/
+                                  );
+    auto spawn_box_ = make_ndarray(runtime,
+                               TiDataType::TI_DATA_TYPE_F32,
+                               shape_1d.data(), 1,
+                               vec3_shape.data(), 1,
+                               false /*host_read*/, false /*host_write*/
+                               );
+    auto gravity_ = make_ndarray(runtime,
+                             TiDataType::TI_DATA_TYPE_F32,
+                             nullptr, 0, 
+                             vec3_shape.data(), 1,
                              false/*host_read*/,
                              false/*host_write*/);
+    
+    TiNdarrayAndMem pos_;
+    taichi::lang::DeviceAllocation pos_devalloc;
+    if(arch == TiArch::TI_ARCH_VULKAN) {
+        taichi::lang::vulkan::VulkanDevice *device = &(renderer->app_context().device());
+        pos_devalloc = get_ndarray_with_imported_memory(runtime, TiDataType::TI_DATA_TYPE_F32, shape_1d, vec3_shape, device, pos_);
+        
+    } else {
+        pos_ = make_ndarray(runtime,
+                            TiDataType::TI_DATA_TYPE_F32,
+                            shape_1d.data(), 1,
+                            vec3_shape.data(), 1,
+                            false /*host_read*/, false /*host_write*/
+                            );
+        pos_devalloc = get_devalloc(pos_.runtime_, pos_.memory_);
+    }
   
     TiArgument k_initialize_args[3];
     TiArgument k_initialize_particle_args[4];
@@ -221,38 +232,37 @@ void run(TiArch arch, const std::string& folder_dir) {
     TiArgument k_advance_args[3];
     TiArgument k_boundary_handle_args[3];
     
-    k_initialize_args[0] = boundary_box_->arg();
-    k_initialize_args[1] = spawn_box_->arg();
-    k_initialize_args[2] = N_->arg();
+    k_initialize_args[0] = boundary_box_.arg_;
+    k_initialize_args[1] = spawn_box_.arg_;
+    k_initialize_args[2] = N_.arg_;
 
-    k_initialize_particle_args[0] = pos_->arg();
-    k_initialize_particle_args[1] = spawn_box_->arg();
-    k_initialize_particle_args[2] = N_->arg();
-    k_initialize_particle_args[3] = gravity_->arg();
+    k_initialize_particle_args[0] = pos_.arg_;
+    k_initialize_particle_args[1] = spawn_box_.arg_;
+    k_initialize_particle_args[2] = N_.arg_;
+    k_initialize_particle_args[3] = gravity_.arg_;
 
-    k_update_density_args[0] = pos_->arg();
-    k_update_density_args[1] = den_->arg();
-    k_update_density_args[2] = pre_->arg();
+    k_update_density_args[0] = pos_.arg_;
+    k_update_density_args[1] = den_.arg_;
+    k_update_density_args[2] = pre_.arg_;
 
-    k_update_force_args[0] = pos_->arg();
-    k_update_force_args[1] = vel_->arg();
-    k_update_force_args[2] = den_->arg();
-    k_update_force_args[3] = pre_->arg();
-    k_update_force_args[4] = acc_->arg();
-    k_update_force_args[5] = gravity_->arg();
+    k_update_force_args[0] = pos_.arg_;
+    k_update_force_args[1] = vel_.arg_;
+    k_update_force_args[2] = den_.arg_;
+    k_update_force_args[3] = pre_.arg_;
+    k_update_force_args[4] = acc_.arg_;
+    k_update_force_args[5] = gravity_.arg_;
 
-    k_advance_args[0] = pos_->arg();
-    k_advance_args[1] = vel_->arg();
-    k_advance_args[2] = acc_->arg();
+    k_advance_args[0] = pos_.arg_;
+    k_advance_args[1] = vel_.arg_;
+    k_advance_args[2] = acc_.arg_;
 
-    k_boundary_handle_args[0] = pos_->arg();
-    k_boundary_handle_args[1] = vel_->arg();
-    k_boundary_handle_args[2] = boundary_box_->arg();
+    k_boundary_handle_args[0] = pos_.arg_;
+    k_boundary_handle_args[1] = vel_.arg_;
+    k_boundary_handle_args[2] = boundary_box_.arg_;
 
     /* --------------------- */
     /* Kernel Initialization */
     /* --------------------- */
-    //ti_launch_compute_graph(runtime, g_init, arg_count, &named_args[0]);
     ti_launch_kernel(runtime, k_initialize, 3, &k_initialize_args[0]);
     ti_launch_kernel(runtime, k_initialize_particle, 4, &k_initialize_particle_args[0]);
     ti_wait(runtime);
@@ -272,7 +282,7 @@ void run(TiArch arch, const std::string& folder_dir) {
     f_info.field_source = get_field_source(arch);
     f_info.dtype        = taichi::lang::PrimitiveType::f32;
     f_info.snode        = nullptr;
-    f_info.dev_alloc    = pos_->devalloc();
+    f_info.dev_alloc    = pos_devalloc;
     taichi::ui::CirclesInfo circles;
     circles.renderable_info.has_per_vertex_color = false;
     circles.renderable_info.vbo_attrs = taichi::ui::VertexAttributes::kPos;
@@ -292,7 +302,6 @@ void run(TiArch arch, const std::string& folder_dir) {
             ti_launch_kernel(runtime, k_advance, 3, &k_advance_args[0]);
             ti_launch_kernel(runtime, k_boundary_handle, 3, &k_boundary_handle_args[0]);
         }
-        //ti_launch_compute_graph(runtime, g_update, arg_count, &named_args[0]);
         ti_wait(runtime);
 
         // Render elements
