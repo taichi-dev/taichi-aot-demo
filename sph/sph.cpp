@@ -9,9 +9,9 @@
 #include <taichi/gui/gui.h>
 #include <taichi/ui/backends/vulkan/renderer.h>
 #include "taichi_core_impl.h"
+#include "c_api_test_utils.h"
 #include "taichi/taichi_core.h"
 #include "taichi/taichi_vulkan.h"
-#include "taichi/taichi_helpers.h"
 
 #define NR_PARTICLES 8000
 
@@ -29,7 +29,7 @@ static taichi::lang::DeviceAllocation get_ndarray_with_imported_memory(TiRuntime
                                                                        std::vector<int> arr_shape,
                                                                        std::vector<int> element_shape,
                                                                        taichi::lang::vulkan::VulkanDevice * vk_device,
-                                                                       TiNdarrayAndMem& ndarray) {
+                                                                       capi::utils::TiNdarrayAndMem& ndarray) {
       assert(dtype == TiDataType::TI_DATA_TYPE_F32);
       size_t alloc_size = 4;
 
@@ -159,64 +159,64 @@ void run(TiArch arch, const std::string& folder_dir) {
     const std::vector<int> shape_1d = {NR_PARTICLES};
     const std::vector<int> vec3_shape = {3};
     
-    auto N_ = make_ndarray(runtime,
+    auto N_ = capi::utils::make_ndarray(runtime,
                            TiDataType::TI_DATA_TYPE_I32,
                            shape_1d.data(), 1,
                            vec3_shape.data(), 1,
                            false /*host_read*/, false /*host_write*/
                            );
-    auto den_ = make_ndarray(runtime,
+    auto den_ = capi::utils::make_ndarray(runtime,
                              TiDataType::TI_DATA_TYPE_F32,
                              shape_1d.data(), 1,
                              nullptr, 0,
                              false /*host_read*/, false /*host_write*/
                              );
-    auto pre_ = make_ndarray(runtime,
+    auto pre_ = capi::utils::make_ndarray(runtime,
                          TiDataType::TI_DATA_TYPE_F32,
                          shape_1d.data(), 1,
                          nullptr, 0,
                          false /*host_read*/, false /*host_write*/
                          );
     
-    auto vel_ = make_ndarray(runtime,
+    auto vel_ = capi::utils::make_ndarray(runtime,
                          TiDataType::TI_DATA_TYPE_F32,
                          shape_1d.data(), 1,
                          vec3_shape.data(), 1,
                          false /*host_read*/, false /*host_write*/
                          );
-    auto acc_ = make_ndarray(runtime,
+    auto acc_ = capi::utils::make_ndarray(runtime,
                          TiDataType::TI_DATA_TYPE_F32,
                          shape_1d.data(), 1,
                          vec3_shape.data(), 1,
                          false /*host_read*/, false /*host_write*/
                          );
-    auto boundary_box_ = make_ndarray(runtime,
+    auto boundary_box_ = capi::utils::make_ndarray(runtime,
                                   TiDataType::TI_DATA_TYPE_F32,
                                   shape_1d.data(), 1,
                                   vec3_shape.data(), 1,
                                   false /*host_read*/, false /*host_write*/
                                   );
-    auto spawn_box_ = make_ndarray(runtime,
+    auto spawn_box_ = capi::utils::make_ndarray(runtime,
                                TiDataType::TI_DATA_TYPE_F32,
                                shape_1d.data(), 1,
                                vec3_shape.data(), 1,
                                false /*host_read*/, false /*host_write*/
                                );
-    auto gravity_ = make_ndarray(runtime,
+    auto gravity_ = capi::utils::make_ndarray(runtime,
                              TiDataType::TI_DATA_TYPE_F32,
                              nullptr, 0, 
                              vec3_shape.data(), 1,
                              false/*host_read*/,
                              false/*host_write*/);
     
-    TiNdarrayAndMem pos_;
+    capi::utils::TiNdarrayAndMem pos_;
     taichi::lang::DeviceAllocation pos_devalloc;
     if(arch == TiArch::TI_ARCH_VULKAN) {
         taichi::lang::vulkan::VulkanDevice *device = &(renderer->app_context().device());
         pos_devalloc = get_ndarray_with_imported_memory(runtime, TiDataType::TI_DATA_TYPE_F32, shape_1d, vec3_shape, device, pos_);
         
     } else {
-        pos_ = make_ndarray(runtime,
+        pos_ = capi::utils::make_ndarray(runtime,
                             TiDataType::TI_DATA_TYPE_F32,
                             shape_1d.data(), 1,
                             vec3_shape.data(), 1,
