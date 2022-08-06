@@ -1,5 +1,5 @@
-BACKEND_NAME="x64" # cuda, x64
-TAICHI_REPO="/Users/zhanlueyang/workspace/taichi"
+BACKEND_NAME="" # cuda, x64
+TAICHI_REPO="" # example: /home/taichigraphics/workspace/taichi
 
 AOT_DIRECTORY="/tmp/aot_files"
 RUNTIME_LIB="${TAICHI_REPO}/python/taichi/_lib/runtime"
