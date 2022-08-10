@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-#include <taichi/gui/gui.h>
+#include <taichi/ui/gui/gui.h>
 #include <taichi/ui/backends/vulkan/renderer.h>
 #include "taichi_core_impl.h"
 #include "c_api_test_utils.h"

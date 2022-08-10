@@ -10,7 +10,7 @@
 #include "taichi/taichi_core.h"
 
 // GUI
-#include <taichi/gui/gui.h>
+#include <taichi/ui/gui/gui.h>
 #include <taichi/ui/backends/vulkan/renderer.h>
 
 constexpr int img_h = 680;

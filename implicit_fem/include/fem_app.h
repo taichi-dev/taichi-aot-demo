@@ -4,7 +4,7 @@
 #include <taichi/rhi/vulkan/vulkan_common.h>
 #include <taichi/rhi/vulkan/vulkan_loader.h>
 #include <taichi/runtime/program_impls/vulkan/vulkan_program.h>
-#include <taichi/gui/gui.h>
+#include <taichi/ui/gui/gui.h>
 #include <taichi/inc/constants.h>
 #include <taichi/ui/backends/vulkan/renderer.h>
 

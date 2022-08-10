@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <taichi/gui/gui.h>
+#include <taichi/ui/gui/gui.h>
 #include <taichi/ui/backends/vulkan/renderer.h>
 #include <vector>
 
