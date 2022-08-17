@@ -169,75 +169,43 @@ class FemApp {
     const std::vector<int> mat2_shape = {2, 2};
 
     // Prepare Ndarray for model
-    taichi::lang::Device::AllocParams alloc_params;
-    alloc_params.host_write = true;
     // x
-    alloc_params.size = N_VERTS * 3 * sizeof(float);
-    alloc_params.usage =
-        taichi::lang::AllocUsage::Vertex | taichi::lang::AllocUsage::Storage;
-    // devalloc_x_ = device_->allocate_memory(alloc_params);
     x_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::f32, {N_VERTS}, vec3_shape);
-    alloc_params.usage = taichi::lang::AllocUsage::Storage;
     // v
-    // devalloc_v_ = device_->allocate_memory(alloc_params);
     v_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::f32,
                              {N_VERTS}, vec3_shape);
     // f
-    // devalloc_f_ = device_->allocate_memory(alloc_params);
     f_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::f32,
                              {N_VERTS}, vec3_shape);
     // mul_ans
-    // devalloc_mul_ans_ = device_->allocate_memory(alloc_params);
     mul_ans_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::f32,
                              {N_VERTS}, vec3_shape);
     // c2e
-    alloc_params.size = N_CELLS * 6 * sizeof(int);
-    // devalloc_c2e_ = device_->allocate_memory(alloc_params);
     c2e_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::i32,
                              {N_CELLS}, {6, 1});
     // b
-    alloc_params.size = N_VERTS * 3 * sizeof(float);
-    // devalloc_b_ = device_->allocate_memory(alloc_params);
     b_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::f32, {N_VERTS}, vec3_shape);
     // r0
-    // devalloc_r0_ = device_->allocate_memory(alloc_params);
     r0_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::f32, {N_VERTS}, vec3_shape);
     // p0
-    // devalloc_p0_ = device_->allocate_memory(alloc_params);
     p0_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::f32, {N_VERTS}, vec3_shape);
     // indices
-    alloc_params.size = N_FACES * 3 * sizeof(int);
-    alloc_params.usage = taichi::lang::AllocUsage::Index;
-    // devalloc_indices_ = device_->allocate_memory(alloc_params);
     indices_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::i32, {N_FACES}, vec3_shape);
-    alloc_params.usage = taichi::lang::AllocUsage::Storage;
     // vertices
-    alloc_params.size = N_CELLS * 4 * sizeof(int);
-    // devalloc_vertices_ = device_->allocate_memory(alloc_params);
     vertices_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::i32, {N_CELLS}, {4, 1});
     // edges
-    alloc_params.size = N_EDGES * 2 * sizeof(int);
-    // devalloc_edges_ = device_->allocate_memory(alloc_params);
     edges_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::i32, {N_EDGES}, vec2_shape);
     // ox
-    alloc_params.size = N_VERTS * 3 * sizeof(float);
-    // devalloc_ox_ = device_->allocate_memory(alloc_params);
     ox_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::f32, {N_VERTS}, vec3_shape);
 
-    alloc_params.size = sizeof(float);
-    // devalloc_alpha_scalar_ = device_->allocate_memory(alloc_params);
-    // devalloc_beta_scalar_ = device_->allocate_memory(alloc_params);
     alpha_scalar_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::f32, {1}, {});
     beta_scalar_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::f32, {1}, {});
-    
-    load_data(vulkan_runtime_.get(), indices_->devalloc(), indices_data,
-              sizeof(indices_data));
-    load_data(vulkan_runtime_.get(), c2e_->devalloc(), c2e_data, sizeof(c2e_data));
-    load_data(vulkan_runtime_.get(), vertices_->devalloc(), vertices_data,
-              sizeof(vertices_data));
-    load_data(vulkan_runtime_.get(), ox_->devalloc(), ox_data, sizeof(ox_data));
-    load_data(vulkan_runtime_.get(), edges_->devalloc(), edges_data,
-              sizeof(edges_data));
+
+    indices_->load_from(indices_data, sizeof(indices_data));
+    c2e_->load_from(c2e_data, sizeof(c2e_data));
+    vertices_->load_from(vertices_data, sizeof(vertices_data));
+    ox_->load_from(ox_data, sizeof(ox_data));
+    edges_->load_from(edges_data, sizeof(edges_data));
 
     memset(&host_ctx_, 0, sizeof(taichi::lang::RuntimeContext));
     host_ctx_.result_buffer = host_result_buffer_.data();
@@ -305,7 +273,7 @@ class FemApp {
       render_box_pipeline_ = device_->create_raster_pipeline(
           source, raster_params, vertex_inputs, vertex_attribs);
 
-      alloc_params = Device::AllocParams{};
+      taichi::lang::Device::AllocParams alloc_params = Device::AllocParams{};
       alloc_params.host_write = true;
       // x
       alloc_params.size = sizeof(ColorVertex) * cornell_box_vertices_.size();
@@ -574,8 +542,7 @@ class FemApp {
     static std::unique_ptr<NdarrayAndMem>
     Make(taichi::lang::Device *device, taichi::lang::DataType dtype,
          const std::vector<int> &arr_shape,
-         const std::vector<int> &element_shape = {}, bool host_read = false,
-         bool host_write = false) {
+         const std::vector<int> &element_shape = {}) {
       // TODO: Cannot use data_type_size() until
       // https://github.com/taichi-dev/taichi/pull/5220.
       // uint64_t alloc_size = taichi::lang::data_type_size(dtype);
@@ -599,8 +566,8 @@ class FemApp {
         alloc_size *= s;
       }
       taichi::lang::Device::AllocParams alloc_params;
-      alloc_params.host_read = host_read;
-      alloc_params.host_write = host_write;
+      alloc_params.host_read = false;
+      alloc_params.host_write = false;
       alloc_params.size = alloc_size;
       alloc_params.usage = taichi::lang::AllocUsage::Storage;
       auto res = std::make_unique<NdarrayAndMem>();
@@ -611,9 +578,27 @@ class FemApp {
       return res;
     }
 
+    void load_from(const void* data, int size) {
+      if (!staging_buf_) {
+        taichi::lang::Device::AllocParams alloc_params;
+        alloc_params.host_read = false;
+        alloc_params.host_write = true;
+        alloc_params.size = ndarray_->get_nelement() * ndarray_->get_element_size();
+        alloc_params.usage = taichi::lang::AllocUsage::Storage;
+        staging_buf_ = device_->allocate_memory_unique(alloc_params);
+      }
+
+      char* const device_arr_ptr =
+          reinterpret_cast<char*>(device_->map(*staging_buf_));
+      std::memcpy(device_arr_ptr, data, size);
+      device_->unmap(*staging_buf_);
+      device_->memcpy_internal(devalloc_.get_ptr(), staging_buf_->get_ptr(), size);
+    }
+
   private:
     taichi::lang::Device *device_{nullptr};
     std::unique_ptr<taichi::lang::Ndarray> ndarray_{nullptr};
+    std::unique_ptr<taichi::lang::DeviceAllocationGuard> staging_buf_{nullptr};
     taichi::lang::DeviceAllocation devalloc_;
   };
 
