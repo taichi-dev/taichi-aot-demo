@@ -1,0 +1,61 @@
+{
+"aot_data": {
+  "kernels": {"make_texture_c76_0_k0004_vk": {
+      "tasks": [{
+          "type": "range_for",
+          "range_hint": "16384",
+          "name": "make_texture_c76_0_k0004_vk_0_t00",
+          "source_path": "shaders/make_texture_c76_0_k0004_vk_0_t00.spv",
+          "gpu_block_size": 128,
+          "buffer_binds": [],
+          "texture_binds": [{
+              "arg_id": 0,
+              "binding": 2,
+              "is_storage": true}]}],
+      "args_count": 1,
+      "rets_count": 0,
+      "args_buffer_size": 8,
+      "rets_buffer_size": 0,
+      "scalar_args": {},
+      "arr_args": {"0": {
+          "dtype_name": "f32",
+          "field_dim": 0,
+          "element_shape": [],
+          "shape_offset_in_args_buf": 0,
+          "bind_index": 0}}},"paint_c78_0_k0006_vk": {
+      "tasks": [{
+          "type": "range_for",
+          "range_hint": "",
+          "name": "paint_c78_0_k0006_vk_0_t00",
+          "source_path": "shaders/paint_c78_0_k0006_vk_0_t00.spv",
+          "gpu_block_size": 128,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 2,
+                "id": -1},
+              "binding": 0}],
+          "texture_binds": [{
+              "arg_id": 2,
+              "binding": 2,
+              "is_storage": false}]}],
+      "args_count": 3,
+      "rets_count": 0,
+      "args_buffer_size": 24,
+      "rets_buffer_size": 0,
+      "scalar_args": {"0": {
+          "dtype_name": "f32",
+          "offset_in_args_buf": 0}},
+      "arr_args": {"2": {
+          "dtype_name": "f32",
+          "field_dim": 0,
+          "element_shape": [],
+          "shape_offset_in_args_buf": 8,
+          "bind_index": 0},"1": {
+          "dtype_name": "f32",
+          "field_dim": 2,
+          "element_shape": [4],
+          "shape_offset_in_args_buf": 4,
+          "bind_index": 0}}}},
+  "kernel_tmpls": {},
+  "fields": [],
+  "root_buffer_size": 4194304}}
