@@ -66,9 +66,10 @@ public:
 
     pixels_ = NdarrayAndMem::Make(device_, taichi::lang::PrimitiveType::f32, {kX, kY}, vec4_shape);
 
+    auto buffer_format = taichi::lang::BufferFormat::rgba8;
     taichi::lang::ImageParams img_params;
     img_params.dimension = taichi::lang::ImageDimension::d2D;
-    img_params.format = taichi::lang::BufferFormat::r32f;
+    img_params.format = buffer_format;
     img_params.x = kTextureHeight;
     img_params.y = kTextureWidth;
     img_params.z = 1;
@@ -76,9 +77,7 @@ public:
 
     //taichi::lang::DeviceAllocation devalloc_tex = device_->create_image(img_params);
     taichi::lang::DeviceAllocation devalloc_tex = vulkan_runtime->create_image(img_params);
-    tex_ = std::make_unique<taichi::lang::Texture>(devalloc_tex,
-        //taichi::lang::PrimitiveType::f32, /*num_channels=*/1,
-        taichi::lang::BufferFormat::r32f,
+    tex_ = std::make_unique<taichi::lang::Texture>(devalloc_tex, buffer_format,
         kTextureWidth, kTextureHeight);
 
     args_.insert({"pixels_arr", taichi::lang::aot::IValue::create(pixels_->ndarray())});
