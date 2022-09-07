@@ -16,3 +16,4 @@
 __pycache__/
 *.pyc
 /implicit_fem/python/imgui.ini
+/test/build/

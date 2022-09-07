@@ -1,0 +1,36 @@
+{
+"aot_data": {
+  "kernels": {"taichi_add_c76_0": {
+      "tasks": [{
+          "type": "range_for",
+          "range_hint": "",
+          "name": "taichi_add_c76_0_k0001_vk_0_t00",
+          "source_path": "models/taichi_aot/taichi_add_c76_0_k0001_vk_0_t00.spv",
+          "gpu_block_size": 128,
+          "buffer_binds": [{
+              "buffer": {
+                "type": 2,
+                "id": -1},
+              "binding": 0}],
+          "texture_binds": []}],
+      "args_count": 3,
+      "rets_count": 0,
+      "args_buffer_size": 20,
+      "rets_buffer_size": 0,
+      "scalar_args": {"2": {
+          "dtype_name": "i32",
+          "offset_in_args_buf": 16}},
+      "arr_args": {"1": {
+          "dtype_name": "u8",
+          "field_dim": 3,
+          "element_shape": [],
+          "shape_offset_in_args_buf": 4,
+          "bind_index": 0},"0": {
+          "dtype_name": "u8",
+          "field_dim": 3,
+          "element_shape": [],
+          "shape_offset_in_args_buf": 0,
+          "bind_index": 0}}}},
+  "kernel_tmpls": {},
+  "fields": [],
+  "root_buffer_size": 0}}
