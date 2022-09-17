@@ -20,18 +20,39 @@ inline void check_vulkan_result(VkResult result) {
   }
 }
 
+VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_validation_callback(
+  VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+  VkDebugUtilsMessageTypeFlagsEXT type,
+  const VkDebugUtilsMessengerCallbackDataEXT *data,
+  void *user_data
+) {
+  if (severity > VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+    std::cout << "Vulkan Validation: " << data->pMessage << std::endl;
+  }
+  return VK_FALSE;
+}
+
 Renderer::Renderer(bool debug) {
   VkResult res = VK_SUCCESS;
 
+  uint32_t nlep = 0;
+  vkEnumerateInstanceExtensionProperties(nullptr, &nlep, nullptr);
+  std::vector<VkExtensionProperties> leps(nlep);
+  res = vkEnumerateInstanceExtensionProperties(nullptr, &nlep, leps.data());
+  check_vulkan_result(res);
+
   std::vector<const char*> llns {};
-  std::vector<const char*> lens {};
+  std::vector<const char*> lens(nlep);
+  for (size_t i = 0; i < leps.size(); ++i) {
+    lens.at(i) = leps.at(i).extensionName;
+  }
 
   if (debug) {
     llns.emplace_back("VK_LAYER_KHRONOS_validation");
     lens.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
 
-  uint32_t api_version = VK_API_VERSION_1_1;
+  uint32_t api_version = VK_API_VERSION_1_0;
 
   VkApplicationInfo ai {};
   ai.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -48,6 +69,22 @@ Renderer::Renderer(bool debug) {
   ici.ppEnabledLayerNames = llns.data();
   ici.enabledExtensionCount = (uint32_t)lens.size();
   ici.ppEnabledExtensionNames = lens.data();
+
+  VkDebugUtilsMessengerCreateInfoEXT dumci {};
+  if (debug) {
+    dumci.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    dumci.messageSeverity =
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    dumci.messageType =
+      VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+      VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+      VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    dumci.pfnUserCallback = &vulkan_validation_callback;
+    dumci.pUserData = nullptr;
+
+    ici.pNext = &dumci;
+  }
 
   VkInstance instance = VK_NULL_HANDLE;
   res = vkCreateInstance(&ici, nullptr, &instance);
@@ -76,13 +113,13 @@ Renderer::Renderer(bool debug) {
 
   uint32_t nqfp = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &nqfp, nullptr);
-  std::vector<VkQueueFamilyProperties> qfps {};
+  std::vector<VkQueueFamilyProperties> qfps(nqfp);
   vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &nqfp, qfps.data());
 
   uint32_t queue_family_index = VK_QUEUE_FAMILY_IGNORED;
   for (uint32_t i = 0; i < nqfp; ++i) {
     VkQueueFlags qfs = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
-    if (qfps.at(i).queueFlags & qfs == qfs) { queue_family_index = i; }
+    if ((qfps.at(i).queueFlags & qfs) == qfs) { queue_family_index = i; }
   }
   assert(queue_family_index != VK_QUEUE_FAMILY_IGNORED);
 
@@ -111,12 +148,8 @@ Renderer::Renderer(bool debug) {
   VkQueue queue = VK_NULL_HANDLE;
   vkGetDeviceQueue(device, queue_family_index, 0, &queue);
 
-  instance_ = instance;
-  device_ = device;
-  queue_family_index_ = queue_family_index;
-  queue_ = queue;
-
   TiVulkanRuntimeInteropInfo vrii {};
+  vrii.get_instance_proc_addr = &vkGetInstanceProcAddr;
   vrii.api_version = api_version;
   vrii.instance = instance;
   vrii.physical_device = physical_device;
@@ -129,6 +162,13 @@ Renderer::Renderer(bool debug) {
 
   TiError err = ti_get_last_error(0, nullptr);
   assert(err >= TI_ERROR_SUCCESS);
+
+  instance_ = instance;
+  device_ = device;
+  queue_family_index_ = queue_family_index;
+  queue_ = queue;
+
+  runtime_ = runtime;
 }
 Renderer::~Renderer() {
   destroy();

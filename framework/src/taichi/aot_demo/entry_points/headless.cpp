@@ -2,6 +2,8 @@
 #include "taichi/aot_demo/framework.hpp"
 
 int main(int argc, const char** argv) {
+  ti::aot_demo::F = ti::aot_demo::Framework(TI_ARCH_VULKAN, true);
+
   ti::aot_demo::initialize();
   auto tic0 = std::chrono::steady_clock::now();
   auto tic = std::chrono::steady_clock::now();
