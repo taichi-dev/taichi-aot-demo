@@ -17,11 +17,12 @@ message("-- TAICHI_C_API_INSTALL_DIR=" ${TAICHI_C_API_INSTALL_DIR})
 
 # Declare framework target.
 add_library(TaichiAotDemoFramework
-    "framework/src/taichi/aot_demo/framework.cpp"
-    "framework/src/taichi/aot_demo/renderer.cpp"
-    "framework/src/taichi/aot_demo/glslang.cpp"
-    "framework/include/taichi/aot_demo/framework.hpp"
-    "framework/include/taichi/aot_demo/renderer.hpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/framework.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/renderer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/glslang.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/framework.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/renderer.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp")
 target_include_directories(TaichiAotDemoFramework PUBLIC
     ${Vulkan_INCLUDE_DIR}
     "${TAICHI_C_API_INSTALL_DIR}/include"

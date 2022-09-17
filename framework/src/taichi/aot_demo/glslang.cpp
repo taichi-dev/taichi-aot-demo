@@ -8,6 +8,15 @@ namespace aot_demo {
 
 namespace {
 
+struct glslang_lifetime_t {
+  glslang_lifetime_t() {
+    glslang_initialize_process();
+  }
+  ~glslang_lifetime_t() {
+    glslang_finalize_process();
+  }
+} LIFETIME;
+
 const glslang_resource_t DefaultTBuiltInResource = {
   /* .MaxLights = */ 32,
   /* .MaxClipPlanes = */ 6,

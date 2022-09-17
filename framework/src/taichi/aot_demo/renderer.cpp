@@ -215,6 +215,7 @@ Renderer::Renderer(bool debug) {
 
   VkCommandPoolCreateInfo cpci {};
   cpci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  cpci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
   cpci.queueFamilyIndex = queue_family_index;
 
   VkCommandPool command_pool = VK_NULL_HANDLE;
@@ -414,6 +415,9 @@ void Renderer::begin_frame() {
   res = vkWaitForFences(device_, 1, &fence_, VK_TRUE, 0);
   check_vulkan_result(res);
 
+  res = vkResetFences(device_, 1, &fence_);
+  check_vulkan_result(res);
+
   res = vkResetCommandBuffer(command_buffer_, 0);
   check_vulkan_result(res);
 
@@ -433,9 +437,12 @@ void Renderer::begin_frame() {
     caimb.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     caimb.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     caimb.image = color_attachment_;
+    caimb.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    caimb.subresourceRange.levelCount = 1;
+    caimb.subresourceRange.layerCount = 1;
   }
   {
-    VkImageMemoryBarrier& daimb = imbs.at(0);
+    VkImageMemoryBarrier& daimb = imbs.at(1);
     daimb.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     daimb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     daimb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -443,12 +450,25 @@ void Renderer::begin_frame() {
     daimb.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     daimb.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     daimb.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    daimb.image = color_attachment_;
+    daimb.image = depth_attachment_;
+    daimb.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    daimb.subresourceRange.levelCount = 1;
+    daimb.subresourceRange.layerCount = 1;
   }
 
   vkCmdPipelineBarrier(command_buffer_, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr,
+    VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, 0, 0, nullptr, 0, nullptr,
     (uint32_t)imbs.size(), imbs.data());
+
+  std::array<VkClearValue, 2> ccvs {};
+  {
+    VkClearValue& ccv = ccvs.at(0);
+    ccv.color = {};
+  }
+  {
+    VkClearValue& ccv = ccvs.at(1);
+    ccv.depthStencil = {};
+  }
 
   VkRenderPassBeginInfo rpbi {};
   rpbi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -456,6 +476,8 @@ void Renderer::begin_frame() {
   rpbi.framebuffer = framebuffer_;
   rpbi.renderArea.extent.width = width_;
   rpbi.renderArea.extent.height = height_;
+  rpbi.clearValueCount = (uint32_t)ccvs.size();
+  rpbi.pClearValues = ccvs.data();
   vkCmdBeginRenderPass(command_buffer_, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
   in_frame_ = true;
@@ -477,8 +499,10 @@ void Renderer::end_frame() {
 
   in_frame_ = false;
 }
-void Renderer::enqueue_graphics_task(const GraphicsTaskEnqueueConfig& config) {
+void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
   assert(in_frame_);
+
+  const GraphicsTaskConfig& config  = graphics_task.config_;
 
   bool is_indexed = config.index_buffer.memory != VK_NULL_HANDLE;
 
@@ -488,11 +512,11 @@ void Renderer::enqueue_graphics_task(const GraphicsTaskEnqueueConfig& config) {
   vkCmdSetScissor(command_buffer_, 0, 1, &r);
 
   vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS,
-    config.graphics_task->pipeline_);
+    graphics_task.pipeline_);
 
   vkCmdBindDescriptorSets(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS,
-    config.graphics_task->pipeline_layout_, 0, 1,
-    &config.graphics_task->descriptor_set_, 0, nullptr);
+    graphics_task.pipeline_layout_, 0, 1,
+    &graphics_task.descriptor_set_, 0, nullptr);
 
   {
     const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(config.vertex_buffer.memory);
@@ -525,21 +549,21 @@ const TiVulkanMemoryInteropInfo& Renderer::export_ti_memory(TiMemory memory) {
 
 GraphicsTask::GraphicsTask(
   const std::shared_ptr<Renderer>& renderer,
-  const GraphicsTaskConfig& cfg
-) : cfg_(cfg) {
+  const GraphicsTaskConfig& config
+) : config_(config) {
   VkResult res = VK_SUCCESS;
   assert(renderer->is_valid());
 
   VkDevice device = renderer->device();
 
   std::array<std::vector<uint32_t>, 2> cs {};
-  cs.at(0) = vert2spv(cfg.vert_glsl);
-  cs.at(1) = frag2spv(cfg.frag_glsl);
+  cs.at(0) = vert2spv(config.vertex_shader_glsl);
+  cs.at(1) = frag2spv(config.fragment_shader_glsl);
 
-  std::vector<VkDescriptorType> dts(cfg.rscs.size());
-  for (size_t i = 0; i < cfg.rscs.size(); ++i) {
+  std::vector<VkDescriptorType> dts(config.resources.size());
+  for (size_t i = 0; i < config.resources.size(); ++i) {
     VkDescriptorType dt;
-    switch (cfg.rscs.at(i)) {
+    switch (config.resources.at(i)) {
     case L_GRAPHICS_TASK_RESOURCE_UNIFORM_BUFFER:
       dt = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
       break;
@@ -560,7 +584,7 @@ GraphicsTask::GraphicsTask(
   for (size_t i = 0; i < cs.size(); ++i) {
     VkShaderModuleCreateInfo smci {};
     smci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    smci.codeSize = cs.at(i).size();
+    smci.codeSize = cs.at(i).size() * sizeof(uint32_t);
     smci.pCode = cs.at(i).data();
 
     VkShaderModule sm = VK_NULL_HANDLE;
@@ -638,30 +662,48 @@ GraphicsTask::GraphicsTask(
 
   std::array<VkPipelineShaderStageCreateInfo, 2> psscis {};
   {
-    VkPipelineShaderStageCreateInfo pssci = psscis.at(0);
+    VkPipelineShaderStageCreateInfo& pssci = psscis.at(0);
     pssci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     pssci.pName = "main";
     pssci.module = sms.at(0);
     pssci.stage = VK_SHADER_STAGE_VERTEX_BIT;
   }
   {
-    VkPipelineShaderStageCreateInfo pssci = psscis.at(0);
+    VkPipelineShaderStageCreateInfo& pssci = psscis.at(1);
     pssci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     pssci.pName = "main";
     pssci.module = sms.at(1);
     pssci.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
   }
 
+  VkFormat vf {};
+  switch(config.vertex_component_count) {
+  case 1:
+    vf = VK_FORMAT_R32_SFLOAT;
+    break;
+  case 2:
+    vf = VK_FORMAT_R32G32_SFLOAT;
+    break;
+  case 3:
+    vf = VK_FORMAT_R32G32B32_SFLOAT;
+    break;
+  case 4:
+    vf = VK_FORMAT_R32G32B32A32_SFLOAT;
+    break;
+  default:
+    throw std::logic_error("invalid vertex component count");
+  }
+
   VkVertexInputAttributeDescription viad {};
   viad.location = 0;
   viad.binding = 0;
-  viad.format = cfg.vert_fmt;
+  viad.format = vf;
   viad.offset = 0;
 
   VkVertexInputBindingDescription vibd {};
   vibd.binding = 0;
   vibd.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-  vibd.stride = cfg.vert_stride;
+  vibd.stride = config.vertex_component_count * sizeof(float);
 
   VkPipelineVertexInputStateCreateInfo pvisci {};
   pvisci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -670,9 +712,24 @@ GraphicsTask::GraphicsTask(
   pvisci.vertexBindingDescriptionCount = 1;
   pvisci.pVertexBindingDescriptions = &vibd;
 
+  VkPrimitiveTopology pt;
+  switch (config.primitive_topology) {
+  case L_PRIMITIVE_TOPOLOGY_POINT:
+    pt = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+    break;
+  case L_PRIMITIVE_TOPOLOGY_LINE:
+    pt = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    break;
+  case L_PRIMITIVE_TOPOLOGY_TRIANGLE:
+    pt = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    break;
+  default:
+    throw std::logic_error("invalid primitive topology");
+  }
+
   VkPipelineInputAssemblyStateCreateInfo piasci {};
   piasci.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  piasci.topology = cfg.topo;
+  piasci.topology = pt;
 
   VkViewport v {};
   v.width = 1;
@@ -726,7 +783,7 @@ GraphicsTask::GraphicsTask(
 
   VkPipelineColorBlendStateCreateInfo pcbsci {};
   pcbsci.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-  pcbsci.attachmentCount = 2;
+  pcbsci.attachmentCount = 1;
   pcbsci.pAttachments = &pcbas;
   pcbsci.blendConstants[0] = 1.0;
   pcbsci.blendConstants[1] = 1.0;
@@ -755,6 +812,7 @@ GraphicsTask::GraphicsTask(
   gpci.pColorBlendState = &pcbsci;
   gpci.pDynamicState = &pdsci;
   gpci.layout = pipeline_layout;
+  gpci.renderPass = renderer->render_pass_;
 
   VkPipeline pipeline = VK_NULL_HANDLE;
   res = vkCreateGraphicsPipelines(device, nullptr, 1, &gpci, nullptr, &pipeline);

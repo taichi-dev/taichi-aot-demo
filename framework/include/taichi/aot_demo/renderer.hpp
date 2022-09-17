@@ -13,16 +13,9 @@ namespace aot_demo {
 class Renderer;
 class GraphicsTask;
 
-struct GraphicsTaskEnqueueConfig {
-  const GraphicsTask* graphics_task;
-  TiMemorySlice vertex_buffer;
-  TiMemorySlice index_buffer;
-  uint32_t vertex_count;
-  uint32_t index_count;
-  uint32_t instance_count;
-};
-
 class Renderer {
+  friend class GraphicsTask;
+
   static const uint32_t DEFAULT_FRAMEBUFFER_WIDTH = 512;
   static const uint32_t DEFAULT_FRAMEBUFFER_HEIGHT = 256;
 
@@ -68,7 +61,7 @@ public:
 
   void begin_frame();
   void end_frame();
-  void enqueue_graphics_task(const GraphicsTaskEnqueueConfig& config);
+  void enqueue_graphics_task(const GraphicsTask& graphics_task);
 
   constexpr VkDevice device() const {
     return device_;
@@ -89,20 +82,30 @@ enum GraphicsTaskResource {
   L_GRAPHICS_TASK_RESOURCE_SAMPLED_IMAGE,
 };
 
+enum PrimitiveTopology {
+  L_PRIMITIVE_TOPOLOGY_POINT,
+  L_PRIMITIVE_TOPOLOGY_LINE,
+  L_PRIMITIVE_TOPOLOGY_TRIANGLE,
+};
+
 struct GraphicsTaskConfig {
-  std::string vert_glsl;
-  std::string frag_glsl;
-  std::vector<GraphicsTaskResource> rscs;
-  VkFormat vert_fmt;
-  size_t vert_stride;
-  VkIndexType idx_ty;
-  VkPrimitiveTopology topo;
+  std::string vertex_shader_glsl;
+  std::string fragment_shader_glsl;
+  std::vector<GraphicsTaskResource> resources;
+
+  TiMemorySlice vertex_buffer;
+  TiMemorySlice index_buffer;
+  uint32_t vertex_component_count;
+  uint32_t vertex_count;
+  uint32_t index_count;
+  uint32_t instance_count;
+  PrimitiveTopology primitive_topology;
 };
 
 class GraphicsTask {
   friend class Renderer;
 
-  const GraphicsTaskConfig cfg_;
+  GraphicsTaskConfig config_;
 
   std::shared_ptr<Renderer> renderer_;
   VkPipeline pipeline_;
@@ -117,9 +120,10 @@ public:
   }
   void destroy();
 
+  GraphicsTask() {}
   GraphicsTask(
     const std::shared_ptr<Renderer>& renderer,
-    const GraphicsTaskConfig& cfg
+    const GraphicsTaskConfig& config
   );
   ~GraphicsTask();
 };

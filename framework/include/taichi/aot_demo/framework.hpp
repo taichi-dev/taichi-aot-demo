@@ -16,7 +16,7 @@ extern bool step(double t, double dt);
 
 class Framework {
   ti::Runtime runtime_;
-  std::unique_ptr<class Renderer> renderer_;
+  std::shared_ptr<class Renderer> renderer_;
   std::map<std::string, std::unique_ptr<GraphicsTask>> task_cache_;
 
 public:
@@ -32,14 +32,23 @@ public:
     return *this;
   }
 
+  ti::NdArray<float> allocate_vertex_buffer(uint32_t vertex_component_count, uint32_t vertex_count) const;
+  ti::NdArray<uint32_t> allocate_index_buffer(uint32_t index_count) const;
+
   // Add your drawing functions here.
-  Framework& draw_points(ti::NdArray<float>& points);
+  std::unique_ptr<GraphicsTask> draw_points(const ti::NdArray<float>& points) const;
 
   constexpr const ti::Runtime& runtime() const {
     return runtime_;
   }
   constexpr ti::Runtime& runtime() {
     return runtime_;
+  }
+  constexpr const Renderer& renderer() const {
+    return *renderer_;
+  }
+  constexpr Renderer& renderer() {
+    return *renderer_;
   }
 };
 
