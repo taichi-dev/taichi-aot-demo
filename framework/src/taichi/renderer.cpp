@@ -1,6 +1,5 @@
 // A minimalist renderer.
 // @PENGUINLIONG
-#pragma once
 #include <cassert>
 #include <array>
 #include <stdexcept>
@@ -14,7 +13,7 @@ inline void check_vulkan_result(VkResult result) {
   }
 }
 
-std::vector<uint32_t> glsl2spv(std::string& glsl) {
+std::vector<uint32_t> glsl2spv(const std::string& glsl) {
   throw std::logic_error("unimplemented");
 }
 
@@ -40,8 +39,8 @@ public:
     }
 
     instance_ = vrii.instance;
-    //surface_ = vrii.surface;
     device_ = vrii.device;
+    //surface_ = vrii.surface;
     //swapchain_ = vrii.swapchain;
     graphics_queue_ = vrii.graphics_queue;
     graphics_qfam_idx_ = vrii.graphics_queue_family_index;
@@ -59,7 +58,8 @@ enum GraphicsTaskResource {
 };
 
 struct GraphicsTaskConfig {
-  std::string glsl_src;
+  std::string vert_glsl;
+  std::string frag_glsl;
   std::vector<GraphicsTaskResource> rscs;
   VkFormat vert_fmt;
   size_t vert_stride;
@@ -68,7 +68,9 @@ struct GraphicsTaskConfig {
 };
 
 class GraphicsTask {
+  const std::shared_ptr<Renderer> renderer_;
   const GraphicsTaskConfig cfg_;
+
   VkPipeline pipe_;
   VkPipelineLayout pipe_layout_;
   VkDescriptorSetLayout desc_set_layout_;
@@ -76,9 +78,18 @@ class GraphicsTask {
   VkDescriptorSet desc_set_;
 
 public:
-  GraphicsTask(Renderer& renderer, const GraphicsTaskConfig& cfg) : cfg_(cfg) {
+  GraphicsTask(
+    const std::shared_ptr<Renderer>& renderer,
+    const GraphicsTaskConfig& cfg
+  ) : renderer_(renderer), cfg_(cfg) {
     VkResult res = VK_SUCCESS;
-    assert(renderer.is_valid());
+    assert(renderer->is_valid());
+
+    VkDevice d = renderer->device();
+
+    std::array<std::vector<uint32_t>, 2> cs {};
+    cs.at(0) = glsl2spv(cfg.vert_glsl);
+    cs.at(1) = glsl2spv(cfg.frag_glsl);
 
     std::vector<VkDescriptorType> dts(cfg.rscs.size());
     for (size_t i = 0; i < cfg.rscs.size(); ++i) {
@@ -98,6 +109,20 @@ public:
         return;
       }
       dts.emplace_back(dt);
+    }
+
+    std::array<VkShaderModule, 2> sms {};
+    for (size_t i = 0; i < cs.size(); ++i) {
+      VkShaderModuleCreateInfo smci {};
+      smci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+      smci.codeSize = cs.at(i).size();
+      smci.pCode = cs.at(i).data();
+
+      VkShaderModule sm = VK_NULL_HANDLE;
+      res = vkCreateShaderModule(d, &smci, nullptr, &sm);
+      check_vulkan_result(res);
+
+      sms.at(i) = sm;
     }
 
     std::vector<VkDescriptorPoolSize> dpss {};
@@ -123,7 +148,7 @@ public:
     dpci.poolSizeCount = (uint32_t)dpss.size();
 
     VkDescriptorPool dp = VK_NULL_HANDLE;
-    res = vkCreateDescriptorPool(renderer.device(), &dpci, nullptr, &dp);
+    res = vkCreateDescriptorPool(d, &dpci, nullptr, &dp);
     check_vulkan_result(res);
 
     std::vector<VkDescriptorSetLayoutBinding> dslbs {};
@@ -144,7 +169,7 @@ public:
     dslci.pBindings = dslbs.data();
 
     VkDescriptorSetLayout dsl = VK_NULL_HANDLE;
-    res = vkCreateDescriptorSetLayout(renderer.device(), &dslci, nullptr, &dsl);
+    res = vkCreateDescriptorSetLayout(d, &dslci, nullptr, &dsl);
     check_vulkan_result(res);
 
     VkDescriptorSetAllocateInfo dsai {};
@@ -154,7 +179,7 @@ public:
     dsai.pSetLayouts = &dsl;
 
     VkDescriptorSet ds = VK_NULL_HANDLE;
-    res = vkAllocateDescriptorSets(renderer.device(), &dsai, &ds);
+    res = vkAllocateDescriptorSets(d, &dsai, &ds);
     check_vulkan_result(res);
 
     VkPipelineLayoutCreateInfo plci {};
@@ -163,7 +188,7 @@ public:
     plci.pSetLayouts = &dsl;
 
     VkPipelineLayout pl = VK_NULL_HANDLE;
-    res = vkCreatePipelineLayout(renderer.device(), &plci, nullptr, &pl);
+    res = vkCreatePipelineLayout(d, &plci, nullptr, &pl);
     check_vulkan_result(res);
 
     std::array<VkPipelineShaderStageCreateInfo, 2> psscis {};
@@ -171,12 +196,14 @@ public:
       VkPipelineShaderStageCreateInfo pssci = psscis.at(0);
       pssci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
       pssci.pName = "main";
+      pssci.module = sms.at(0);
       pssci.stage = VK_SHADER_STAGE_VERTEX_BIT;
     }
     {
       VkPipelineShaderStageCreateInfo pssci = psscis.at(0);
       pssci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
       pssci.pName = "main";
+      pssci.module = sms.at(1);
       pssci.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
     }
 
@@ -285,8 +312,13 @@ public:
     gpci.layout = pl;
 
     VkPipeline p = VK_NULL_HANDLE;
-    res = vkCreateGraphicsPipelines(renderer.device(), nullptr, 1, &gpci, nullptr, &p);
+    res = vkCreateGraphicsPipelines(d, nullptr, 1, &gpci, nullptr, &p);
     check_vulkan_result(res);
+
+    // Clean up. Shader modules can be destroyed at this point.
+    for (size_t i = 0; i < sms.size(); ++i) {
+      vkDestroyShaderModule(d, sms.at(i), nullptr);
+    }
 
     pipe_ = p;
     pipe_layout_ = pl;
@@ -295,4 +327,3 @@ public:
     desc_set_ = ds;
   }
 };
-

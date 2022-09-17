@@ -5,14 +5,14 @@
 namespace ti {
 namespace aot_demo {
 
-ti::NdArray ndarray;
+ti::NdArray<float> ndarray;
 
 
 void initialize() {
-  
+
 }
 bool step(double t, double dt) {
-
+  return true;
 }
 
 } // namespace aot_demo

@@ -2,9 +2,10 @@ cmake_minimum_required(VERSION 3.13)
 
 project(TaichiAotDemo LANGUAGES C CXX)
 
+set(CMAKE_CXX_STANDARD 14)
 
 # Check for `TAICHI_C_API_INSTALL_DIR`.
-get_filename_component(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR} ABSOLUTE)
+get_filename_component(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR} ABSOLUTE CACHE)
 if (NOT EXISTS ${TAICHI_C_API_INSTALL_DIR})
     message(FATAL_ERROR "Environment variable TAICHI_C_API_INSTALL_DIR is not specified")
 endif()
