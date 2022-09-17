@@ -1,19 +1,59 @@
 #pragma once
+#include <array>
 #include <cstdint>
 #include <string>
+#include <map>
 #define TI_WITH_VULKAN 1
 #include <taichi/cpp/taichi.hpp>
+#include <vk_mem_alloc.h>
 
 namespace ti {
 namespace aot_demo {
 
+class Renderer;
+class GraphicsTask;
+
+struct GraphicsTaskEnqueueConfig {
+  const GraphicsTask* graphics_task;
+  TiMemorySlice vertex_buffer;
+  TiMemorySlice index_buffer;
+  uint32_t vertex_count;
+  uint32_t index_count;
+  uint32_t instance_count;
+};
+
 class Renderer {
+  static const uint32_t DEFAULT_FRAMEBUFFER_WIDTH = 512;
+  static const uint32_t DEFAULT_FRAMEBUFFER_HEIGHT = 256;
+
   VkInstance instance_;
   VkDevice device_;
   uint32_t queue_family_index_;
   VkQueue queue_;
+  VmaAllocator vma_allocator_;
+
+  VkRenderPass render_pass_;
+  VkFramebuffer framebuffer_;
+  VmaAllocation color_attachment_allocation_;
+  VmaAllocation depth_attachment_allocation_;
+  VkImage color_attachment_;
+  VkImage depth_attachment_;
+  VkImageView color_attachment_view_;
+  VkImageView depth_attachment_view_;
+  uint32_t width_;
+  uint32_t height_;
+
+  VkCommandPool command_pool_;
+  VkCommandBuffer command_buffer_;
+  VkFence fence_;
 
   TiRuntime runtime_;
+
+  // Within a pair of `begin_frame` and `end_frame`.
+  bool in_frame_;
+
+  std::map<TiMemory, TiVulkanMemoryInteropInfo> ti_memory_interops_;
+  const TiVulkanMemoryInteropInfo& export_ti_memory(TiMemory memory);
 
 public:
   constexpr bool is_valid() const {
@@ -23,6 +63,12 @@ public:
 
   Renderer(bool debug);
   ~Renderer();
+
+  void set_framebuffer_size(uint32_t width, uint32_t height);
+
+  void begin_frame();
+  void end_frame();
+  void enqueue_graphics_task(const GraphicsTaskEnqueueConfig& config);
 
   constexpr VkDevice device() const {
     return device_;
@@ -54,6 +100,8 @@ struct GraphicsTaskConfig {
 };
 
 class GraphicsTask {
+  friend class Renderer;
+
   const GraphicsTaskConfig cfg_;
 
   std::shared_ptr<Renderer> renderer_;

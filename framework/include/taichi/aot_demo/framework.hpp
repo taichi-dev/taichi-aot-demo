@@ -1,4 +1,5 @@
 #include <vector>
+#include <map>
 #include "taichi/aot_demo/renderer.hpp"
 
 namespace ti {
@@ -16,6 +17,7 @@ extern bool step(double t, double dt);
 class Framework {
   ti::Runtime runtime_;
   std::unique_ptr<class Renderer> renderer_;
+  std::map<std::string, std::unique_ptr<GraphicsTask>> task_cache_;
 
 public:
   Framework() {}
@@ -29,6 +31,9 @@ public:
     renderer_ = std::move(b.renderer_);
     return *this;
   }
+
+  // Add your drawing functions here.
+  Framework& draw_points(ti::NdArray<float>& points);
 
   constexpr const ti::Runtime& runtime() const {
     return runtime_;
