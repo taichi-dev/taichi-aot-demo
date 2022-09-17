@@ -1,6 +1,6 @@
-#include <cstdio>
-#include <taichi/cpp/taichi.hpp>
-#include <taichi/aot_demo_framework.hpp>
+#include <thread>
+#include <chrono>
+#include "taichi/aot_demo/framework.hpp"
 
 namespace ti {
 namespace aot_demo {
@@ -12,6 +12,7 @@ void initialize() {
 
 }
 bool step(double t, double dt) {
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   return true;
 }
 

@@ -5,17 +5,23 @@ project(TaichiAotDemo LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 14)
 
 # Check for `TAICHI_C_API_INSTALL_DIR`.
-get_filename_component(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR} ABSOLUTE CACHE)
 if (NOT EXISTS ${TAICHI_C_API_INSTALL_DIR})
+    set(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR})
+endif()
+if (NOT EXISTS $ENV{TAICHI_C_API_INSTALL_DIR})
     message(FATAL_ERROR "Environment variable TAICHI_C_API_INSTALL_DIR is not specified")
 endif()
+get_filename_component(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR} ABSOLUTE CACHE)
 message("-- TAICHI_C_API_INSTALL_DIR=" ${TAICHI_C_API_INSTALL_DIR})
 
 
 # Declare framework target.
 add_library(TaichiAotDemoFramework
-    "framework/src/taichi/renderer.cpp"
-    "framework/include/taichi/aot_demo_framework.hpp")
+    "framework/src/taichi/aot_demo/framework.cpp"
+    "framework/src/taichi/aot_demo/renderer.cpp"
+    "framework/src/taichi/aot_demo/glslang.cpp"
+    "framework/include/taichi/aot_demo/framework.hpp"
+    "framework/include/taichi/aot_demo/renderer.hpp")
 target_include_directories(TaichiAotDemoFramework PUBLIC
     ${Vulkan_INCLUDE_DIR}
     "${TAICHI_C_API_INSTALL_DIR}/include"
@@ -24,7 +30,19 @@ target_include_directories(TaichiAotDemoFramework PUBLIC
 
 # Find dependencies.
 find_package(Vulkan REQUIRED)
-target_link_libraries(TaichiAotDemoFramework PUBLIC ${Vulkan_LIBRARY})
+add_subdirectory(external/glfw)
+add_subdirectory(external/VulkanMemoryAllocator)
+add_subdirectory(external/glslang)
+target_link_libraries(TaichiAotDemoFramework PUBLIC
+    ${Vulkan_LIBRARY}
+    glfw
+    VulkanMemoryAllocator
+    glslang
+    SPIRV)
+target_include_directories(TaichiAotDemoFramework PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/VulkanMemoryAllocator/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/glslang/glslang/Include)
 
 
 # Find built taichi C-API library in `TAICHI_C_API_INSTALL_DIR`.
@@ -57,9 +75,10 @@ foreach(TAICHI_AOT_DEMO_DIR ${TAICHI_AOT_DEMO_LIST})
     target_include_directories(${TAICHI_AOT_DEMO_DIR} PUBLIC ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
 
     add_executable(E${TAICHI_AOT_DEMO_DIR}
-        "framework/src/taichi/entry_points/windows.cpp")
+        "framework/src/taichi/aot_demo/entry_points/headless.cpp")
     target_link_libraries(E${TAICHI_AOT_DEMO_DIR} PUBLIC
         ${TAICHI_AOT_DEMO_DIR}
+        TaichiAotDemoFramework
         ${TaichiAotDemoFramework_LINK_LIBRARIES})
     target_include_directories(E${TAICHI_AOT_DEMO_DIR} PUBLIC
         ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
