@@ -38,13 +38,13 @@ class Renderer {
   VkSampler sampler_;
 
   VkCommandPool command_pool_;
-  VkCommandBuffer command_buffer_;
   VkFence fence_;
 
   TiRuntime runtime_;
 
   // Within a pair of `begin_frame` and `end_frame`.
   bool in_frame_;
+  VkCommandBuffer frame_command_buffer_;
 
   std::map<TiMemory, TiVulkanMemoryInteropInfo> ti_memory_interops_;
   const TiVulkanMemoryInteropInfo& export_ti_memory(TiMemory memory);

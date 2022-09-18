@@ -224,21 +224,10 @@ Renderer::Renderer(bool debug) {
 
   VkCommandPoolCreateInfo cpci {};
   cpci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  cpci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
   cpci.queueFamilyIndex = queue_family_index;
 
   VkCommandPool command_pool = VK_NULL_HANDLE;
   res = vkCreateCommandPool(device, &cpci, nullptr, &command_pool);
-  check_vulkan_result(res);
-
-  VkCommandBufferAllocateInfo cbai {};
-  cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  cbai.commandPool = command_pool;
-  cbai.commandBufferCount = 1;
-
-  VkCommandBuffer command_buffer = VK_NULL_HANDLE;
-  res = vkAllocateCommandBuffers(device, &cbai, &command_buffer);
   check_vulkan_result(res);
 
   VkFenceCreateInfo fci {};
@@ -276,7 +265,6 @@ Renderer::Renderer(bool debug) {
   set_framebuffer_size(DEFAULT_FRAMEBUFFER_WIDTH, DEFAULT_FRAMEBUFFER_HEIGHT);
 
   command_pool_ = command_pool;
-  command_buffer_ = command_buffer;
   fence_ = fence;
 
   runtime_ = runtime;
@@ -442,12 +430,22 @@ void Renderer::begin_frame() {
   res = vkResetFences(device_, 1, &fence_);
   check_vulkan_result(res);
 
-  res = vkResetCommandBuffer(command_buffer_, 0);
+  vkResetCommandPool(device_, command_pool_, 0);
+  check_vulkan_result(res);
+
+  VkCommandBufferAllocateInfo cbai {};
+  cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  cbai.commandPool = command_pool_;
+  cbai.commandBufferCount = 1;
+
+  VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+  res = vkAllocateCommandBuffers(device_, &cbai, &command_buffer);
   check_vulkan_result(res);
 
   VkCommandBufferBeginInfo cbbi {};
   cbbi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  res = vkBeginCommandBuffer(command_buffer_, &cbbi);
+  res = vkBeginCommandBuffer(command_buffer, &cbbi);
   check_vulkan_result(res);
 
   std::array<VkImageMemoryBarrier, 2> imbs {};
@@ -480,7 +478,7 @@ void Renderer::begin_frame() {
     daimb.subresourceRange.layerCount = 1;
   }
 
-  vkCmdPipelineBarrier(command_buffer_, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+  vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
     VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, 0, 0, nullptr, 0, nullptr,
     (uint32_t)imbs.size(), imbs.data());
 
@@ -502,26 +500,28 @@ void Renderer::begin_frame() {
   rpbi.renderArea.extent.height = height_;
   rpbi.clearValueCount = (uint32_t)ccvs.size();
   rpbi.pClearValues = ccvs.data();
-  vkCmdBeginRenderPass(command_buffer_, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(command_buffer, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
   in_frame_ = true;
+  frame_command_buffer_ = command_buffer;
 }
 void Renderer::end_frame() {
   VkResult res = VK_SUCCESS;
   assert(in_frame_);
 
-  vkCmdEndRenderPass(command_buffer_);
+  vkCmdEndRenderPass(frame_command_buffer_);
 
-  res = vkEndCommandBuffer(command_buffer_);
+  res = vkEndCommandBuffer(frame_command_buffer_);
   check_vulkan_result(res);
 
   VkSubmitInfo si {};
   si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   si.commandBufferCount = 1;
-  si.pCommandBuffers = &command_buffer_;
+  si.pCommandBuffers = &frame_command_buffer_;
   res = vkQueueSubmit(queue_, 1, &si, fence_);
 
   in_frame_ = false;
+  frame_command_buffer_ = VK_NULL_HANDLE;
 }
 void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
   assert(in_frame_);
@@ -533,29 +533,29 @@ void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
   VkRect2D r {};
   r.extent.width = width_;
   r.extent.height = height_;
-  vkCmdSetScissor(command_buffer_, 0, 1, &r);
+  vkCmdSetScissor(frame_command_buffer_, 0, 1, &r);
 
-  vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS,
+  vkCmdBindPipeline(frame_command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS,
     graphics_task.pipeline_);
 
-  vkCmdBindDescriptorSets(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS,
+  vkCmdBindDescriptorSets(frame_command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS,
     graphics_task.pipeline_layout_, 0, 1,
     &graphics_task.descriptor_set_, 0, nullptr);
 
   {
     const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(config.vertex_buffer.memory);
     VkDeviceSize o = (VkDeviceSize)config.vertex_buffer.offset;
-    vkCmdBindVertexBuffers(command_buffer_, 0, 1, &vmii.buffer, &o);
+    vkCmdBindVertexBuffers(frame_command_buffer_, 0, 1, &vmii.buffer, &o);
   }
 
   if (is_indexed) {
     const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(config.index_buffer.memory);
-    vkCmdBindIndexBuffer(command_buffer_, vmii.buffer,
+    vkCmdBindIndexBuffer(frame_command_buffer_, vmii.buffer,
       (VkDeviceSize)config.index_buffer.offset, VK_INDEX_TYPE_UINT32);
 
-    vkCmdDrawIndexed(command_buffer_, config.index_count, config.instance_count, 0, 0, 0);
+    vkCmdDrawIndexed(frame_command_buffer_, config.index_count, config.instance_count, 0, 0, 0);
   } else {
-    vkCmdDraw(command_buffer_, config.vertex_count, config.instance_count, 0, 0);
+    vkCmdDraw(frame_command_buffer_, config.vertex_count, config.instance_count, 0, 0);
   }
 }
 
