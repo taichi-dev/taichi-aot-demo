@@ -230,6 +230,12 @@ Renderer::Renderer(bool debug) {
   res = vkCreateCommandPool(device, &cpci, nullptr, &command_pool);
   check_vulkan_result(res);
 
+  VkSemaphoreCreateInfo sci2 {};
+  sci2.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+  VkSemaphore render_present_semaphore = VK_NULL_HANDLE;
+  res = vkCreateSemaphore(device, &sci2, nullptr, &render_present_semaphore);
+
   VkFenceCreateInfo fci {};
   fci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
@@ -250,9 +256,6 @@ Renderer::Renderer(bool debug) {
   TiRuntime runtime = ti_import_vulkan_runtime(&vrii);
   check_taichi_error();
 
-  TiError err = ti_get_last_error(0, nullptr);
-  assert(err >= TI_ERROR_SUCCESS);
-
   instance_ = instance;
   device_ = device;
   queue_family_index_ = queue_family_index;
@@ -265,6 +268,7 @@ Renderer::Renderer(bool debug) {
   set_framebuffer_size(DEFAULT_FRAMEBUFFER_WIDTH, DEFAULT_FRAMEBUFFER_HEIGHT);
 
   command_pool_ = command_pool;
+  render_present_semaphore_ = render_present_semaphore;
   fence_ = fence;
 
   runtime_ = runtime;
@@ -306,6 +310,7 @@ void Renderer::destroy() {
   render_pass_ = VK_NULL_HANDLE;
   framebuffer_ = VK_NULL_HANDLE;
   command_pool_ = VK_NULL_HANDLE;
+  render_present_semaphore_ = VK_NULL_HANDLE;
   fence_ = VK_NULL_HANDLE;
 
   runtime_ = TI_NULL_HANDLE;
@@ -424,15 +429,6 @@ void Renderer::begin_frame() {
   VkResult res = VK_SUCCESS;
   assert(!in_frame_);
 
-  res = vkWaitForFences(device_, 1, &fence_, VK_TRUE, 0);
-  check_vulkan_result(res);
-
-  res = vkResetFences(device_, 1, &fence_);
-  check_vulkan_result(res);
-
-  vkResetCommandPool(device_, command_pool_, 0);
-  check_vulkan_result(res);
-
   VkCommandBufferAllocateInfo cbai {};
   cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -518,7 +514,9 @@ void Renderer::end_frame() {
   si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   si.commandBufferCount = 1;
   si.pCommandBuffers = &frame_command_buffer_;
-  res = vkQueueSubmit(queue_, 1, &si, fence_);
+  si.signalSemaphoreCount = 1;
+  si.pSignalSemaphores = &render_present_semaphore_;
+  res = vkQueueSubmit(queue_, 1, &si, nullptr);
 
   in_frame_ = false;
   frame_command_buffer_ = VK_NULL_HANDLE;
@@ -557,6 +555,73 @@ void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
   } else {
     vkCmdDraw(frame_command_buffer_, config.vertex_count, config.instance_count, 0, 0);
   }
+}
+
+void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
+  assert(!in_frame_);
+  assert(dst.shape().dim_count == 2);
+  assert(dst.shape().dims[0] == width_);
+  assert(dst.shape().dims[1] == height_);
+  assert(dst.elem_shape().dim_count == 1);
+  assert(dst.elem_shape().dims[0] == 4);
+  VkResult res = VK_SUCCESS;
+
+  const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(dst.memory());
+
+  VkCommandBufferAllocateInfo cbai {};
+  cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  cbai.commandPool = command_pool_;
+  cbai.commandBufferCount = 1;
+
+  VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+  res = vkAllocateCommandBuffers(device_, &cbai, &command_buffer);
+  check_vulkan_result(res);
+
+  VkCommandBufferBeginInfo cbbi {};
+  cbbi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  res = vkBeginCommandBuffer(command_buffer, &cbbi);
+  check_vulkan_result(res);
+
+  VkBufferImageCopy bic {};
+  bic.bufferRowLength = dst.shape().dims[0];
+  bic.bufferImageHeight = dst.shape().dims[1];
+  bic.imageExtent.width = width_;
+  bic.imageExtent.height = height_;
+  bic.imageExtent.depth = 1;
+  bic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  bic.imageSubresource.layerCount = 1;
+  vkCmdCopyImageToBuffer(command_buffer, color_attachment_, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, vmii.buffer, 1, &bic);
+
+  res = vkEndCommandBuffer(command_buffer);
+  check_vulkan_result(res);
+
+  VkPipelineStageFlags ps = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+  VkSubmitInfo si {};
+  si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  si.commandBufferCount = 1;
+  si.pCommandBuffers = &command_buffer;
+  si.waitSemaphoreCount = 1;
+  si.pWaitDstStageMask = &ps;
+  si.pWaitSemaphores = &render_present_semaphore_;
+  res = vkQueueSubmit(queue_, 1, &si, fence_);
+  check_vulkan_result(res);
+}
+
+void Renderer::next_frame() {
+  VkResult res = VK_SUCCESS;
+
+  do {
+    res = vkWaitForFences(device_, 1, &fence_, VK_TRUE, 1000000000);
+    check_vulkan_result(res);
+  } while (res == VK_TIMEOUT);
+
+  res = vkResetFences(device_, 1, &fence_);
+  check_vulkan_result(res);
+
+  vkResetCommandPool(device_, command_pool_, 0);
+  check_vulkan_result(res);
 }
 
 const TiVulkanMemoryInteropInfo& Renderer::export_ti_memory(TiMemory memory) {
@@ -723,8 +788,8 @@ GraphicsTask::GraphicsTask(
     switch (resource.type) {
     case L_GRAPHICS_TASK_RESOURCE_TYPE_NDARRAY:
     {
-      TiVulkanMemoryInteropInfo vmii {};
-      ti_export_vulkan_memory(renderer_->runtime(), resource.ndarray.memory, &vmii);
+      const TiVulkanMemoryInteropInfo& vmii =
+        renderer_->export_ti_memory(resource.ndarray.memory);
 
       VkDescriptorBufferInfo dbi {};
       dbi.buffer = vmii.buffer;
@@ -745,6 +810,7 @@ GraphicsTask::GraphicsTask(
     {
       TiVulkanImageInteropInfo viii {};
       ti_export_vulkan_image(renderer_->runtime(), resource.texture.image, &viii);
+      check_taichi_error();
 
       VkImageViewType ivt;
       switch (viii.image_type) {
@@ -911,7 +977,7 @@ GraphicsTask::GraphicsTask(
   pdssci.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
   pdssci.depthTestEnable = VK_TRUE;
   pdssci.depthWriteEnable = VK_TRUE;
-  pdssci.depthCompareOp = VK_COMPARE_OP_LESS;
+  pdssci.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
 
   VkPipelineColorBlendAttachmentState pcbas {};
   pcbas.blendEnable = VK_TRUE;

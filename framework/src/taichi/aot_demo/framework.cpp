@@ -1,3 +1,4 @@
+#include <iostream>
 #include "taichi/aot_demo/framework.hpp"
 
 namespace ti {
@@ -12,7 +13,14 @@ Framework::Framework(TiArch arch, bool debug) {
   } else {
     runtime_ = ti::Runtime(arch);
   }
+  std::cout << "framework initialized" << std::endl;
 }
+Framework::~Framework() {
+  if (renderer_ != nullptr) {
+    std::cout << "framework finalized" << std::endl;
+  }
+}
+
 
 
 ti::NdArray<float> Framework::allocate_vertex_buffer(

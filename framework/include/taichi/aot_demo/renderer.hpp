@@ -38,6 +38,7 @@ class Renderer {
   VkSampler sampler_;
 
   VkCommandPool command_pool_;
+  VkSemaphore render_present_semaphore_;
   VkFence fence_;
 
   TiRuntime runtime_;
@@ -59,11 +60,21 @@ public:
   Renderer(bool debug);
   ~Renderer();
 
+  // Before a frame.
   void set_framebuffer_size(uint32_t width, uint32_t height);
 
+  // In a frame.
   void begin_frame();
   void end_frame();
   void enqueue_graphics_task(const GraphicsTask& graphics_task);
+
+  // After a frame. You MUST call one of them between frames for the renderer to
+  // work properly
+  void present_to_surface();
+  void present_to_ndarray(ti::NdArray<uint8_t>& dst);
+
+  // After all the works of a frame.
+  void next_frame();
 
   constexpr VkDevice device() const {
     return device_;
@@ -78,6 +89,12 @@ public:
   }
   constexpr TiRuntime runtime() const {
     return runtime_;
+  }
+  constexpr uint32_t width() const {
+    return width_;
+  }
+  constexpr uint32_t height() const {
+    return height_;
   }
 };
 

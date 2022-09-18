@@ -1,19 +1,23 @@
 #include <vector>
 #include <map>
+#include <memory>
 #include "taichi/aot_demo/renderer.hpp"
 
-namespace ti {
-namespace aot_demo {
-
 // What you need to implement:
-extern const char* app_name;
-extern void initialize();
-extern bool step(double t, double dt);
+struct App {
+  virtual const char* app_name() const = 0;
+  virtual void initialize() = 0;
+  virtual bool update(double t, double dt) = 0;
+  virtual void render() = 0;
+};
 
+extern std::unique_ptr<App> create_app();
 
 
 // -----------------------------------------------------------------------------
 
+namespace ti {
+namespace aot_demo {
 
 class Framework {
   ti::Runtime runtime_;
@@ -26,6 +30,7 @@ public:
   Framework(const Framework&) = delete;
   Framework(Framework&& b) :
     runtime_(std::move(b.runtime_)), renderer_(std::move(b.renderer_)) {}
+  ~Framework();
 
   Framework& operator=(Framework&& b) {
     runtime_ = std::move(b.runtime_);
