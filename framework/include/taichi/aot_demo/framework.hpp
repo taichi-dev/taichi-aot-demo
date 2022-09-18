@@ -6,6 +6,7 @@ namespace ti {
 namespace aot_demo {
 
 // What you need to implement:
+extern const char* app_name;
 extern void initialize();
 extern bool step(double t, double dt);
 
@@ -32,11 +33,20 @@ public:
     return *this;
   }
 
-  ti::NdArray<float> allocate_vertex_buffer(uint32_t vertex_component_count, uint32_t vertex_count) const;
-  ti::NdArray<uint32_t> allocate_index_buffer(uint32_t index_count) const;
+  ti::NdArray<float> allocate_vertex_buffer(
+    uint32_t vertex_component_count,
+    uint32_t vertex_count,
+    bool host_access = false
+  ) const;
+  ti::NdArray<uint32_t> allocate_index_buffer(
+    uint32_t index_count,
+    bool host_access = false
+  ) const;
 
   // Add your drawing functions here.
-  std::unique_ptr<GraphicsTask> draw_points(const ti::NdArray<float>& points) const;
+  std::unique_ptr<GraphicsTask> create_draw_points_task(
+    const ti::NdArray<float>& points
+  ) const;
 
   constexpr const ti::Runtime& runtime() const {
     return runtime_;

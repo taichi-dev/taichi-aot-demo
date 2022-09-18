@@ -8,7 +8,7 @@ Framework F;
 Framework::Framework(TiArch arch, bool debug) {
   renderer_ = std::make_unique<Renderer>(debug);
   if (arch == renderer_->arch()) {
-    runtime_ = ti::Runtime(renderer_->runtime(), false);
+    runtime_ = ti::Runtime(arch, renderer_->runtime(), false);
   } else {
     runtime_ = ti::Runtime(arch);
   }
@@ -17,11 +17,13 @@ Framework::Framework(TiArch arch, bool debug) {
 
 ti::NdArray<float> Framework::allocate_vertex_buffer(
   uint32_t vertex_component_count,
-  uint32_t vertex_count
+  uint32_t vertex_count,
+  bool host_access
 ) const {
   TiMemoryAllocateInfo mai {};
   mai.size = vertex_component_count * vertex_count * sizeof(float);
-  mai.host_write = true;
+  mai.host_read = host_access;
+  mai.host_write = host_access;
   mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_VERTEX_BIT;
   ti::Memory memory = runtime_.allocate_memory(mai);
 
@@ -34,10 +36,13 @@ ti::NdArray<float> Framework::allocate_vertex_buffer(
   ndarray.elem_shape.dims[0] = vertex_component_count;
   return ti::NdArray<float>(std::move(memory), ndarray);
 }
-ti::NdArray<uint32_t> Framework::allocate_index_buffer(uint32_t index_count) const {
+ti::NdArray<uint32_t> Framework::allocate_index_buffer(
+  uint32_t index_count,
+  bool host_access
+) const {
   TiMemoryAllocateInfo mai {};
   mai.size = index_count * sizeof(uint32_t);
-  mai.host_write = true;
+  mai.host_write = host_access;
   mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_VERTEX_BIT;
   ti::Memory memory = runtime_.allocate_memory(mai);
 

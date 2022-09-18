@@ -11,11 +11,10 @@ extern Framework F;
 ti::NdArray<float> points;
 std::unique_ptr<GraphicsTask> draw_points;
 
+const char* app_name = "1_hello_world";
 void initialize() {
-  const ti::Runtime& runtime = F.runtime();
-
   points = F.allocate_vertex_buffer(2, 5);
-  draw_points = F.draw_points(points);
+  draw_points = F.create_draw_points_task(points);
 
   std::cout << "initialized!" << std::endl;
 }

@@ -34,16 +34,24 @@ find_package(Vulkan REQUIRED)
 add_subdirectory(external/glfw)
 add_subdirectory(external/VulkanMemoryAllocator)
 add_subdirectory(external/glslang)
+add_library(GraphiT OBJECT
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/util.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/args.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/util.cpp")
+target_include_directories(GraphiT PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
 target_link_libraries(TaichiAotDemoFramework PUBLIC
     ${Vulkan_LIBRARY}
     glfw
     VulkanMemoryAllocator
     glslang
-    SPIRV)
+    SPIRV
+    GraphiT)
 target_include_directories(TaichiAotDemoFramework PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/VulkanMemoryAllocator/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/glslang/glslang/Include)
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/VulkanMemoryAllocator/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/glslang/glslang/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
 
 
 # Find built taichi C-API library in `TAICHI_C_API_INSTALL_DIR`.

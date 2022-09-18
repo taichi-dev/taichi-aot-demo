@@ -35,6 +35,7 @@ class Renderer {
   VkImageView depth_attachment_view_;
   uint32_t width_;
   uint32_t height_;
+  VkSampler sampler_;
 
   VkCommandPool command_pool_;
   VkCommandBuffer command_buffer_;
@@ -54,6 +55,7 @@ public:
   }
   void destroy();
 
+  Renderer() {}
   Renderer(bool debug);
   ~Renderer();
 
@@ -66,6 +68,9 @@ public:
   constexpr VkDevice device() const {
     return device_;
   }
+  constexpr VmaAllocator vma_allocator() const {
+    return vma_allocator_;
+  }
 
   // The renderer's representation as Taichi objects.
   constexpr TiArch arch() const {
@@ -76,10 +81,17 @@ public:
   }
 };
 
-enum GraphicsTaskResource {
-  L_GRAPHICS_TASK_RESOURCE_UNIFORM_BUFFER,
-  L_GRAPHICS_TASK_RESOURCE_STORAGE_BUFFER,
-  L_GRAPHICS_TASK_RESOURCE_SAMPLED_IMAGE,
+enum GraphicsTaskResourceType {
+  L_GRAPHICS_TASK_RESOURCE_TYPE_NDARRAY,
+  L_GRAPHICS_TASK_RESOURCE_TYPE_TEXTURE,
+};
+
+struct GraphicsTaskResource {
+  GraphicsTaskResourceType type;
+  union {
+    TiNdArray ndarray;
+    TiTexture texture;
+  };
 };
 
 enum PrimitiveTopology {
@@ -91,6 +103,7 @@ enum PrimitiveTopology {
 struct GraphicsTaskConfig {
   std::string vertex_shader_glsl;
   std::string fragment_shader_glsl;
+  size_t uniform_buffer_size;
   std::vector<GraphicsTaskResource> resources;
 
   TiMemorySlice vertex_buffer;
@@ -113,6 +126,9 @@ class GraphicsTask {
   VkDescriptorSetLayout descriptor_set_layout_;
   VkDescriptorPool descriptor_pool_;
   VkDescriptorSet descriptor_set_;
+  VkBuffer uniform_buffer_;
+  VmaAllocation uniform_buffer_allocation_;
+  std::vector<VkImageView> texture_views_;
 
 public:
   constexpr bool is_valid() const {

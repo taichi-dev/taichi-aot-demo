@@ -3,7 +3,9 @@
 namespace ti {
 namespace aot_demo {
 
-std::unique_ptr<GraphicsTask> Framework::draw_points(const ti::NdArray<float>& points) const {
+std::unique_ptr<GraphicsTask> Framework::create_draw_points_task(
+  const ti::NdArray<float>& points
+) const {
   assert(points.is_valid());
   assert(points.shape().dim_count != 0);
   assert(points.shape().dims[0] != 0);
@@ -24,7 +26,7 @@ std::unique_ptr<GraphicsTask> Framework::draw_points(const ti::NdArray<float>& p
       color = vec4(1.0, 0.0, 1.0, 1.0);
     }
   )";
-  config.resources.emplace_back(L_GRAPHICS_TASK_RESOURCE_UNIFORM_BUFFER);
+  config.uniform_buffer_size = sizeof(uint32_t);
   config.vertex_buffer.memory = points.memory();
   config.vertex_buffer.size = points.memory().size();
 

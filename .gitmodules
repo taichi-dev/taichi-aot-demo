@@ -7,3 +7,6 @@
 [submodule "external/glslang"]
 	path = external/glslang
 	url = https://github.com/KhronosGroup/glslang
+[submodule "external/graphi-t"]
+	path = external/graphi-t
+	url = https://github.com/PENGUINLIONG/graphi-t

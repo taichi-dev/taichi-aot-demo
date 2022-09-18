@@ -164,6 +164,15 @@ Renderer::Renderer(bool debug) {
   VmaAllocator vma_allocator = VK_NULL_HANDLE;
   vmaCreateAllocator(&aci, &vma_allocator);
 
+  // TODO: (penguinliong) Export from Taichi?
+  VkSamplerCreateInfo sci {};
+  sci.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+  sci.magFilter = VK_FILTER_LINEAR;
+  sci.maxLod = VK_LOD_CLAMP_NONE;
+
+  VkSampler sampler = VK_NULL_HANDLE;
+  res = vkCreateSampler(device, &sci, nullptr, &sampler);
+
   std::array<VkAttachmentDescription, 2> ads {};
   {
     VkAttachmentDescription& ad = ads.at(0);
@@ -260,6 +269,7 @@ Renderer::Renderer(bool debug) {
   queue_family_index_ = queue_family_index;
   queue_ = queue;
   vma_allocator_ = vma_allocator;
+  sampler_ = sampler;
 
   render_pass_ = render_pass;
   framebuffer_ = VK_NULL_HANDLE;
@@ -278,18 +288,19 @@ Renderer::~Renderer() {
 }
 void Renderer::destroy() {
   ti_destroy_runtime(runtime_);
-  runtime_ = TI_NULL_HANDLE;
 
   vkDestroyFence(device_, fence_, nullptr);
   vkDestroyCommandPool(device_, command_pool_, nullptr);
-
   vkDestroyFramebuffer(device_, framebuffer_, nullptr);
+  vkDestroyRenderPass(device_, render_pass_, nullptr);
   vkDestroyImageView(device_, depth_attachment_view_, nullptr);
   vkDestroyImageView(device_, color_attachment_view_, nullptr);
   vmaDestroyImage(vma_allocator_, depth_attachment_, depth_attachment_allocation_);
   vmaDestroyImage(vma_allocator_, color_attachment_, color_attachment_allocation_);
   vkDestroyRenderPass(device_, render_pass_, nullptr);
 
+  vkDestroySampler(device_, sampler_, nullptr);
+  vmaDestroyAllocator(vma_allocator_);
   vkDestroyDevice(device_, nullptr);
   vkDestroyInstance(instance_, nullptr);
 
@@ -297,6 +308,19 @@ void Renderer::destroy() {
   device_ = VK_NULL_HANDLE;
   queue_family_index_ = VK_QUEUE_FAMILY_IGNORED;
   queue_ = VK_NULL_HANDLE;
+  vma_allocator_ = nullptr;
+  sampler_ = VK_NULL_HANDLE;
+
+  color_attachment_ = VK_NULL_HANDLE;
+  color_attachment_allocation_ = VK_NULL_HANDLE;
+  depth_attachment_ = VK_NULL_HANDLE;
+  depth_attachment_allocation_ = VK_NULL_HANDLE;
+  render_pass_ = VK_NULL_HANDLE;
+  framebuffer_ = VK_NULL_HANDLE;
+  command_pool_ = VK_NULL_HANDLE;
+  fence_ = VK_NULL_HANDLE;
+
+  runtime_ = TI_NULL_HANDLE;
 }
 
 void Renderer::set_framebuffer_size(uint32_t width, uint32_t height) {
@@ -563,15 +587,12 @@ GraphicsTask::GraphicsTask(
   std::vector<VkDescriptorType> dts(config.resources.size());
   for (size_t i = 0; i < config.resources.size(); ++i) {
     VkDescriptorType dt;
-    switch (config.resources.at(i)) {
-    case L_GRAPHICS_TASK_RESOURCE_UNIFORM_BUFFER:
-      dt = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      break;
-    case L_GRAPHICS_TASK_RESOURCE_STORAGE_BUFFER:
+    switch (config.resources.at(i).type) {
+    case L_GRAPHICS_TASK_RESOURCE_TYPE_NDARRAY:
       dt = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
       break;
-    case L_GRAPHICS_TASK_RESOURCE_SAMPLED_IMAGE:
-      dt = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    case L_GRAPHICS_TASK_RESOURCE_TYPE_TEXTURE:
+      dt = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
       break;
     default:
       throw std::logic_error("unknown descriptor type");
@@ -595,6 +616,12 @@ GraphicsTask::GraphicsTask(
   }
 
   std::vector<VkDescriptorPoolSize> dpss {};
+  {
+    VkDescriptorPoolSize dps {};
+    dps.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    dps.descriptorCount = 1;
+    dpss.emplace_back(std::move(dps));
+  }
   for (size_t i = 0; i < dts.size(); ++i) {
     VkDescriptorType dt = dts.at(i);
 
@@ -621,11 +648,19 @@ GraphicsTask::GraphicsTask(
   check_vulkan_result(res);
 
   std::vector<VkDescriptorSetLayoutBinding> dslbs {};
+  {
+    VkDescriptorSetLayoutBinding dslb {};
+    dslb.binding = 0;
+    dslb.descriptorCount = 1;
+    dslb.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    dslb.stageFlags = VK_SHADER_STAGE_ALL;
+    dslbs.emplace_back(std::move(dslb));
+  }
   for (size_t i = 0; i < dts.size(); ++i) {
     VkDescriptorType dt = dts.at(i);
 
     VkDescriptorSetLayoutBinding dslb {};
-    dslb.binding = i;
+    dslb.binding = i + 1;
     dslb.descriptorCount = 1;
     dslb.descriptorType = dt;
     dslb.stageFlags = VK_SHADER_STAGE_ALL;
@@ -650,6 +685,117 @@ GraphicsTask::GraphicsTask(
   VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
   res = vkAllocateDescriptorSets(device, &dsai, &descriptor_set);
   check_vulkan_result(res);
+
+  VkBufferCreateInfo ubbci {};
+  ubbci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  ubbci.size = config.uniform_buffer_size;
+  ubbci.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+  VmaAllocationCreateInfo aci {};
+  aci.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+  VkBuffer uniform_buffer = VK_NULL_HANDLE;
+  VmaAllocation uniform_buffer_allocation = VK_NULL_HANDLE;
+  vmaCreateBuffer(renderer->vma_allocator_, &ubbci, &aci, &uniform_buffer,
+    &uniform_buffer_allocation, nullptr);
+
+  std::vector<VkDescriptorBufferInfo> dbis {};
+  std::vector<VkDescriptorImageInfo> diis {};
+  std::vector<VkImageView> texture_views;
+  std::vector<VkWriteDescriptorSet> wdss {};
+  {
+    VkDescriptorBufferInfo dbi {};
+    dbi.buffer = uniform_buffer;
+    dbi.range = config.uniform_buffer_size;
+    dbis.emplace_back(std::move(dbi));
+
+    VkWriteDescriptorSet wds {};
+    wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    wds.descriptorCount = 1;
+    wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    wds.dstBinding = 0;
+    wds.dstSet = descriptor_set;
+    wds.pBufferInfo = &dbis.back();
+    wdss.emplace_back(std::move(wds));
+  }
+  for (size_t i = 0; i < config.resources.size(); ++i) {
+    const GraphicsTaskResource &resource = config.resources.at(i);
+    switch (resource.type) {
+    case L_GRAPHICS_TASK_RESOURCE_TYPE_NDARRAY:
+    {
+      TiVulkanMemoryInteropInfo vmii {};
+      ti_export_vulkan_memory(renderer_->runtime(), resource.ndarray.memory, &vmii);
+
+      VkDescriptorBufferInfo dbi {};
+      dbi.buffer = vmii.buffer;
+      dbi.range = vmii.size;
+      dbis.emplace_back(std::move(dbi));
+
+      VkWriteDescriptorSet wds {};
+      wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      wds.descriptorCount = 1;
+      wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      wds.dstBinding = i + 1;
+      wds.dstSet = descriptor_set;
+      wds.pBufferInfo = &dbis.back();
+      wdss.emplace_back(std::move(wds));
+      break;
+    }
+    case L_GRAPHICS_TASK_RESOURCE_TYPE_TEXTURE:
+    {
+      TiVulkanImageInteropInfo viii {};
+      ti_export_vulkan_image(renderer_->runtime(), resource.texture.image, &viii);
+
+      VkImageViewType ivt;
+      switch (viii.image_type) {
+      case VK_IMAGE_TYPE_1D:
+        ivt = VK_IMAGE_VIEW_TYPE_1D;
+        break;
+      case VK_IMAGE_TYPE_2D:
+        ivt = VK_IMAGE_VIEW_TYPE_2D;
+        break;
+      case VK_IMAGE_TYPE_3D:
+        ivt = VK_IMAGE_VIEW_TYPE_3D;
+        break;
+      default:
+        throw std::logic_error("unsupported texture image type");
+      }
+
+      VkImageViewCreateInfo ivci {};
+      ivci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+      ivci.viewType = ivt;
+      ivci.image = viii.image;
+      ivci.format = viii.format;
+      ivci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      ivci.subresourceRange.levelCount = 1;
+      ivci.subresourceRange.layerCount = 1;
+
+      VkImageView texture_view {};
+      vkCreateImageView(device, &ivci, nullptr, &texture_view);
+      texture_views.emplace_back(texture_view);
+
+      VkDescriptorImageInfo dii {};
+      dii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      dii.imageView = texture_view;
+      // TODO: (penguinliong) Export from Taichi?
+      dii.sampler = renderer->sampler_;
+      diis.emplace_back(std::move(dii));
+
+      VkWriteDescriptorSet wds {};
+      wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      wds.descriptorCount = 1;
+      wds.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      wds.dstBinding = i + 1;
+      wds.dstSet = descriptor_set;
+      wds.pImageInfo = &diis.back();
+      wdss.emplace_back(std::move(wds));
+      break;
+    }
+    default:
+      throw std::logic_error("unexpected resource type");
+    }
+  }
+  vkUpdateDescriptorSets(device, (uint32_t)wdss.size(), wdss.data(), 0, nullptr);
 
   VkPipelineLayoutCreateInfo plci {};
   plci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -829,12 +975,21 @@ GraphicsTask::GraphicsTask(
   descriptor_set_layout_ = descriptor_set_layout;
   descriptor_pool_ = descriptor_pool;
   descriptor_set_ = descriptor_set;
+  uniform_buffer_ = uniform_buffer;
+  uniform_buffer_allocation_ = uniform_buffer_allocation;
+  texture_views_ = texture_views;
 }
 GraphicsTask::~GraphicsTask() {
   destroy();
 }
 void GraphicsTask::destroy() {
   VkDevice device = renderer_->device();
+  VmaAllocator vma_allocator = renderer_->vma_allocator();
+
+  for (size_t i = 0; i < texture_views_.size(); ++i) {
+    vkDestroyImageView(device, texture_views_.at(i), nullptr);
+  }
+  vmaDestroyBuffer(vma_allocator, uniform_buffer_, uniform_buffer_allocation_);
   vkDestroyDescriptorPool(device, descriptor_pool_, nullptr);
   vkDestroyDescriptorSetLayout(device, descriptor_set_layout_, nullptr);
   vkDestroyPipelineLayout(device, pipeline_layout_, nullptr);
@@ -846,6 +1001,9 @@ void GraphicsTask::destroy() {
   descriptor_set_layout_ = VK_NULL_HANDLE;
   descriptor_pool_ = VK_NULL_HANDLE;
   descriptor_set_ = VK_NULL_HANDLE;
+  uniform_buffer_ = VK_NULL_HANDLE;
+  uniform_buffer_allocation_ = VK_NULL_HANDLE;
+  texture_views_.clear();
 }
 
 } // namespace aot_demo
