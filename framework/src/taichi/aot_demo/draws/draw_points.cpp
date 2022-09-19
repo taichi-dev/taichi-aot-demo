@@ -1,9 +1,10 @@
+#include <cassert>
 #include "taichi/aot_demo/framework.hpp"
 
 namespace ti {
 namespace aot_demo {
 
-std::unique_ptr<GraphicsTask> Framework::create_draw_points_task(
+std::unique_ptr<GraphicsTask> GraphicsRuntime::create_draw_points_task(
   const ti::NdArray<float>& points
 ) const {
   assert(points.is_valid());

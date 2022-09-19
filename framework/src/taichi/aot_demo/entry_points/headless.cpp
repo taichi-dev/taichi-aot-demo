@@ -51,7 +51,7 @@ int main(int argc, const char** argv) {
   app->initialize();
   auto tic0 = std::chrono::steady_clock::now();
   auto tic = std::chrono::steady_clock::now();
-  for (uint32_t i; i < CFG.frame_count; ++i) {
+  for (uint32_t i = 0; i < CFG.frame_count; ++i) {
     auto toc = std::chrono::steady_clock::now();
     double t = std::chrono::duration<double>(toc - tic0).count();
     double dt = std::chrono::duration<double>(toc - tic).count();

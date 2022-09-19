@@ -1,6 +1,8 @@
 #include <vector>
 #include <map>
 #include <memory>
+#define TI_WITH_VULKAN 1
+#include "taichi/cpp/taichi.hpp"
 #include "taichi/aot_demo/renderer.hpp"
 
 // What you need to implement:
@@ -19,8 +21,32 @@ extern std::unique_ptr<App> create_app();
 namespace ti {
 namespace aot_demo {
 
+
+class GraphicsRuntime : public ti::Runtime {
+  std::shared_ptr<Renderer> renderer_;
+
+public:
+  GraphicsRuntime() : ti::Runtime() {}
+  GraphicsRuntime(TiArch arch, const std::shared_ptr<Renderer>& renderer);
+
+  ti::NdArray<float> allocate_vertex_buffer(
+    uint32_t vertex_component_count,
+    uint32_t vertex_count,
+    bool host_access = false
+  );
+  ti::NdArray<uint32_t> allocate_index_buffer(
+    uint32_t index_count,
+    bool host_access = false
+  );
+
+  // Add your drawing functions here.
+  std::unique_ptr<GraphicsTask> create_draw_points_task(
+    const ti::NdArray<float>& points
+  ) const;
+};
+
 class Framework {
-  ti::Runtime runtime_;
+  GraphicsRuntime runtime_;
   std::shared_ptr<class Renderer> renderer_;
   std::map<std::string, std::unique_ptr<GraphicsTask>> task_cache_;
 
@@ -38,31 +64,12 @@ public:
     return *this;
   }
 
-  ti::NdArray<float> allocate_vertex_buffer(
-    uint32_t vertex_component_count,
-    uint32_t vertex_count,
-    bool host_access = false
-  ) const;
-  ti::NdArray<uint32_t> allocate_index_buffer(
-    uint32_t index_count,
-    bool host_access = false
-  ) const;
-
-  // Add your drawing functions here.
-  std::unique_ptr<GraphicsTask> create_draw_points_task(
-    const ti::NdArray<float>& points
-  ) const;
-
-  constexpr const ti::Runtime& runtime() const {
+  // You usually need this in `initialize` and `update`.
+  inline GraphicsRuntime& runtime() {
     return runtime_;
   }
-  constexpr ti::Runtime& runtime() {
-    return runtime_;
-  }
-  constexpr const Renderer& renderer() const {
-    return *renderer_;
-  }
-  constexpr Renderer& renderer() {
+  // You usually need this in `render`.
+  inline Renderer& renderer() {
     return *renderer_;
   }
 };

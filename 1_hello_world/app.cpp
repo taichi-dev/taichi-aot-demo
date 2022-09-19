@@ -1,6 +1,7 @@
 #include <thread>
 #include <chrono>
 #include <iostream>
+#include "glm/glm.hpp"
 #include "taichi/aot_demo/framework.hpp"
 
 using namespace ti::aot_demo;
@@ -13,13 +14,22 @@ struct App1_hello_world : public App {
     return "1_hello_world";
   }
   void initialize() {
-    points = F.allocate_vertex_buffer(2, 5);
-    draw_points = F.create_draw_points_task(points);
+    GraphicsRuntime& runtime = F.runtime();
+
+    points = runtime.allocate_vertex_buffer(2, 5, true);
+    draw_points = runtime.create_draw_points_task(points);
 
     std::cout << "initialized!" << std::endl;
   }
   bool update(double t, double dt) {
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::vector<glm::vec2> points_data {
+      { -0.5f, -0.5f },
+      { 0.0f, 0.0f },
+      { 0.5f, 0.5f },
+    };
+
+    points.write(points_data);
+
     std::cout << "stepped! (t=" << t << "s; dt=" << dt << "s)" << std::endl;
     return true;
   }

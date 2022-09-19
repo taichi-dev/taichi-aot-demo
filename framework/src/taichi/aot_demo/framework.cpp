@@ -8,11 +8,7 @@ Framework F;
 
 Framework::Framework(TiArch arch, bool debug) {
   renderer_ = std::make_unique<Renderer>(debug);
-  if (arch == renderer_->arch()) {
-    runtime_ = ti::Runtime(arch, renderer_->runtime(), false);
-  } else {
-    runtime_ = ti::Runtime(arch);
-  }
+  runtime_ = GraphicsRuntime(arch, renderer_);
   std::cout << "framework initialized" << std::endl;
 }
 Framework::~Framework() {
@@ -22,18 +18,28 @@ Framework::~Framework() {
 }
 
 
+ti::Runtime create_runtime_helper(TiArch arch, const Renderer& renderer) {
+  if (arch == renderer.arch()) {
+    return ti::Runtime(arch, renderer.runtime(), false);
+  } else {
+    return ti::Runtime(arch);
+  }
+}
 
-ti::NdArray<float> Framework::allocate_vertex_buffer(
+GraphicsRuntime::GraphicsRuntime(TiArch arch, const std::shared_ptr<Renderer>& renderer) :
+  ti::Runtime(create_runtime_helper(arch, *renderer)), renderer_(renderer) {}
+
+ti::NdArray<float> GraphicsRuntime::allocate_vertex_buffer(
   uint32_t vertex_component_count,
   uint32_t vertex_count,
   bool host_access
-) const {
+) {
   TiMemoryAllocateInfo mai {};
   mai.size = vertex_component_count * vertex_count * sizeof(float);
   mai.host_read = host_access;
   mai.host_write = host_access;
   mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_VERTEX_BIT;
-  ti::Memory memory = runtime_.allocate_memory(mai);
+  ti::Memory memory = allocate_memory(mai);
 
   TiNdArray ndarray {};
   ndarray.memory = memory;
@@ -44,15 +50,15 @@ ti::NdArray<float> Framework::allocate_vertex_buffer(
   ndarray.elem_shape.dims[0] = vertex_component_count;
   return ti::NdArray<float>(std::move(memory), ndarray);
 }
-ti::NdArray<uint32_t> Framework::allocate_index_buffer(
+ti::NdArray<uint32_t> GraphicsRuntime::allocate_index_buffer(
   uint32_t index_count,
   bool host_access
-) const {
+) {
   TiMemoryAllocateInfo mai {};
   mai.size = index_count * sizeof(uint32_t);
   mai.host_write = host_access;
   mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_VERTEX_BIT;
-  ti::Memory memory = runtime_.allocate_memory(mai);
+  ti::Memory memory = allocate_memory(mai);
 
   TiNdArray ndarray {};
   ndarray.memory = memory;

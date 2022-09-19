@@ -256,6 +256,8 @@ Renderer::Renderer(bool debug) {
   TiRuntime runtime = ti_import_vulkan_runtime(&vrii);
   check_taichi_error();
 
+  in_frame_ = false;
+
   instance_ = instance;
   device_ = device;
   queue_family_index_ = queue_family_index;
@@ -272,8 +274,6 @@ Renderer::Renderer(bool debug) {
   fence_ = fence;
 
   runtime_ = runtime;
-
-  in_frame_ = false;
 }
 Renderer::~Renderer() {
   destroy();
@@ -441,6 +441,7 @@ void Renderer::begin_frame() {
 
   VkCommandBufferBeginInfo cbbi {};
   cbbi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   res = vkBeginCommandBuffer(command_buffer, &cbbi);
   check_vulkan_result(res);
 
@@ -481,11 +482,15 @@ void Renderer::begin_frame() {
   std::array<VkClearValue, 2> ccvs {};
   {
     VkClearValue& ccv = ccvs.at(0);
-    ccv.color = {};
+    ccv.color.float32[0] = 0.0f;
+    ccv.color.float32[1] = 0.0f;
+    ccv.color.float32[2] = 0.0f;
+    ccv.color.float32[3] = 1.0f;
   }
   {
     VkClearValue& ccv = ccvs.at(1);
-    ccv.depthStencil = {};
+    ccv.depthStencil.depth = 1.0f;
+    ccv.depthStencil.stencil = 0;
   }
 
   VkRenderPassBeginInfo rpbi {};
@@ -527,6 +532,12 @@ void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
   const GraphicsTaskConfig& config  = graphics_task.config_;
 
   bool is_indexed = config.index_buffer.memory != VK_NULL_HANDLE;
+
+  VkViewport v {};
+  v.width = width_;
+  v.height = height_;
+  v.maxDepth = 1.0f;
+  vkCmdSetViewport(frame_command_buffer_, 0, 1, &v);
 
   VkRect2D r {};
   r.extent.width = width_;
@@ -580,6 +591,7 @@ void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
 
   VkCommandBufferBeginInfo cbbi {};
   cbbi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   res = vkBeginCommandBuffer(command_buffer, &cbbi);
   check_vulkan_result(res);
 
@@ -966,8 +978,8 @@ GraphicsTask::GraphicsTask(
   prsci.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
   prsci.lineWidth = 1.0f;
   prsci.polygonMode = VK_POLYGON_MODE_FILL;
-  prsci.cullMode = VK_CULL_MODE_BACK_BIT;
-  prsci.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  prsci.cullMode = VK_CULL_MODE_NONE;
+  prsci.frontFace = VK_FRONT_FACE_CLOCKWISE;
 
   VkPipelineMultisampleStateCreateInfo pmsci {};
   pmsci.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -977,7 +989,7 @@ GraphicsTask::GraphicsTask(
   pdssci.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
   pdssci.depthTestEnable = VK_TRUE;
   pdssci.depthWriteEnable = VK_TRUE;
-  pdssci.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
+  pdssci.depthCompareOp = VK_COMPARE_OP_LESS;
 
   VkPipelineColorBlendAttachmentState pcbas {};
   pcbas.blendEnable = VK_TRUE;
@@ -1002,7 +1014,8 @@ GraphicsTask::GraphicsTask(
   pcbsci.blendConstants[2] = 1.0;
   pcbsci.blendConstants[3] = 1.0;
 
-  std::array<VkDynamicState, 1> dss {
+  std::array<VkDynamicState, 2> dss {
+    VK_DYNAMIC_STATE_VIEWPORT,
     VK_DYNAMIC_STATE_SCISSOR,
   };
 
