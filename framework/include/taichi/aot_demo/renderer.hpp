@@ -1,16 +1,10 @@
 #pragma once
-#include <array>
-#include <cstdint>
-#include <string>
-#include <map>
-#define TI_WITH_VULKAN 1
-#include <taichi/cpp/taichi.hpp>
+#include "common.hpp"
 #include <vk_mem_alloc.h>
 
 namespace ti {
 namespace aot_demo {
 
-class Renderer;
 class GraphicsTask;
 
 class Renderer {
@@ -120,11 +114,12 @@ enum PrimitiveTopology {
 struct GraphicsTaskConfig {
   std::string vertex_shader_glsl;
   std::string fragment_shader_glsl;
+  void* uniform_buffer_data;
   size_t uniform_buffer_size;
   std::vector<GraphicsTaskResource> resources;
 
-  TiMemorySlice vertex_buffer;
-  TiMemorySlice index_buffer;
+  TiMemory vertex_buffer;
+  TiMemory index_buffer;
   uint32_t vertex_component_count;
   uint32_t vertex_count;
   uint32_t index_count;

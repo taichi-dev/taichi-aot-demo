@@ -30,8 +30,8 @@ GraphicsRuntime::GraphicsRuntime(TiArch arch, const std::shared_ptr<Renderer>& r
   ti::Runtime(create_runtime_helper(arch, *renderer)), renderer_(renderer) {}
 
 ti::NdArray<float> GraphicsRuntime::allocate_vertex_buffer(
-  uint32_t vertex_component_count,
   uint32_t vertex_count,
+  uint32_t vertex_component_count,
   bool host_access
 ) {
   TiMemoryAllocateInfo mai {};

@@ -531,7 +531,7 @@ void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
 
   const GraphicsTaskConfig& config  = graphics_task.config_;
 
-  bool is_indexed = config.index_buffer.memory != VK_NULL_HANDLE;
+  bool is_indexed = config.index_buffer != VK_NULL_HANDLE;
 
   VkViewport v {};
   v.width = width_;
@@ -552,15 +552,14 @@ void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
     &graphics_task.descriptor_set_, 0, nullptr);
 
   {
-    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(config.vertex_buffer.memory);
-    VkDeviceSize o = (VkDeviceSize)config.vertex_buffer.offset;
+    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(config.vertex_buffer);
+    VkDeviceSize o = 0;
     vkCmdBindVertexBuffers(frame_command_buffer_, 0, 1, &vmii.buffer, &o);
   }
 
   if (is_indexed) {
-    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(config.index_buffer.memory);
-    vkCmdBindIndexBuffer(frame_command_buffer_, vmii.buffer,
-      (VkDeviceSize)config.index_buffer.offset, VK_INDEX_TYPE_UINT32);
+    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(config.index_buffer);
+    vkCmdBindIndexBuffer(frame_command_buffer_, vmii.buffer, 0, VK_INDEX_TYPE_UINT32);
 
     vkCmdDrawIndexed(frame_command_buffer_, config.index_count, config.instance_count, 0, 0, 0);
   } else {
@@ -651,7 +650,7 @@ const TiVulkanMemoryInteropInfo& Renderer::export_ti_memory(TiMemory memory) {
 GraphicsTask::GraphicsTask(
   const std::shared_ptr<Renderer>& renderer,
   const GraphicsTaskConfig& config
-) : config_(config) {
+) : renderer_(renderer), config_(config) {
   VkResult res = VK_SUCCESS;
   assert(renderer->is_valid());
 
@@ -659,9 +658,14 @@ GraphicsTask::GraphicsTask(
 
   std::array<std::vector<uint32_t>, 2> cs {};
   cs.at(0) = vert2spv(config.vertex_shader_glsl);
+  assert(!cs.at(0).empty());
   cs.at(1) = frag2spv(config.fragment_shader_glsl);
+  assert(!cs.at(1).empty());
 
-  std::vector<VkDescriptorType> dts(config.resources.size());
+
+  std::vector<VkDescriptorType> dts {};
+  dts.reserve(config.resources.size());
+  dts.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   for (size_t i = 0; i < config.resources.size(); ++i) {
     VkDescriptorType dt;
     switch (config.resources.at(i).type) {
@@ -675,7 +679,7 @@ GraphicsTask::GraphicsTask(
       throw std::logic_error("unknown descriptor type");
       return;
     }
-    dts.emplace_back(dt);
+    dts.emplace_back(std::move(dt));
   }
 
   std::array<VkShaderModule, 2> sms {};
@@ -725,19 +729,11 @@ GraphicsTask::GraphicsTask(
   check_vulkan_result(res);
 
   std::vector<VkDescriptorSetLayoutBinding> dslbs {};
-  {
-    VkDescriptorSetLayoutBinding dslb {};
-    dslb.binding = 0;
-    dslb.descriptorCount = 1;
-    dslb.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    dslb.stageFlags = VK_SHADER_STAGE_ALL;
-    dslbs.emplace_back(std::move(dslb));
-  }
   for (size_t i = 0; i < dts.size(); ++i) {
     VkDescriptorType dt = dts.at(i);
 
     VkDescriptorSetLayoutBinding dslb {};
-    dslb.binding = i + 1;
+    dslb.binding = i;
     dslb.descriptorCount = 1;
     dslb.descriptorType = dt;
     dslb.stageFlags = VK_SHADER_STAGE_ALL;
@@ -773,11 +769,21 @@ GraphicsTask::GraphicsTask(
 
   VkBuffer uniform_buffer = VK_NULL_HANDLE;
   VmaAllocation uniform_buffer_allocation = VK_NULL_HANDLE;
-  vmaCreateBuffer(renderer->vma_allocator_, &ubbci, &aci, &uniform_buffer,
+  res = vmaCreateBuffer(renderer->vma_allocator_, &ubbci, &aci, &uniform_buffer,
     &uniform_buffer_allocation, nullptr);
+  check_vulkan_result(res);
+
+  void* ub;
+  res = vmaMapMemory(renderer->vma_allocator_, uniform_buffer_allocation, &ub);
+  check_vulkan_result(res);
+
+  std::memcpy(ub, config.uniform_buffer_data, config.uniform_buffer_size);
+  vmaUnmapMemory(renderer->vma_allocator_, uniform_buffer_allocation);
 
   std::vector<VkDescriptorBufferInfo> dbis {};
+  dbis.reserve(dts.size());
   std::vector<VkDescriptorImageInfo> diis {};
+  diis.reserve(dts.size());
   std::vector<VkImageView> texture_views;
   std::vector<VkWriteDescriptorSet> wdss {};
   {
@@ -849,7 +855,8 @@ GraphicsTask::GraphicsTask(
       ivci.subresourceRange.layerCount = 1;
 
       VkImageView texture_view {};
-      vkCreateImageView(device, &ivci, nullptr, &texture_view);
+      res = vkCreateImageView(device, &ivci, nullptr, &texture_view);
+      check_vulkan_result(res);
       texture_views.emplace_back(texture_view);
 
       VkDescriptorImageInfo dii {};

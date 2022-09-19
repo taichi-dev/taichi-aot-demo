@@ -1,9 +1,12 @@
+#pragma once
 #include <vector>
 #include <map>
 #include <memory>
+#include "glm/glm.hpp"
 #define TI_WITH_VULKAN 1
 #include "taichi/cpp/taichi.hpp"
 #include "taichi/aot_demo/renderer.hpp"
+#include "taichi/aot_demo/graphics_runtime.hpp"
 
 // What you need to implement:
 struct App {
@@ -20,30 +23,6 @@ extern std::unique_ptr<App> create_app();
 
 namespace ti {
 namespace aot_demo {
-
-
-class GraphicsRuntime : public ti::Runtime {
-  std::shared_ptr<Renderer> renderer_;
-
-public:
-  GraphicsRuntime() : ti::Runtime() {}
-  GraphicsRuntime(TiArch arch, const std::shared_ptr<Renderer>& renderer);
-
-  ti::NdArray<float> allocate_vertex_buffer(
-    uint32_t vertex_component_count,
-    uint32_t vertex_count,
-    bool host_access = false
-  );
-  ti::NdArray<uint32_t> allocate_index_buffer(
-    uint32_t index_count,
-    bool host_access = false
-  );
-
-  // Add your drawing functions here.
-  std::unique_ptr<GraphicsTask> create_draw_points_task(
-    const ti::NdArray<float>& points
-  ) const;
-};
 
 class Framework {
   GraphicsRuntime runtime_;

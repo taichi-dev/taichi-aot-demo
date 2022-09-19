@@ -17,12 +17,18 @@ message("-- TAICHI_C_API_INSTALL_DIR=" ${TAICHI_C_API_INSTALL_DIR})
 
 # Declare framework target.
 add_library(TaichiAotDemoFramework
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/common.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/framework.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/renderer.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/graphics_runtime.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/framework.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/renderer.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/glslang.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/framework.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/renderer.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/graphics_runtime.cpp"
+    # Draw functions.
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_points.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp"
+)
 target_include_directories(TaichiAotDemoFramework PUBLIC
     ${Vulkan_INCLUDE_DIR}
     "${TAICHI_C_API_INSTALL_DIR}/include"
@@ -39,8 +45,7 @@ add_library(GraphiT OBJECT
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/util.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/args.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/util.cpp"
-)
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/util.cpp")
 target_include_directories(GraphiT PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
 target_link_libraries(TaichiAotDemoFramework PUBLIC
     ${Vulkan_LIBRARY}
@@ -54,7 +59,7 @@ target_include_directories(TaichiAotDemoFramework PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/VulkanMemoryAllocator/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glslang/glslang/Include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/glm/glm"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/glm"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
 
 
