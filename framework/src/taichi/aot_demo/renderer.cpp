@@ -1004,7 +1004,7 @@ GraphicsTask::GraphicsTask(
   pcbas.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; 
   pcbas.colorBlendOp = VK_BLEND_OP_ADD;
   pcbas.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-  pcbas.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  pcbas.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
   pcbas.alphaBlendOp = VK_BLEND_OP_ADD;
   pcbas.colorWriteMask =
     VK_COLOR_COMPONENT_R_BIT |

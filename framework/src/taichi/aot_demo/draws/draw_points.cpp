@@ -55,7 +55,7 @@ std::unique_ptr<GraphicsTask> DrawPointsBuilder::build() {
       std::stringstream ss;
       ss << 
         "layout(binding=" << irsc << ")"
-        "buffer _" << irsc << " { vec4 colors[]; };";
+        "readonly buffer _" << irsc << " { vec4 colors[]; };";
       color_buffer_declr = ss.str();
     }
     color_get = "colors[gl_VertexIndex]";
@@ -77,7 +77,7 @@ std::unique_ptr<GraphicsTask> DrawPointsBuilder::build() {
       std::stringstream ss;
       ss <<
         "layout(binding=" << irsc << ")"
-        "buffer _" << irsc << " { vec4 point_sizes[]; };";
+        "readonly buffer _" << irsc << " { vec4 point_sizes[]; };";
       point_size_buffer_declr = ss.str();
     }
     point_size_get = "point_sizes[gl_VertexIndex]";
