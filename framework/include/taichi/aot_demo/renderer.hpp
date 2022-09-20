@@ -2,6 +2,10 @@
 #include "common.hpp"
 #include <vk_mem_alloc.h>
 
+#if TI_AOT_DEMO_WITH_GLFW
+#include "GLFW/glfw3.h"
+#endif // TI_AOT_DEMO_WITH_GLFW
+
 namespace ti {
 namespace aot_demo {
 
@@ -10,10 +14,8 @@ class GraphicsTask;
 class Renderer {
   friend class GraphicsTask;
 
-  static const uint32_t DEFAULT_FRAMEBUFFER_WIDTH = 512;
-  static const uint32_t DEFAULT_FRAMEBUFFER_HEIGHT = 256;
-
   VkInstance instance_;
+  VkPhysicalDevice physical_device_;
   VkDevice device_;
   uint32_t queue_family_index_;
   VkQueue queue_;
@@ -33,8 +35,16 @@ class Renderer {
 
   VkCommandPool command_pool_;
   VkSemaphore render_present_semaphore_;
+  VkSemaphore present_surface_semaphore_;
   VkFence fence_;
 
+  VkSurfaceKHR surface_;
+  VkSwapchainKHR swapchain_;
+  std::vector<VkImage> swapchain_images_;
+  uint32_t swapchain_image_width_;
+  uint32_t swapchain_image_height_;
+
+  PFN_vkGetInstanceProcAddr loader_;
   TiRuntime runtime_;
 
   // Within a pair of `begin_frame` and `end_frame`.
@@ -51,15 +61,19 @@ public:
   void destroy();
 
   Renderer() {}
-  Renderer(bool debug);
+  Renderer(bool debug, uint32_t width, uint32_t height);
   ~Renderer();
 
   // Before a frame.
+#if TI_AOT_DEMO_WITH_GLFW
+  void set_surface_window(GLFWwindow* window);
+#endif // TI_AOT_DEMO_WITH_GLFW
+  // FIXME: (penguinliong) This one is somehow deprecaeted so please simply don't use it.
   void set_framebuffer_size(uint32_t width, uint32_t height);
 
   // In a frame.
-  void begin_frame();
-  void end_frame();
+  void begin_render();
+  void end_render();
   void enqueue_graphics_task(const GraphicsTask& graphics_task);
 
   // After a frame. You MUST call one of them between frames for the renderer to
@@ -67,7 +81,8 @@ public:
   void present_to_surface();
   void present_to_ndarray(ti::NdArray<uint8_t>& dst);
 
-  // After all the works of a frame.
+  // After all the works of a frame. DO NOT call this unless you know what you
+  // are doing.
   void next_frame();
 
   constexpr VkDevice device() const {
@@ -80,6 +95,9 @@ public:
   // The renderer's representation as Taichi objects.
   constexpr TiArch arch() const {
     return TI_ARCH_VULKAN;
+  }
+  constexpr PFN_vkGetInstanceProcAddr loader() const {
+    return loader_;
   }
   constexpr TiRuntime runtime() const {
     return runtime_;

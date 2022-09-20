@@ -1,18 +1,22 @@
 #pragma once
-#include <vector>
-#include <map>
-#include <memory>
-#include "glm/glm.hpp"
-#define TI_WITH_VULKAN 1
-#include "taichi/cpp/taichi.hpp"
+#include <chrono>
+#include <taichi/aot_demo/common.hpp>
 #include "taichi/aot_demo/renderer.hpp"
 #include "taichi/aot_demo/graphics_runtime.hpp"
 
+struct AppConfig {
+  const char* app_name = "taichi";
+  uint32_t framebuffer_width = 64;
+  uint32_t framebuffer_height = 32;
+};
+
 // What you need to implement:
 struct App {
-  virtual const char* app_name() const = 0;
+  virtual ~App() {}
+
+  virtual AppConfig cfg() const = 0;
   virtual void initialize() = 0;
-  virtual bool update(double t, double dt) = 0;
+  virtual bool update() = 0;
   virtual void render() = 0;
 };
 
@@ -27,20 +31,46 @@ namespace aot_demo {
 class Framework {
   GraphicsRuntime runtime_;
   std::shared_ptr<class Renderer> renderer_;
-  std::map<std::string, std::unique_ptr<GraphicsTask>> task_cache_;
+
+  uint32_t frame_;
+  std::chrono::steady_clock::time_point tic0_;
+  std::chrono::steady_clock::time_point tic_;
+  std::chrono::steady_clock::time_point toc_;
 
 public:
   Framework() {}
-  Framework(TiArch arch, bool debug);
+  Framework(const AppConfig& app_cfg, TiArch arch, bool debug);
   Framework(const Framework&) = delete;
   Framework(Framework&& b) :
-    runtime_(std::move(b.runtime_)), renderer_(std::move(b.renderer_)) {}
+    runtime_(std::move(b.runtime_)),
+    renderer_(std::move(b.renderer_)),
+    frame_(std::exchange(b.frame_, 0)),
+    tic0_(std::move(b.tic0_)),
+    tic_(std::move(b.tic_)),
+    toc_(std::move(b.toc_)) {}
   ~Framework();
 
   Framework& operator=(Framework&& b) {
     runtime_ = std::move(b.runtime_);
     renderer_ = std::move(b.renderer_);
     return *this;
+  }
+
+  inline void next_frame() {
+    renderer_->next_frame();
+    tic_ = std::exchange(toc_, std::chrono::steady_clock::now());
+  }
+  constexpr uint32_t frame() const {
+    return frame_;
+  }
+  constexpr double t() const {
+    return std::chrono::duration<double>(toc_ - tic0_).count();
+  }
+  constexpr double dt() const {
+    return std::chrono::duration<double>(toc_ - tic_).count();
+  }
+  constexpr double fps() const {
+    return 1.0 / dt();
   }
 
   // You usually need this in `initialize` and `update`.

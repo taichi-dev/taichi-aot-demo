@@ -6,9 +6,17 @@ namespace aot_demo {
 
 Framework F;
 
-Framework::Framework(TiArch arch, bool debug) {
-  renderer_ = std::make_unique<Renderer>(debug);
+Framework::Framework(const AppConfig& app_cfg, TiArch arch, bool debug) {
+  renderer_ = std::make_unique<Renderer>(
+    debug,
+    app_cfg.framebuffer_width,
+    app_cfg.framebuffer_height);
   runtime_ = GraphicsRuntime(arch, renderer_);
+
+  frame_ = 0;
+  tic0_ = std::chrono::steady_clock::now();
+  tic_ = std::chrono::steady_clock::now();
+  toc_ = std::chrono::steady_clock::now();
   std::cout << "framework initialized" << std::endl;
 }
 Framework::~Framework() {

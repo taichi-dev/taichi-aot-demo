@@ -24,10 +24,14 @@ struct App2_mpm88 : public App {
 
   std::unique_ptr<GraphicsTask> draw_points;
 
-  const char* app_name() const {
-    return "2_mpm88";
+  virtual AppConfig cfg() const override final {
+    AppConfig out {};
+    out.app_name = "2_mpm88";
+    out.framebuffer_width = 256;
+    out.framebuffer_height = 256;
+    return out;
   }
-  void initialize() {
+  virtual void initialize() override final {
     GraphicsRuntime& runtime = F.runtime();
 
     module_ = runtime.load_aot_module("2_mpm88/assets/mpm88");
@@ -65,12 +69,12 @@ struct App2_mpm88 : public App {
 
     std::cout << "initialized!" << std::endl;
   }
-  bool update(double t, double dt) {
+  virtual bool update() override final {
     g_update_.launch();
-    std::cout << "stepped! (t=" << t << "s; dt=" << dt << "s)" << std::endl;
+    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
     return true;
   }
-  void render() {
+  virtual void render() override final {
     Renderer& renderer = F.renderer();
     renderer.enqueue_graphics_task(*draw_points);
   }

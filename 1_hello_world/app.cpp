@@ -12,10 +12,12 @@ struct App1_hello_world : public App {
 
   std::unique_ptr<GraphicsTask> draw_points;
 
-  const char* app_name() const {
-    return "1_hello_world";
+  virtual AppConfig cfg() const override final {
+    AppConfig out {};
+    out.app_name = "1_hello_world";
+    return out;
   }
-  void initialize() {
+  virtual void initialize() override final{
     GraphicsRuntime& runtime = F.runtime();
 
     points = runtime.allocate_vertex_buffer(3, 2, true);
@@ -28,7 +30,7 @@ struct App1_hello_world : public App {
 
     std::cout << "initialized!" << std::endl;
   }
-  bool update(double t, double dt) {
+  virtual bool update() override final {
     Renderer& renderer = F.renderer();
 
     std::vector<glm::vec2> points_data {
@@ -45,10 +47,10 @@ struct App1_hello_world : public App {
     };
     colors.write(colors_data);
 
-    std::cout << "stepped! (t=" << t << "s; dt=" << dt << "s)" << std::endl;
+    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
     return true;
   }
-  void render() {
+  virtual void render() override final {
     Renderer& renderer = F.renderer();
     renderer.enqueue_graphics_task(*draw_points);
   }

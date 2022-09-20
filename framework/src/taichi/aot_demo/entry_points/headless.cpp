@@ -4,7 +4,7 @@
 #include "gft/args.hpp"
 #include "gft/util.hpp"
 
-struct AppCFG {
+struct Config {
   std::string output_prefix = "";
   uint32_t frame_count = 2;
   TiArch arch = TI_ARCH_VULKAN;
@@ -34,14 +34,26 @@ void initialize(const char* app_name, int argc, const char** argv) {
   }
 };
 
+void save_framebuffer_to_bmp(const ti::NdArray<uint8_t>& framebuffer, uint32_t i) {
+  std::string index = std::to_string(i);
+  std::string zero_padding(4 - index.size(), '0');
+  std::string path = CFG.output_prefix + zero_padding + std::to_string(i) + ".bmp";
+  liong::util::save_bmp((const uint32_t*)framebuffer.map(),
+    framebuffer.shape().dims[0],
+    framebuffer.shape().dims[1],
+    path.c_str());
+  framebuffer.unmap();
+}
+
 int main(int argc, const char** argv) {
   std::unique_ptr<App> app = create_app();
+  const AppConfig& app_cfg = app->cfg();
 
-  initialize(app->app_name(), argc, argv);
+  initialize(app_cfg.app_name, argc, argv);
 
-  ti::aot_demo::F = ti::aot_demo::Framework(CFG.arch, CFG.debug);
+  ti::aot_demo::F = ti::aot_demo::Framework(app_cfg, CFG.arch, CFG.debug);
   ti::aot_demo::Framework& F = ti::aot_demo::F;
-  ti::Runtime& runtime = F.runtime();
+  ti::aot_demo::GraphicsRuntime& runtime = F.runtime();
   ti::aot_demo::Renderer& renderer = F.renderer();
 
   app->initialize();
@@ -51,31 +63,20 @@ int main(int argc, const char** argv) {
   ti::NdArray<uint8_t> framebuffer =
     runtime.allocate_ndarray<uint8_t>({width, height}, {4}, true);
 
-  auto tic0 = std::chrono::steady_clock::now();
-  auto tic = std::chrono::steady_clock::now();
   for (uint32_t i = 0; i < CFG.frame_count; ++i) {
-    auto toc = std::chrono::steady_clock::now();
-    double t = std::chrono::duration<double>(toc - tic0).count();
-    double dt = std::chrono::duration<double>(toc - tic).count();
-    tic = toc;
-
-    if (!app->update(t, dt)) {
-      renderer.next_frame();
+    if (!app->update()) {
+      F.next_frame();
       break;
     }
 
-    renderer.begin_frame();
+    renderer.begin_render();
     app->render();
-    renderer.end_frame();
+    renderer.end_render();
+
     renderer.present_to_ndarray(framebuffer);
+    save_framebuffer_to_bmp(framebuffer, i);
 
-    std::string index = std::to_string(i);
-    std::string zero_padding(4 - index.size(), '0');
-    std::string path = CFG.output_prefix + zero_padding + std::to_string(i) + ".bmp";
-    liong::util::save_bmp((const uint32_t*)framebuffer.map(), width, height, path.c_str());
-    framebuffer.unmap();
-
-    renderer.next_frame();
+    F.next_frame();
   }
 
   return 0;

@@ -39,7 +39,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_validation_callback(
   return VK_FALSE;
 }
 
-Renderer::Renderer(bool debug) {
+Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   VkResult res = VK_SUCCESS;
 
   uint32_t nlep = 0;
@@ -71,6 +71,7 @@ Renderer::Renderer(bool debug) {
 
   VkInstanceCreateInfo ici {};
   ici.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+  ici.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
   ici.pApplicationInfo = &ai;
   ici.enabledLayerCount = (uint32_t)llns.size();
   ici.ppEnabledLayerNames = llns.data();
@@ -243,8 +244,10 @@ Renderer::Renderer(bool debug) {
   res = vkCreateFence(device, &fci, nullptr, &fence);
   check_vulkan_result(res);
 
+  PFN_vkGetInstanceProcAddr loader = &vkGetInstanceProcAddr;
+
   TiVulkanRuntimeInteropInfo vrii {};
-  vrii.get_instance_proc_addr = &vkGetInstanceProcAddr;
+  vrii.get_instance_proc_addr = loader;
   vrii.api_version = api_version;
   vrii.instance = instance;
   vrii.physical_device = physical_device;
@@ -259,6 +262,7 @@ Renderer::Renderer(bool debug) {
   in_frame_ = false;
 
   instance_ = instance;
+  physical_device_ = physical_device;
   device_ = device;
   queue_family_index_ = queue_family_index;
   queue_ = queue;
@@ -267,13 +271,14 @@ Renderer::Renderer(bool debug) {
 
   render_pass_ = render_pass;
   framebuffer_ = VK_NULL_HANDLE;
-  set_framebuffer_size(DEFAULT_FRAMEBUFFER_WIDTH, DEFAULT_FRAMEBUFFER_HEIGHT);
+  set_framebuffer_size(width, height);
 
   command_pool_ = command_pool;
   render_present_semaphore_ = render_present_semaphore;
   fence_ = fence;
 
   runtime_ = runtime;
+  loader_ = loader;
 }
 Renderer::~Renderer() {
   destroy();
@@ -297,6 +302,7 @@ void Renderer::destroy() {
   vkDestroyInstance(instance_, nullptr);
 
   instance_ = VK_NULL_HANDLE;
+  physical_device_ = VK_NULL_HANDLE;
   device_ = VK_NULL_HANDLE;
   queue_family_index_ = VK_QUEUE_FAMILY_IGNORED;
   queue_ = VK_NULL_HANDLE;
@@ -311,10 +317,66 @@ void Renderer::destroy() {
   framebuffer_ = VK_NULL_HANDLE;
   command_pool_ = VK_NULL_HANDLE;
   render_present_semaphore_ = VK_NULL_HANDLE;
+  present_surface_semaphore_ = VK_NULL_HANDLE;
   fence_ = VK_NULL_HANDLE;
+
+  surface_ = VK_NULL_HANDLE;
+  swapchain_ = VK_NULL_HANDLE;
 
   runtime_ = TI_NULL_HANDLE;
 }
+
+#if TI_AOT_DEMO_WITH_GLFW
+void Renderer::set_surface_window(GLFWwindow* window) {
+  VkResult res = VK_SUCCESS;
+
+  VkSurfaceKHR surface = VK_NULL_HANDLE;
+  res = glfwCreateWindowSurface(instance_, window, nullptr, &surface);
+  check_vulkan_result(res);
+
+  VkSurfaceCapabilitiesKHR sc {};
+  res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, surface, &sc);
+  check_vulkan_result(res);
+
+  uint32_t swapchain_image_width = sc.currentExtent.width;
+  uint32_t swapchain_image_height = sc.currentExtent.height;
+
+  uint32_t nsf = 1;
+  VkSurfaceFormatKHR sf {};
+  vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device_, surface, &nsf, &sf);
+
+  VkSwapchainCreateInfoKHR sci {};
+  sci.surface = surface;
+  sci.minImageCount = 2;
+  sci.imageFormat = sf.format;
+  sci.imageColorSpace = sf.colorSpace;
+  sci.imageExtent.width = swapchain_image_width;
+  sci.imageExtent.height = swapchain_image_height;
+  sci.imageArrayLayers = 1;
+  sci.imageUsage =
+    VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+    VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  sci.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+  sci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  sci.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+  sci.clipped = VK_TRUE;
+
+  VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+  res = vkCreateSwapchainKHR(device_, &sci, nullptr, &swapchain);
+  check_vulkan_result(res);
+
+  uint32_t nswapchain_image = 0;
+  vkGetSwapchainImagesKHR(device_, swapchain, &nswapchain_image, nullptr);
+  std::vector<VkImage> swapchain_images(nswapchain_image);
+  vkGetSwapchainImagesKHR(device_, swapchain, &nswapchain_image, swapchain_images.data());
+
+  surface_ = surface;
+  swapchain_ = swapchain;
+  swapchain_images_ = std::move(swapchain_images);
+  swapchain_image_width_ = swapchain_image_width;
+  swapchain_image_height_ = swapchain_image_height;
+}
+#endif // TI_AOT_DEMO_WITH_GLFW
 
 void Renderer::set_framebuffer_size(uint32_t width, uint32_t height) {
   VkResult res = VK_SUCCESS;
@@ -425,7 +487,7 @@ void Renderer::set_framebuffer_size(uint32_t width, uint32_t height) {
   height_ = height;
 }
 
-void Renderer::begin_frame() {
+void Renderer::begin_render() {
   VkResult res = VK_SUCCESS;
   assert(!in_frame_);
 
@@ -506,7 +568,7 @@ void Renderer::begin_frame() {
   in_frame_ = true;
   frame_command_buffer_ = command_buffer;
 }
-void Renderer::end_frame() {
+void Renderer::end_render() {
   VkResult res = VK_SUCCESS;
   assert(in_frame_);
 
@@ -565,6 +627,108 @@ void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
   } else {
     vkCmdDraw(frame_command_buffer_, config.vertex_count, config.instance_count, 0, 0);
   }
+}
+
+void Renderer::present_to_surface() {
+  assert(swapchain_);
+  VkResult res = VK_SUCCESS;
+
+  uint32_t i = !0u;
+  res = VK_TIMEOUT;
+  while (res == VK_TIMEOUT) {
+    res = vkAcquireNextImageKHR(device_, swapchain_, 1000000000, VK_NULL_HANDLE, VK_NULL_HANDLE, &i);
+  }
+  check_vulkan_result(res);
+
+  VkImage swapchain_image = swapchain_images_.at(i);
+
+  VkCommandBufferAllocateInfo cbai {};
+  cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  cbai.commandPool = command_pool_;
+  cbai.commandBufferCount = 1;
+  cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+  VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+  res = vkAllocateCommandBuffers(device_, &cbai, &command_buffer);
+
+  VkCommandBufferBeginInfo cbbi {};
+  cbbi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  res = vkBeginCommandBuffer(command_buffer, &cbbi);
+  check_vulkan_result(res);
+
+  {
+    VkImageMemoryBarrier imb {};
+    imb.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imb.image = swapchain_image;
+    imb.srcAccessMask = 0;
+    imb.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    imb.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imb.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    imb.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imb.subresourceRange.levelCount = 1;
+    imb.subresourceRange.layerCount = 1;
+    vkCmdPipelineBarrier(command_buffer,
+      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+      0, 0, nullptr, 0, nullptr, 1, &imb);
+  }
+
+  VkImageBlit ib {};
+  ib.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  ib.srcSubresource.layerCount = 1;
+  ib.srcOffsets[1].x = width_;
+  ib.srcOffsets[1].y = height_;
+  ib.srcOffsets[1].z = 1;
+  ib.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  ib.dstSubresource.layerCount = 1;
+  ib.dstOffsets[1].x = swapchain_image_width_;
+  ib.dstOffsets[1].y = swapchain_image_height_;
+  ib.dstOffsets[1].z = 1;
+  vkCmdBlitImage(command_buffer,
+    color_attachment_, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    swapchain_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    1, &ib, VK_FILTER_LINEAR);
+
+  {
+    VkImageMemoryBarrier imb {};
+    imb.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imb.image = swapchain_image;
+    imb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    imb.dstAccessMask = 0;
+    imb.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    imb.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    imb.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imb.subresourceRange.levelCount = 1;
+    imb.subresourceRange.layerCount = 1;
+    vkCmdPipelineBarrier(command_buffer,
+      VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+      0, 0, nullptr, 0, nullptr, 1, &imb);
+  }
+
+  vkEndCommandBuffer(command_buffer);
+  check_vulkan_result(res);
+
+  VkSubmitInfo si {};
+  si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  si.commandBufferCount = 1;
+  si.pCommandBuffers = &command_buffer;
+  si.waitSemaphoreCount = 1;
+  si.pWaitSemaphores = &render_present_semaphore_;
+  res = vkQueueSubmit(queue_, 1, &si, fence_);
+  check_vulkan_result(res);
+
+  VkPresentInfoKHR pi {};
+  pi.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+  pi.swapchainCount = 1;
+  pi.pSwapchains = &swapchain_;
+  pi.pImageIndices = &i;
+  pi.pResults = &res;
+  res = vkQueuePresentKHR(queue_, &pi);
+  check_vulkan_result(res);
 }
 
 void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
