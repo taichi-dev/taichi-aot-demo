@@ -8,10 +8,10 @@ struct AppCFG {
   std::string output_prefix = "";
   uint32_t frame_count = 2;
   TiArch arch = TI_ARCH_VULKAN;
-  bool debug = true;
+  bool debug = false;
 } CFG;
 
-void initialize(const char* app_name) {
+void initialize(const char* app_name, int argc, const char** argv) {
   namespace args = liong::args;
   std::string arch_lit = "vulkan";
 
@@ -25,6 +25,8 @@ void initialize(const char* app_name) {
   args::reg_arg<args::SwitchParser>("", "--debug", CFG.debug,
     "Enable Vulkan validation layers.");
 
+  args::parse_args(argc, argv);
+
   if (arch_lit == "vulkan") {
     CFG.arch = TI_ARCH_VULKAN;
   } else {
@@ -35,20 +37,20 @@ void initialize(const char* app_name) {
 int main(int argc, const char** argv) {
   std::unique_ptr<App> app = create_app();
 
-  initialize(app->app_name());
+  initialize(app->app_name(), argc, argv);
 
   ti::aot_demo::F = ti::aot_demo::Framework(CFG.arch, CFG.debug);
   ti::aot_demo::Framework& F = ti::aot_demo::F;
   ti::Runtime& runtime = F.runtime();
   ti::aot_demo::Renderer& renderer = F.renderer();
 
+  app->initialize();
 
   uint32_t width = renderer.width();
   uint32_t height = renderer.height();
   ti::NdArray<uint8_t> framebuffer =
     runtime.allocate_ndarray<uint8_t>({width, height}, {4}, true);
 
-  app->initialize();
   auto tic0 = std::chrono::steady_clock::now();
   auto tic = std::chrono::steady_clock::now();
   for (uint32_t i = 0; i < CFG.frame_count; ++i) {

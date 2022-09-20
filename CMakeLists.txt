@@ -82,7 +82,10 @@ get_target_property(TaichiAotDemoFramework_LINK_LIBRARIES TaichiAotDemoFramework
 
 
 # Add demo source subdirectories.
-list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world")
+list(APPEND TAICHI_AOT_DEMO_LIST
+    "1_hello_world"
+    "2_mpm88"
+)
 
 message("-- Building demo libraries:")
 foreach(TAICHI_AOT_DEMO_DIR ${TAICHI_AOT_DEMO_LIST})

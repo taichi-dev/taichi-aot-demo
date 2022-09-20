@@ -13,11 +13,11 @@ std::unique_ptr<GraphicsTask> DrawPointsBuilder::build() {
   switch (ncomp) {
   case 1:
     vertex_declr = "layout(location=0) in float pos;";
-    vertex_get = "vec4(pos, 0.0f, 0.0f, 1.0f)";
+    vertex_get = "vec4(pos * 2.0 - 1.0, 0.0f, 0.0f, 1.0f)";
     break;
   case 2:
     vertex_declr = "layout(location=0) in vec2 pos;";
-    vertex_get = "vec4(pos, 0.0f, 1.0f)";
+    vertex_get = "vec4(pos.x * 2.0 - 1.0, (1.0 - pos.y) * 2.0 - 1.0, 0.0f, 1.0f)";
     break;
   case 3:
     vertex_declr = "layout(location=0) in vec3 pos;";
