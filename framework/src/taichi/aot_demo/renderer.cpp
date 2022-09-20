@@ -709,7 +709,7 @@ void Renderer::present_to_surface() {
       0, 0, nullptr, 0, nullptr, 1, &imb);
   }
 
-  vkEndCommandBuffer(command_buffer);
+  res = vkEndCommandBuffer(command_buffer);
   check_vulkan_result(res);
 
   VkSubmitInfo si {};

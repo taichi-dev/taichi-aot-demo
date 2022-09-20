@@ -93,83 +93,78 @@ endforeach()
 
 message("-- Building demo libraries:")
 foreach(TAICHI_AOT_ENTRY_POINT ${TAICHI_AOT_ENTRY_POINT_LIST})
-    set(TAICHI_AOT_ENTRY_POINT_TARGET_NAME E_${TAICHI_AOT_ENTRY_POINT})
-    add_library(${TAICHI_AOT_ENTRY_POINT_TARGET_NAME} STATIC ${TaichiAotDemoFramework_SOURCES})
-    set_target_properties(${TAICHI_AOT_ENTRY_POINT_TARGET_NAME} PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${TAICHI_AOT_ENTRY_POINT})
-    target_include_directories(${TAICHI_AOT_ENTRY_POINT_TARGET_NAME} PUBLIC ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
-
-    # Some settings for specific entry points.
-    if(${TAICHI_AOT_ENTRY_POINT} STREQUAL "glfw")
-        target_compile_definitions(${TAICHI_AOT_ENTRY_POINT_TARGET_NAME} PUBLIC
-            TI_AOT_DEMO_WITH_GLFW=1)
-        target_link_libraries(${TAICHI_AOT_ENTRY_POINT_TARGET_NAME} PUBLIC
-            glfw)
-        target_include_directories(${TAICHI_AOT_ENTRY_POINT_TARGET_NAME} PUBLIC
-            ${Vulkan_INCLUDE_DIR}
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/include")
-    endif()
 
     foreach(TAICHI_AOT_DEMO_DIR ${TAICHI_AOT_DEMO_LIST})
         message("--   ${TAICHI_AOT_DEMO_DIR} @ ${TAICHI_AOT_ENTRY_POINT}")
         set(TAICHI_AOT_DEMO_CURRENT_TARGET E${TAICHI_AOT_DEMO_DIR}_${TAICHI_AOT_ENTRY_POINT})
 
         add_executable(${TAICHI_AOT_DEMO_CURRENT_TARGET}
-            "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/${TAICHI_AOT_ENTRY_POINT}.cpp")
+            "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/${TAICHI_AOT_ENTRY_POINT}.cpp"
+            ${TaichiAotDemoFramework_SOURCES})
         set_target_properties(${TAICHI_AOT_DEMO_CURRENT_TARGET} PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${TAICHI_AOT_ENTRY_POINT})
         target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
             ${TAICHI_AOT_DEMO_DIR}
-            ${TAICHI_AOT_ENTRY_POINT_TARGET_NAME}
             ${TaichiAotDemoFramework_LINK_LIBRARIES})
         target_include_directories(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
             ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
+
+        # Some settings for specific entry points.
+        if(${TAICHI_AOT_ENTRY_POINT} STREQUAL "glfw")
+            target_compile_definitions(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
+                TI_AOT_DEMO_WITH_GLFW=1)
+            target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
+                glfw)
+            target_include_directories(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
+                ${Vulkan_INCLUDE_DIR}
+                "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/include")
+        endif()
+
+
+
+        # - Cross-platform compatibility below this line -------------------------------
+
+        # If you are building for Android, you need to link to system libraries.
+        if (ANDROID)
+            find_library(android android)
+            find_library(log log)
+            target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} android log)
+        endif()
+
+
+        # Copy Taichi C-API dynamic library to build artifact directory.
+        if (WIN32)
+            file(GLOB taichi_c_api_SRC "${TAICHI_C_API_INSTALL_DIR}/bin/*")
+            string(REPLACE "${TAICHI_C_API_INSTALL_DIR}/bin" "" taichi_c_api_DST ${taichi_c_api_SRC})
+            add_custom_command(
+                TARGET ${TAICHI_AOT_DEMO_CURRENT_TARGET}
+                POST_BUILD
+                COMMAND ${CMAKE_COMMAND}
+                ARGS -E copy ${taichi_c_api_SRC} $<TARGET_FILE_DIR:${TAICHI_AOT_DEMO_CURRENT_TARGET}>/${taichi_c_api_DST}
+                VERBATIM)
+        else()
+            set(taichi_c_api_SRC ${taichi_c_api})
+            string(REPLACE "${TAICHI_C_API_INSTALL_DIR}/lib" "" taichi_c_api_DST ${taichi_c_api_SRC})
+            add_custom_command(
+                TARGET ${TAICHI_AOT_DEMO_CURRENT_TARGET}
+                POST_BUILD
+                COMMAND ${CMAKE_COMMAND}
+                ARGS -E copy ${taichi_c_api_SRC} $<TARGET_FILE_DIR:${TAICHI_AOT_DEMO_CURRENT_TARGET}>/${taichi_c_api_DST}
+                VERBATIM)
+        endif()
+
+
+        # MoltenVK dylib should be copied to the output directory.
+        if (APPLE)
+            find_library(MoltenVK libMoltenVK.dylib PATHS $HOMEBREW_CELLAR/molten-vk $VULKAN_SDK REQUIRED)
+            add_custom_command(
+                TARGET ${TAICHI_AOT_DEMO_CURRENT_TARGET}
+                POST_BUILD
+                COMMAND ${CMAKE_COMMAND}
+                ARGS -E copy ${MoltenVK} $<TARGET_FILE_DIR:${TAICHI_AOT_DEMO_CURRENT_TARGET}>/libMoltenVK.dylib
+                VERBATIM)
+        endif()
+
     endforeach()
-
-
-
-    # - Cross-platform compatibility below this line -------------------------------
-
-    # If you are building for Android, you need to link to system libraries.
-    if (ANDROID)
-        find_library(android android)
-        find_library(log log)
-        target_link_libraries(${TAICHI_AOT_ENTRY_POINT_TARGET_NAME} android log)
-    endif()
-    
-    
-    # Copy Taichi C-API dynamic library to build artifact directory.
-    if (WIN32)
-        file(GLOB taichi_c_api_SRC "${TAICHI_C_API_INSTALL_DIR}/bin/*")
-        string(REPLACE "${TAICHI_C_API_INSTALL_DIR}/bin" "" taichi_c_api_DST ${taichi_c_api_SRC})
-        add_custom_command(
-            TARGET ${TAICHI_AOT_ENTRY_POINT_TARGET_NAME}
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND}
-            ARGS -E copy ${taichi_c_api_SRC} $<TARGET_FILE_DIR:${TAICHI_AOT_ENTRY_POINT_TARGET_NAME}>/${taichi_c_api_DST}
-            VERBATIM)
-    else()
-        set(taichi_c_api_SRC ${taichi_c_api})
-        string(REPLACE "${TAICHI_C_API_INSTALL_DIR}/lib" "" taichi_c_api_DST ${taichi_c_api_SRC})
-        add_custom_command(
-            TARGET ${TAICHI_AOT_ENTRY_POINT_TARGET_NAME}
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND}
-            ARGS -E copy ${taichi_c_api_SRC} $<TARGET_FILE_DIR:${TAICHI_AOT_ENTRY_POINT_TARGET_NAME}>/${taichi_c_api_DST}
-            VERBATIM)
-    endif()
-    
-    
-    # MoltenVK dylib should be copied to the output directory.
-    if (APPLE)
-        find_library(MoltenVK libMoltenVK.dylib PATHS $HOMEBREW_CELLAR/molten-vk $VULKAN_SDK REQUIRED)
-        add_custom_command(
-            TARGET ${TAICHI_AOT_ENTRY_POINT_TARGET_NAME}
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND}
-            ARGS -E copy ${MoltenVK} $<TARGET_FILE_DIR:${TAICHI_AOT_ENTRY_POINT_TARGET_NAME}>/libMoltenVK.dylib
-            VERBATIM)
-    endif()
-
 
 endforeach()
