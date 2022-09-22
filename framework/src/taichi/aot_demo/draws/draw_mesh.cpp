@@ -43,6 +43,8 @@ std::unique_ptr<GraphicsTask> DrawMeshBuilder::build() {
     glm::mat4 world2view;
     glm::vec4 color;
   } u;
+  u.model2world = model2world_;
+  u.world2view = world2view_;
   u.color = color_;
 
   std::vector<GraphicsTaskResource> rscs;
@@ -105,7 +107,7 @@ std::unique_ptr<GraphicsTask> DrawMeshBuilder::build() {
   config.vertex_component_count = ncomp;
   config.vertex_count = positions_.shape.dims[0];
   config.index_buffer = indices_.memory;
-  config.index_count = indices_.shape.dims[0];
+  config.index_count = indices_.shape.dims[0] * indices_.elem_shape.dims[0];
   config.instance_count = 1;
   config.primitive_topology = L_PRIMITIVE_TOPOLOGY_TRIANGLE;
 

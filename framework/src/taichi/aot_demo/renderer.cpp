@@ -187,7 +187,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   }
   {
     VkAttachmentDescription& ad = ads.at(1);
-    ad.format = VK_FORMAT_D16_UNORM;
+    ad.format = VK_FORMAT_D32_SFLOAT;
     ad.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     ad.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     ad.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -425,7 +425,7 @@ void Renderer::set_framebuffer_size(uint32_t width, uint32_t height) {
   VkImageCreateInfo daci {};
   daci.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   daci.imageType = VK_IMAGE_TYPE_2D;
-  daci.format = VK_FORMAT_D16_UNORM;
+  daci.format = VK_FORMAT_D32_SFLOAT;
   daci.extent.width = width;
   daci.extent.height = height;
   daci.extent.depth = 1;

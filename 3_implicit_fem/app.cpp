@@ -48,6 +48,7 @@ struct App2_mpm88 : public App {
   }
   virtual void initialize() override final {
     GraphicsRuntime& runtime = F.runtime();
+    Renderer& renderer = F.renderer();
 
     module_ = runtime.load_aot_module("3_implicit_fem/assets/implicit_fem");
     g_init_ = module_.get_compute_graph("init");
@@ -99,7 +100,10 @@ struct App2_mpm88 : public App {
     vertices_.write(vertices_data);
 
     glm::mat4 model2world = glm::mat4(1.0f);
-    glm::mat4 world2view = glm::lookAt(glm::vec3(0,0,10), glm::vec3(0,0,0), glm::vec3(0,-1.0,0));
+    model2world = glm::scale(model2world, glm::vec3(2.0f));
+    glm::mat4 camera2view = glm::perspective(glm::radians(45.0f), renderer.width() / (float)renderer.height(), 1e-5f, 1000.0f);
+    glm::mat4 world2camera = glm::lookAt(glm::vec3(0, 0, 10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
+    glm::mat4 world2view = camera2view * world2camera;
 
     draw_mesh = runtime.draw_mesh(x_, indices_)
       .model2world(model2world)
@@ -148,7 +152,6 @@ struct App2_mpm88 : public App {
     g_substep_["k2"] = -1.0f;
     g_substep_["dt"] = DT;
 
-    Renderer& renderer = F.renderer();
     renderer.set_framebuffer_size(256, 256);
 
     std::cout << "initialized!" << std::endl;
