@@ -71,8 +71,9 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
 
   VkInstanceCreateInfo ici {};
   ici.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+#ifdef __MACH__
   ici.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-  ici.pApplicationInfo = &ai;
+#endif // __MACH__  ici.pApplicationInfo = &ai;
   ici.enabledLayerCount = (uint32_t)llns.size();
   ici.ppEnabledLayerNames = llns.data();
   ici.enabledExtensionCount = (uint32_t)lens.size();
