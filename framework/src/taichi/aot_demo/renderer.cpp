@@ -645,10 +645,10 @@ void Renderer::present_to_surface() {
   res = vkAcquireNextImageKHR(device_, swapchain_, 0, VK_NULL_HANDLE, acquire_fence_, &i);
   check_vulkan_result(res);
 
-  do {
+  while (res > VK_TIMEOUT) {
     res = vkWaitForFences(device_, 1, &acquire_fence_, VK_TRUE, 1000000000);
     check_vulkan_result(res);
-  } while (res == VK_TIMEOUT);
+  }
 
   vkResetFences(device_, 1, &acquire_fence_);
   check_vulkan_result(res);
