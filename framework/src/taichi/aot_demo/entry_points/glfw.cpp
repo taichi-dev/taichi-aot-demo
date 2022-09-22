@@ -32,6 +32,10 @@ void initialize(const char* app_name, int argc, const char** argv) {
   }
 };
 
+std::unique_ptr<ti::aot_demo::AssetManager> create_asset_manager() {
+  return std::unique_ptr<ti::aot_demo::AssetManager>(new ti::aot_demo::CwdAssetManager);
+}
+
 namespace {
 
 void glfw_error_callback(int code, const char *description) {

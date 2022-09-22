@@ -240,8 +240,12 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   VkFenceCreateInfo fci {};
   fci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-  VkFence fence = VK_NULL_HANDLE;
-  res = vkCreateFence(device, &fci, nullptr, &fence);
+  VkFence acquire_fence = VK_NULL_HANDLE;
+  res = vkCreateFence(device, &fci, nullptr, &acquire_fence);
+  check_vulkan_result(res);
+
+  VkFence present_fence = VK_NULL_HANDLE;
+  res = vkCreateFence(device, &fci, nullptr, &present_fence);
   check_vulkan_result(res);
 
   PFN_vkGetInstanceProcAddr loader = &vkGetInstanceProcAddr;
@@ -275,7 +279,8 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
 
   command_pool_ = command_pool;
   render_present_semaphore_ = render_present_semaphore;
-  fence_ = fence;
+  acquire_fence_ = acquire_fence;
+  present_fence_ = present_fence;
 
   runtime_ = runtime;
   loader_ = loader;
@@ -286,7 +291,8 @@ Renderer::~Renderer() {
 void Renderer::destroy() {
   ti_destroy_runtime(runtime_);
 
-  vkDestroyFence(device_, fence_, nullptr);
+  vkDestroyFence(device_, acquire_fence_, nullptr);
+  vkDestroyFence(device_, present_fence_, nullptr);
   vkDestroyCommandPool(device_, command_pool_, nullptr);
   vkDestroyFramebuffer(device_, framebuffer_, nullptr);
   vkDestroyRenderPass(device_, render_pass_, nullptr);
@@ -318,7 +324,8 @@ void Renderer::destroy() {
   command_pool_ = VK_NULL_HANDLE;
   render_present_semaphore_ = VK_NULL_HANDLE;
   present_surface_semaphore_ = VK_NULL_HANDLE;
-  fence_ = VK_NULL_HANDLE;
+  acquire_fence_ = VK_NULL_HANDLE;
+  present_fence_ = VK_NULL_HANDLE;
 
   surface_ = VK_NULL_HANDLE;
   swapchain_ = VK_NULL_HANDLE;
@@ -634,10 +641,15 @@ void Renderer::present_to_surface() {
   VkResult res = VK_SUCCESS;
 
   uint32_t i = !0u;
-  res = VK_TIMEOUT;
-  while (res == VK_TIMEOUT) {
-    res = vkAcquireNextImageKHR(device_, swapchain_, 1000000000, VK_NULL_HANDLE, VK_NULL_HANDLE, &i);
-  }
+  res = vkAcquireNextImageKHR(device_, swapchain_, 0, VK_NULL_HANDLE, acquire_fence_, &i);
+  check_vulkan_result(res);
+
+  do {
+    res = vkWaitForFences(device_, 1, &acquire_fence_, VK_TRUE, 1000000000);
+    check_vulkan_result(res);
+  } while (res == VK_TIMEOUT);
+
+  vkResetFences(device_, 1, &acquire_fence_);
   check_vulkan_result(res);
 
   VkImage swapchain_image = swapchain_images_.at(i);
@@ -712,13 +724,16 @@ void Renderer::present_to_surface() {
   res = vkEndCommandBuffer(command_buffer);
   check_vulkan_result(res);
 
+  VkPipelineStageFlags ps = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
   VkSubmitInfo si {};
   si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   si.commandBufferCount = 1;
   si.pCommandBuffers = &command_buffer;
   si.waitSemaphoreCount = 1;
   si.pWaitSemaphores = &render_present_semaphore_;
-  res = vkQueueSubmit(queue_, 1, &si, fence_);
+  si.pWaitDstStageMask = &ps;
+  res = vkQueueSubmit(queue_, 1, &si, present_fence_);
   check_vulkan_result(res);
 
   VkPresentInfoKHR pi {};
@@ -780,7 +795,7 @@ void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
   si.waitSemaphoreCount = 1;
   si.pWaitDstStageMask = &ps;
   si.pWaitSemaphores = &render_present_semaphore_;
-  res = vkQueueSubmit(queue_, 1, &si, fence_);
+  res = vkQueueSubmit(queue_, 1, &si, present_fence_);
   check_vulkan_result(res);
 }
 
@@ -788,11 +803,11 @@ void Renderer::next_frame() {
   VkResult res = VK_SUCCESS;
 
   do {
-    res = vkWaitForFences(device_, 1, &fence_, VK_TRUE, 1000000000);
+    res = vkWaitForFences(device_, 1, &present_fence_, VK_TRUE, 1000000000);
     check_vulkan_result(res);
   } while (res == VK_TIMEOUT);
 
-  res = vkResetFences(device_, 1, &fence_);
+  res = vkResetFences(device_, 1, &present_fence_);
   check_vulkan_result(res);
 
   vkResetCommandPool(device_, command_pool_, 0);

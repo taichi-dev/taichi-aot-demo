@@ -34,6 +34,10 @@ void initialize(const char* app_name, int argc, const char** argv) {
   }
 };
 
+std::unique_ptr<ti::aot_demo::AssetManager> create_asset_manager() {
+  return std::unique_ptr<ti::aot_demo::AssetManager>(new ti::aot_demo::CwdAssetManager);
+}
+
 void save_framebuffer_to_bmp(const ti::NdArray<uint8_t>& framebuffer, uint32_t i) {
   std::string index = std::to_string(i);
   std::string zero_padding(4 - index.size(), '0');

@@ -1,5 +1,6 @@
 #pragma once
 #include "draws/draw_points.hpp"
+#include "draws/draw_mesh.hpp"
 
 namespace ti {
 namespace aot_demo {
@@ -20,6 +21,7 @@ public:
   );
   ti::NdArray<uint32_t> allocate_index_buffer(
     uint32_t index_count,
+    uint32_t index_component_count,
     bool host_access = false
   );
 
@@ -28,6 +30,12 @@ public:
     const ti::NdArray<float>& positions
   ) {
     return DrawPointsBuilder(renderer_, positions);
+  }
+  DrawMeshBuilder draw_mesh(
+    const ti::NdArray<float>& positions,
+    const ti::NdArray<uint32_t>& indices
+  ) {
+    return DrawMeshBuilder(renderer_, positions, indices);
   }
 };
 

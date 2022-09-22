@@ -3,6 +3,7 @@
 #include <taichi/aot_demo/common.hpp>
 #include "taichi/aot_demo/renderer.hpp"
 #include "taichi/aot_demo/graphics_runtime.hpp"
+#include "taichi/aot_demo/asset_manager.hpp"
 
 struct AppConfig {
   const char* app_name = "taichi";
@@ -25,12 +26,16 @@ extern std::unique_ptr<App> create_app();
 
 // -----------------------------------------------------------------------------
 
+// This should be implemented in platform entry points.
+extern std::unique_ptr<ti::aot_demo::AssetManager> create_asset_manager();
+
 namespace ti {
 namespace aot_demo {
 
 class Framework {
   GraphicsRuntime runtime_;
   std::shared_ptr<class Renderer> renderer_;
+  std::unique_ptr<AssetManager> asset_mgr_;
 
   uint32_t frame_;
   std::chrono::steady_clock::time_point tic0_;
@@ -44,6 +49,7 @@ public:
   Framework(Framework&& b) :
     runtime_(std::move(b.runtime_)),
     renderer_(std::move(b.renderer_)),
+    asset_mgr_(std::move(b.asset_mgr_)),
     frame_(std::exchange(b.frame_, 0)),
     tic0_(std::move(b.tic0_)),
     tic_(std::move(b.tic_)),
@@ -53,6 +59,11 @@ public:
   Framework& operator=(Framework&& b) {
     runtime_ = std::move(b.runtime_);
     renderer_ = std::move(b.renderer_);
+    asset_mgr_ = std::move(b.asset_mgr_);
+    frame_ = std::exchange(b.frame_, 0);
+    tic0_ = std::move(b.tic0_);
+    tic_ = std::move(b.tic_);
+    toc_ = std::move(b.toc_);
     return *this;
   }
 
@@ -73,6 +84,12 @@ public:
     return 1.0 / dt();
   }
 
+  // You usually need this in `initialize`.
+  // WARNING: DO NOT load assets yourself in your initialization code because it
+  // doesn't guarantee multi-platform compatibility.
+  inline AssetManager& asset_mgr() {
+    return *asset_mgr_;
+  }
   // You usually need this in `initialize` and `update`.
   inline GraphicsRuntime& runtime() {
     return runtime_;

@@ -36,7 +36,8 @@ class Renderer {
   VkCommandPool command_pool_;
   VkSemaphore render_present_semaphore_;
   VkSemaphore present_surface_semaphore_;
-  VkFence fence_;
+  VkFence acquire_fence_;
+  VkFence present_fence_;
 
   VkSurfaceKHR surface_;
   VkSwapchainKHR swapchain_;
