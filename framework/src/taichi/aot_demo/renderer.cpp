@@ -300,7 +300,6 @@ void Renderer::destroy() {
   vkDestroyImageView(device_, color_attachment_view_, nullptr);
   vmaDestroyImage(vma_allocator_, depth_attachment_, depth_attachment_allocation_);
   vmaDestroyImage(vma_allocator_, color_attachment_, color_attachment_allocation_);
-  vkDestroyRenderPass(device_, render_pass_, nullptr);
 
   vkDestroySampler(device_, sampler_, nullptr);
   vmaDestroyAllocator(vma_allocator_);
@@ -353,6 +352,7 @@ void Renderer::set_surface_window(GLFWwindow* window) {
   vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device_, surface, &nsf, &sf);
 
   VkSwapchainCreateInfoKHR sci {};
+  sci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
   sci.surface = surface;
   sci.minImageCount = 2;
   sci.imageFormat = sf.format;
