@@ -458,7 +458,7 @@ void Renderer::set_framebuffer_size(uint32_t width, uint32_t height) {
   davci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   davci.viewType = VK_IMAGE_VIEW_TYPE_2D;
   davci.image = depth_attachment;
-  davci.format = VK_FORMAT_D16_UNORM;
+  davci.format = VK_FORMAT_D32_SFLOAT;
   davci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
   davci.subresourceRange.levelCount = 1;
   davci.subresourceRange.layerCount = 1;
@@ -886,15 +886,17 @@ GraphicsTask::GraphicsTask(
   for (size_t i = 0; i < dts.size(); ++i) {
     VkDescriptorType dt = dts.at(i);
 
-    auto it = std::find_if(dpss.begin(), dpss.end(),
-      [&](const VkDescriptorPoolSize& dps) { return dps.type == dt; });
+    auto it = dpss.begin();
+    for (; it != dpss.end(); ++it) {
+      if (it->type == dt) {
+        it->descriptorCount += 1;
+      }
+    }
     if (it == dpss.end()) {
       VkDescriptorPoolSize dps {};
       dps.type = dt;
       dps.descriptorCount = 1;
       dpss.emplace_back(std::move(dps));
-    } else {
-      it->descriptorCount += 1;
     }
   }
 
