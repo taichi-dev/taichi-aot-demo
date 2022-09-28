@@ -78,9 +78,9 @@ int main(int argc, const char** argv) {
     renderer.end_render();
 
     renderer.present_to_ndarray(framebuffer);
-    save_framebuffer_to_bmp(framebuffer, i);
-
     F.next_frame();
+
+    save_framebuffer_to_bmp(framebuffer, i);
   }
 
   return 0;

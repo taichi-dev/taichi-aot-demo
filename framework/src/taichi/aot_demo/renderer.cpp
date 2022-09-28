@@ -794,8 +794,8 @@ void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
   si.commandBufferCount = 1;
   si.pCommandBuffers = &command_buffer;
   si.waitSemaphoreCount = 1;
-  si.pWaitDstStageMask = &ps;
   si.pWaitSemaphores = &render_present_semaphore_;
+  si.pWaitDstStageMask = &ps;
   res = vkQueueSubmit(queue_, 1, &si, present_fence_);
   check_vulkan_result(res);
 }
