@@ -106,14 +106,45 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
 
   VkPhysicalDevice physical_device = pds.at(0);
 
-  VkPhysicalDeviceFeatures pdf {};
-  vkGetPhysicalDeviceFeatures(physical_device, &pdf);
-
+  VkPhysicalDeviceProperties pdp {};
+  vkGetPhysicalDeviceProperties(physical_device, &pdp);
+  
   uint32_t ndep = 0;
   vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &ndep, nullptr);
   std::vector<VkExtensionProperties> deps(ndep);
   res = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &ndep, deps.data());
   check_vulkan_result(res);
+
+  bool has_pdf2 = false;
+  for (const VkExtensionProperties& ep : deps) {
+    if (ep.extensionName == VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) {
+      has_pdf2 = true;
+      break;
+    }
+  }
+
+  VkPhysicalDeviceFeatures2KHR pdf2 {};
+  VkPhysicalDeviceVulkan11Features pdv11{};
+  VkPhysicalDeviceVulkan12Features pdv12{};
+  VkPhysicalDeviceSubgroupProperties pdsp {};
+  if (has_pdf2) {
+    if (pdp.apiVersion > VK_API_VERSION_1_1) {
+      pdv11.pNext = pdf2.pNext;
+      pdv11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+      pdf2.pNext = &pdv11;
+    }
+    if (pdp.apiVersion > VK_API_VERSION_1_2) {
+      pdv12.pNext = pdf2.pNext;
+      pdv12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+      pdf2.pNext = &pdv12;
+    }
+    pdf2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    vkGetPhysicalDeviceFeatures2(physical_device, &pdf2);
+  } else {
+    vkGetPhysicalDeviceFeatures(physical_device, &pdf2.features);
+  }
+
+
 
   std::vector<const char*> dens(ndep);
   for (size_t i = 0; i < deps.size(); ++i) {
@@ -132,9 +163,6 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   }
   assert(queue_family_index != VK_QUEUE_FAMILY_IGNORED);
 
-  VkPhysicalDeviceProperties pdp {};
-  vkGetPhysicalDeviceProperties(physical_device, &pdp);
-
   float qp = 1.0f;
 
   VkDeviceQueueCreateInfo dqci {};
@@ -145,11 +173,22 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
 
   VkDeviceCreateInfo dci {};
   dci.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  dci.pEnabledFeatures = &pdf;
+  dci.pEnabledFeatures = &pdf2.features;
   dci.enabledExtensionCount = (uint32_t)dens.size();
   dci.ppEnabledExtensionNames = dens.data();
   dci.queueCreateInfoCount = 1;
   dci.pQueueCreateInfos = &dqci;
+  
+  if (pdp.apiVersion > VK_API_VERSION_1_1) {
+    pdv11.pNext = (void*)dci.pNext;
+    pdv11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    dci.pNext = &pdv11;
+  }
+  if (pdp.apiVersion > VK_API_VERSION_1_2) {
+    pdv12.pNext = (void*)dci.pNext;
+    pdv12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    dci.pNext = &pdv12;
+  }
 
   VkDevice device = VK_NULL_HANDLE;
   res = vkCreateDevice(physical_device, &dci, nullptr, &device);
