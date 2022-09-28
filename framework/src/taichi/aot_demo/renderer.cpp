@@ -4,6 +4,7 @@
 #include <array>
 #include <stdexcept>
 #include <iostream>
+#include <set>
 #include <vulkan/vulkan.h>
 #include "taichi/aot_demo/renderer.hpp"
 
@@ -59,7 +60,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
     lens.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
 
-  uint32_t api_version = VK_API_VERSION_1_0;
+  uint32_t api_version = VK_API_VERSION_1_2;
 
   VkApplicationInfo ai {};
   ai.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -99,46 +100,71 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   res = vkCreateInstance(&ici, nullptr, &instance);
   check_vulkan_result(res);
 
-  uint32_t npd = 1;
+  uint32_t npd = 0;
+  res = vkEnumeratePhysicalDevices(instance, &npd, nullptr);
   std::vector<VkPhysicalDevice> pds(npd);
   res = vkEnumeratePhysicalDevices(instance, &npd, pds.data());
   check_vulkan_result(res);
 
-  VkPhysicalDevice physical_device = pds.at(0);
+  uint32_t physical_device_index = 0;
+try_another_physical_device:
+  VkPhysicalDevice physical_device = pds.at(physical_device_index);
 
   VkPhysicalDeviceProperties pdp {};
   vkGetPhysicalDeviceProperties(physical_device, &pdp);
-  
+
+  // (penguinliong) Try not to be trapped by Intel's garbage integrated GPU.
+  if (pdp.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+    if (physical_device_index + 1 != pds.size()) {
+      physical_device_index += 1;
+      goto try_another_physical_device;
+    }
+  }
+
   uint32_t ndep = 0;
   vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &ndep, nullptr);
   std::vector<VkExtensionProperties> deps(ndep);
   res = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &ndep, deps.data());
   check_vulkan_result(res);
 
-  bool has_pdf2 = false;
+  std::set<std::string> depens {};
   for (const VkExtensionProperties& ep : deps) {
-    if (ep.extensionName == VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) {
-      has_pdf2 = true;
-      break;
-    }
+    depens.insert(ep.extensionName);
   }
+  auto has_dep = [&depens](const char* en) {
+    return depens.find(en) != depens.end();
+  };
+
+  bool is_vk_1_1 = pdp.apiVersion >= VK_API_VERSION_1_1;
+  bool is_vk_1_2 = pdp.apiVersion >= VK_API_VERSION_1_2;
+  bool has_pdp2 = is_vk_1_1 || has_dep(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+  bool has_saf = has_dep(VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME);
 
   VkPhysicalDeviceFeatures2KHR pdf2 {};
-  VkPhysicalDeviceVulkan11Features pdv11{};
-  VkPhysicalDeviceVulkan12Features pdv12{};
-  VkPhysicalDeviceSubgroupProperties pdsp {};
-  if (has_pdf2) {
-    if (pdp.apiVersion > VK_API_VERSION_1_1) {
+  pdf2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+
+  VkPhysicalDeviceVulkan11Features pdv11 {};
+  pdv11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+
+  VkPhysicalDeviceVulkan12Features pdv12 {};
+  pdv12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+
+  VkPhysicalDeviceShaderAtomicFloatFeaturesEXT pdsaff {};
+  pdsaff.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
+
+  if (has_pdp2) {
+    if (is_vk_1_1) {
       pdv11.pNext = pdf2.pNext;
-      pdv11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
       pdf2.pNext = &pdv11;
     }
-    if (pdp.apiVersion > VK_API_VERSION_1_2) {
+    if (is_vk_1_2) {
       pdv12.pNext = pdf2.pNext;
-      pdv12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
       pdf2.pNext = &pdv12;
     }
-    pdf2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    if (has_saf) {
+      pdsaff.pNext = pdf2.pNext;
+      pdf2.pNext = &pdsaff;
+    }
     vkGetPhysicalDeviceFeatures2(physical_device, &pdf2);
   } else {
     vkGetPhysicalDeviceFeatures(physical_device, &pdf2.features);
@@ -179,15 +205,17 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   dci.queueCreateInfoCount = 1;
   dci.pQueueCreateInfos = &dqci;
   
-  if (pdp.apiVersion > VK_API_VERSION_1_1) {
+  if (is_vk_1_1) {
     pdv11.pNext = (void*)dci.pNext;
-    pdv11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
     dci.pNext = &pdv11;
   }
-  if (pdp.apiVersion > VK_API_VERSION_1_2) {
+  if (is_vk_1_2) {
     pdv12.pNext = (void*)dci.pNext;
-    pdv12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     dci.pNext = &pdv12;
+  }
+  if (has_saf) {
+    pdsaff.pNext = (void*)dci.pNext;
+    dci.pNext = &pdsaff;
   }
 
   VkDevice device = VK_NULL_HANDLE;
@@ -684,7 +712,8 @@ void Renderer::present_to_surface() {
   res = vkAcquireNextImageKHR(device_, swapchain_, 0, VK_NULL_HANDLE, acquire_fence_, &i);
   check_vulkan_result(res);
 
-  while (res > VK_TIMEOUT) {
+  res = VK_TIMEOUT;
+  while (res > VK_SUCCESS) {
     res = vkWaitForFences(device_, 1, &acquire_fence_, VK_TRUE, 1000000000);
     check_vulkan_result(res);
   }
@@ -842,10 +871,11 @@ void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
 void Renderer::next_frame() {
   VkResult res = VK_SUCCESS;
 
-  do {
+  res = VK_TIMEOUT;
+  while (res > VK_SUCCESS) {
     res = vkWaitForFences(device_, 1, &present_fence_, VK_TRUE, 1000000000);
     check_vulkan_result(res);
-  } while (res == VK_TIMEOUT);
+  }
 
   res = vkResetFences(device_, 1, &present_fence_);
   check_vulkan_result(res);
