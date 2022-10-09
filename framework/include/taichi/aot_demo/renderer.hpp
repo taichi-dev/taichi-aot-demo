@@ -13,6 +13,9 @@ class GraphicsTask;
 
 class Renderer {
   friend class GraphicsTask;
+  
+  template<class T>
+  friend class InteropHelper;
 
   VkInstance instance_;
   VkPhysicalDevice physical_device_;
