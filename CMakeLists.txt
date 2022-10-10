@@ -52,6 +52,8 @@ if (NOT ANDROID)
 endif()
 add_subdirectory(external/VulkanMemoryAllocator)
 add_subdirectory(external/glslang)
+set(BUILD_TESTING OFF)
+set(BUILD_STATIC_LIBS ON)
 add_subdirectory(external/glm)
 add_library(GraphiT OBJECT
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp"
