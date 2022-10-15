@@ -12,7 +12,7 @@ parser.add_argument('--aot', default=False, action='store_true')
 args = parser.parse_args()
 
 # TODO: asserts cuda or vulkan backend
-ti.init(arch=ti.vulkan, vk_api_version='1.0')
+ti.init(arch=ti.vulkan, vk_api_version='1.0', offline_cache=False)
 
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -21,11 +21,11 @@ def get_rel_path(*segs):
     return os.path.join(SCRIPT_PATH, *segs)
 
 
-c2e_np = np.load(get_rel_path('c2e.npy'))
-vertices_np = np.load(get_rel_path('vertices_np.npy'))
-indices_np = np.load(get_rel_path('indices_np.npy'))
-edges_np = np.load(get_rel_path('edges_np.npy'))
-ox_np = np.load(get_rel_path('ox_np.npy'))
+c2e_np = np.load(get_rel_path('c2e.npy')).astype(np.int32)
+vertices_np = np.load(get_rel_path('vertices_np.npy')).astype(np.int32)
+indices_np = np.load(get_rel_path('indices_np.npy')).astype(np.int32)
+edges_np = np.load(get_rel_path('edges_np.npy')).astype(np.int32)
+ox_np = np.load(get_rel_path('ox_np.npy')).astype(np.float32)
 
 n_edges = edges_np.shape[0]
 n_verts = ox_np.shape[0]
