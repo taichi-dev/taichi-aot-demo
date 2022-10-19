@@ -1,7 +1,6 @@
 #pragma once
 #include "taichi/cpp/taichi.hpp"
-#include "taichi/taichi_vulkan.h"
-#include "taichi/taichi_llvm.h"
+#include "taichi/taichi.h"
 
 #include "taichi/aot_demo/graphics_runtime.hpp"
 

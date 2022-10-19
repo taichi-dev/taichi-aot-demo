@@ -3,8 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "taichi/taichi_vulkan.h"
-#include "taichi/taichi_llvm.h"
+#include "taichi/taichi.h"
 
 namespace ti {
 namespace aot_demo {
