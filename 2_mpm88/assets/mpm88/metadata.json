@@ -192,5 +192,5 @@
           "bind_index": 0}}}},
   "kernel_tmpls": {},
   "fields": [],
-  "required_caps": {"5": 66304},
+  "required_caps": {"spirv_version": 66304},
   "root_buffer_size": 0}}
