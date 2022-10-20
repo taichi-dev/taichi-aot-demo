@@ -12,7 +12,7 @@ parser.add_argument('--aot', default=False, action='store_true')
 args = parser.parse_args()
 
 # TODO: asserts cuda or vulkan backend
-ti.init(arch=ti.vulkan, vk_api_version='1.0', offline_cache=False)
+ti.init(arch=ti.vulkan, vk_api_version='1.0', offline_cache=False, log_level=ti.TRACE)
 
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 

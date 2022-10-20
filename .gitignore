@@ -1,5 +1,6 @@
 .idea
 .vscode
+.gradle
 .vs
 .DS_Store
 build
@@ -10,3 +11,8 @@ __pycache__
 *.pyc
 *.log
 imgui.ini
+
+# Should be removed once we deprecate the old native android demos.
+implicit_fem/android/local.properties
+implicit_fem/android/app/.cxx
+implicit_fem/android/app/src/main/jniLibs
