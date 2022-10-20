@@ -8,6 +8,9 @@ namespace aot_demo {
 class Renderer;
 
 class GraphicsRuntime : public ti::Runtime {
+  template<class T>
+  friend class InteropHelper;
+  
   std::shared_ptr<Renderer> renderer_;
 
 public:

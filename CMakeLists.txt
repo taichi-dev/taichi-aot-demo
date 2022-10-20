@@ -3,11 +3,13 @@ cmake_minimum_required(VERSION 3.13)
 project(TaichiAotDemo LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 14)
-
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTI_WITH_VULKAN=ON -DTI_WITH_CUDA=ON -DTI_WITH_CPU=ON")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_VULKAN=ON -DTI_WITH_CUDA=ON -DTI_WITH_CPU=ON")
 
 # Add demo source subdirectories.
 list(APPEND TAICHI_AOT_DEMO_LIST
     "1_hello_world"
+    "1_hello_world_with_cpu_interop"
     "2_mpm88"
     "3_implicit_fem"
 )
@@ -79,6 +81,8 @@ list(APPEND TaichiAotDemoFramework_SOURCES
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_mesh.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_mesh.cpp"
+# Interop helpers.
+"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp"
 )
 list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
     ${Vulkan_LIBRARY}
