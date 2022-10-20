@@ -3,13 +3,14 @@ cmake_minimum_required(VERSION 3.13)
 project(TaichiAotDemo LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTI_WITH_VULKAN=ON -DTI_WITH_CUDA=ON -DTI_WITH_CPU=ON")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_VULKAN=ON -DTI_WITH_CUDA=ON -DTI_WITH_CPU=ON")
+
+option(TI_WITH_VULKAN "Compile with Vulkan backend" ON)
+option(TI_WITH_CPU "Compile with CPU backend" OFF)
+option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
 
 # Add demo source subdirectories.
 list(APPEND TAICHI_AOT_DEMO_LIST
     "1_hello_world"
-    "1_hello_world_with_cpu_interop"
     "2_mpm88"
     "3_implicit_fem"
 )
@@ -17,13 +18,8 @@ list(APPEND TAICHI_AOT_DEMO_LIST
 # Add platform entry points here.
 list(APPEND TAICHI_AOT_ENTRY_POINT_LIST
     "headless"
+    "glfw"
 )
-
-if (NOT ANDROID)
-    list(APPEND TAICHI_AOT_ENTRY_POINT_LIST
-        "glfw"
-    )
-endif()
 
 
 # Check for `TAICHI_C_API_INSTALL_DIR`.
@@ -49,13 +45,9 @@ endif()
 
 # Find dependencies.
 find_package(Vulkan REQUIRED)
-if (NOT ANDROID)
-    add_subdirectory(external/glfw)
-endif()
+add_subdirectory(external/glfw)
 add_subdirectory(external/VulkanMemoryAllocator)
 add_subdirectory(external/glslang)
-set(BUILD_TESTING OFF)
-set(BUILD_STATIC_LIBS ON)
 add_subdirectory(external/glm)
 add_library(GraphiT OBJECT
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp"
@@ -81,9 +73,23 @@ list(APPEND TaichiAotDemoFramework_SOURCES
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_mesh.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_mesh.cpp"
-# Interop helpers.
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp"
 )
+
+if (TI_WITH_VULKAN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_VULKAN=ON")
+endif()
+
+if (TI_WITH_CPU)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CPU")
+    list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cpu_interop")
+    list(APPEND TaichiAotDemoFramework_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp")
+    
+    if (TI_WITH_CUDA)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA")
+    endif()
+endif()
+
+
 list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
     ${Vulkan_LIBRARY}
     ${taichi_c_api}
@@ -145,7 +151,7 @@ foreach(TAICHI_AOT_ENTRY_POINT ${TAICHI_AOT_ENTRY_POINT_LIST})
         if (ANDROID)
             find_library(android android)
             find_library(log log)
-            target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC android log)
+            target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} android log)
         endif()
 
 
