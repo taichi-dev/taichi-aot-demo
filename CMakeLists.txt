@@ -18,8 +18,13 @@ list(APPEND TAICHI_AOT_DEMO_LIST
 # Add platform entry points here.
 list(APPEND TAICHI_AOT_ENTRY_POINT_LIST
     "headless"
-    "glfw"
 )
+
+if (NOT ANDROID)
+    list(APPEND TAICHI_AOT_ENTRY_POINT_LIST
+        "glfw"
+    )
+endif()
 
 
 # Check for `TAICHI_C_API_INSTALL_DIR`.
@@ -45,9 +50,13 @@ endif()
 
 # Find dependencies.
 find_package(Vulkan REQUIRED)
-add_subdirectory(external/glfw)
+if (NOT ANDROID)
+    add_subdirectory(external/glfw)
+endif()
 add_subdirectory(external/VulkanMemoryAllocator)
 add_subdirectory(external/glslang)
+set(BUILD_TESTING OFF)
+set(BUILD_STATIC_LIBS ON)
 add_subdirectory(external/glm)
 add_library(GraphiT OBJECT
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp"
@@ -151,7 +160,7 @@ foreach(TAICHI_AOT_ENTRY_POINT ${TAICHI_AOT_ENTRY_POINT_LIST})
         if (ANDROID)
             find_library(android android)
             find_library(log log)
-            target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} android log)
+            target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC android log)
         endif()
 
 
