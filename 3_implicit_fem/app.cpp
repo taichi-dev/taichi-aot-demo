@@ -7,7 +7,7 @@
 
 using namespace ti::aot_demo;
 
-struct App2_mpm88 : public App {
+struct App3_implicit_fem : public App {
   static const uint32_t NPARTICLE = 8192 * 2;
   static const uint32_t GRID_SIZE = 128;
 
@@ -168,5 +168,5 @@ struct App2_mpm88 : public App {
 };
 
 std::unique_ptr<App> create_app() {
-  return std::unique_ptr<App>(new App2_mpm88);
+  return std::unique_ptr<App>(new App3_implicit_fem);
 }
