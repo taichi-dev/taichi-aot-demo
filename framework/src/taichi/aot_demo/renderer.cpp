@@ -243,7 +243,9 @@ try_another_physical_device:
   vf2.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
 
   VmaAllocatorCreateInfo aci {};
-  aci.vulkanApiVersion = api_version;
+  // FIXME: (penguinliong) Use the real Vulkan API version when device
+  // capability is in.
+  aci.vulkanApiVersion = VK_API_VERSION_1_0;
   aci.instance = instance;
   aci.physicalDevice = physical_device;
   aci.device = device;
@@ -339,7 +341,9 @@ try_another_physical_device:
 
   TiVulkanRuntimeInteropInfo vrii {};
   vrii.get_instance_proc_addr = loader;
-  vrii.api_version = api_version;
+  // FIXME: (penguinliong) Use the real Vulkan API version when device
+  // capability is in.
+  vrii.api_version = VK_API_VERSION_1_0;
   vrii.instance = instance;
   vrii.physical_device = physical_device;
   vrii.device = device;
