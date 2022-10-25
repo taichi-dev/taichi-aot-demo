@@ -204,7 +204,7 @@ try_another_physical_device:
   dci.ppEnabledExtensionNames = dens.data();
   dci.queueCreateInfoCount = 1;
   dci.pQueueCreateInfos = &dqci;
-  
+
   if (is_vk_1_1) {
     pdv11.pNext = (void*)dci.pNext;
     dci.pNext = &pdv11;
@@ -224,11 +224,16 @@ try_another_physical_device:
   VkQueue queue = VK_NULL_HANDLE;
   vkGetDeviceQueue(device, queue_family_index, 0, &queue);
 
+  VmaVulkanFunctions vf2 {};
+  vf2.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+  vf2.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+
   VmaAllocatorCreateInfo aci {};
   aci.vulkanApiVersion = api_version;
   aci.instance = instance;
   aci.physicalDevice = physical_device;
   aci.device = device;
+  aci.pVulkanFunctions = &vf2;
 
   VmaAllocator vma_allocator = VK_NULL_HANDLE;
   vmaCreateAllocator(&aci, &vma_allocator);
