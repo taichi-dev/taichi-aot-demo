@@ -96,6 +96,20 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
     ici.pNext = &dumci;
   }
 
+  // (penguinliong) To support debug printing in shaders.
+  std::array<VkValidationFeatureEnableEXT, 1> vfes {
+    VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
+  };
+  VkValidationFeaturesEXT vf {};
+  if (debug) {
+    vf.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+    vf.enabledValidationFeatureCount = vfes.size();
+    vf.pEnabledValidationFeatures = vfes.data();
+
+    vf.pNext = (void*)ici.pNext;
+    ici.pNext = &vf;
+  }
+
   VkInstance instance = VK_NULL_HANDLE;
   res = vkCreateInstance(&ici, nullptr, &instance);
   check_vulkan_result(res);
