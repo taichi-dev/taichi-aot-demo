@@ -96,6 +96,20 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
     ici.pNext = &dumci;
   }
 
+  // (penguinliong) To support debug printing in shaders.
+  std::array<VkValidationFeatureEnableEXT, 1> vfes {
+    VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
+  };
+  VkValidationFeaturesEXT vf {};
+  if (debug) {
+    vf.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+    vf.enabledValidationFeatureCount = vfes.size();
+    vf.pEnabledValidationFeatures = vfes.data();
+
+    vf.pNext = (void*)ici.pNext;
+    ici.pNext = &vf;
+  }
+
   VkInstance instance = VK_NULL_HANDLE;
   res = vkCreateInstance(&ici, nullptr, &instance);
   check_vulkan_result(res);
@@ -204,7 +218,7 @@ try_another_physical_device:
   dci.ppEnabledExtensionNames = dens.data();
   dci.queueCreateInfoCount = 1;
   dci.pQueueCreateInfos = &dqci;
-  
+
   if (is_vk_1_1) {
     pdv11.pNext = (void*)dci.pNext;
     dci.pNext = &pdv11;
@@ -224,11 +238,18 @@ try_another_physical_device:
   VkQueue queue = VK_NULL_HANDLE;
   vkGetDeviceQueue(device, queue_family_index, 0, &queue);
 
+  VmaVulkanFunctions vf2 {};
+  vf2.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+  vf2.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+
   VmaAllocatorCreateInfo aci {};
-  aci.vulkanApiVersion = api_version;
+  // FIXME: (penguinliong) Use the real Vulkan API version when device
+  // capability is in.
+  aci.vulkanApiVersion = VK_API_VERSION_1_0;
   aci.instance = instance;
   aci.physicalDevice = physical_device;
   aci.device = device;
+  aci.pVulkanFunctions = &vf2;
 
   VmaAllocator vma_allocator = VK_NULL_HANDLE;
   vmaCreateAllocator(&aci, &vma_allocator);
@@ -320,7 +341,9 @@ try_another_physical_device:
 
   TiVulkanRuntimeInteropInfo vrii {};
   vrii.get_instance_proc_addr = loader;
-  vrii.api_version = api_version;
+  // FIXME: (penguinliong) Use the real Vulkan API version when device
+  // capability is in.
+  vrii.api_version = VK_API_VERSION_1_0;
   vrii.instance = instance;
   vrii.physical_device = physical_device;
   vrii.device = device;
