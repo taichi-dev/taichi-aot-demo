@@ -2,7 +2,7 @@
 #include "taichi/aot_demo/renderer.hpp"
 
 #ifdef TI_WITH_CUDA
-#include "cuda/cuda.h"
+#include <cuda.h>
 #endif
 
 #include <vulkan/vulkan.h>
@@ -149,7 +149,7 @@ int get_device_mem_handle(VkDeviceMemory &mem, VkDevice device) {
       (PFN_vkGetMemoryFdKHR)vkGetDeviceProcAddr(device, "vkGetMemoryFdKHR");
 
   if (fpGetMemoryFdKHR == nullptr) {
-    TI_ERROR("vkGetMemoryFdKHR is nullptr");
+    throw std::runtime_error("vkGetMemoryFdKHR is nullptr");
   }
   fpGetMemoryFdKHR(device, &memory_get_fd_info, &fd);
 
@@ -207,15 +207,15 @@ void InteropHelper<T>::copy_from_cuda(GraphicsRuntime& runtime,
 
     // Get binded VkDeviceMemory from VkBuffer
     VkDevice vk_device = runtime.renderer_->device_;
-    VkDeviceMemory vertex_buffer_mem = vulkan_interop_info.device_memory;
+    VkDeviceMemory vertex_buffer_mem = vulkan_interop_info.memory;
 
-    handle = get_device_mem_handle(vertex_buffer_mem, vk_device);
+    auto handle = get_device_mem_handle(vertex_buffer_mem, vk_device);
     CUexternalMemory externalMem =
           import_vk_memory_object_from_handle(handle, vulkan_interop_info.size, false);
     
     int offset = 0;
-    CUdeviceptr dst_cuda_ptr = map_buffer_onto_external_memory(externalMem, offset, vulkan_interop_info.size);
-    CUdeviceptr src_cuda_ptr = cuda_interop_info.ptr;
+    CUdeviceptr dst_cuda_ptr = reinterpret_cast<CUdeviceptr>(map_buffer_onto_external_memory(externalMem, offset, vulkan_interop_info.size));
+    CUdeviceptr src_cuda_ptr = reinterpret_cast<CUdeviceptr>(cuda_interop_info.ptr);
 
     cuMemcpyDtoD_v2(dst_cuda_ptr, src_cuda_ptr, vulkan_interop_info.size);
 #endif // TI_WITH_CUDA

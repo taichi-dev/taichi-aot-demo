@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.13)
 project(TaichiAotDemo LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTI_WITH_VULKAN=ON -DTI_WITH_CUDA=ON -DTI_WITH_CPU=ON")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_VULKAN=ON -DTI_WITH_CUDA=ON -DTI_WITH_CPU=ON")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTI_NO_CUDA_INCLUDES=ON -DTI_WITH_VULKAN=ON -DTI_WITH_CUDA=ON -DTI_WITH_CPU=ON")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_NO_CUDA_INCLUDES=ON -DTI_WITH_VULKAN=ON -DTI_WITH_CUDA=ON -DTI_WITH_CPU=ON")
 
 # Add demo source subdirectories.
 list(APPEND TAICHI_AOT_DEMO_LIST
@@ -96,11 +96,12 @@ list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES
 
 if(TI_WITH_CUDA)
     find_package(CUDAToolkit REQUIRED)
-
+    list(APPEND TAICHI_AOT_DEMO_LIST
+    "1_hello_world_with_cuda_interop"
+    )   
     list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
-        CUDA::cupti
+        cuda
     )
-
     list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES
         ${CUDAToolkit_INCLUDE_DIRS}
     )
