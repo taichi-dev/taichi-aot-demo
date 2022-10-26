@@ -1,12 +1,11 @@
 #include "taichi/aot_demo/interop/cross_device_copy.hpp"
 #include "taichi/aot_demo/renderer.hpp"
 
-#include <vulkan/vulkan.h>
-
 #ifdef TI_WITH_CUDA
-include <cuda.h>
+#include "cuda/cuda.h"
 #endif
 
+#include <vulkan/vulkan.h>
 #include "taichi/taichi.h"
 
 namespace ti {
@@ -189,8 +188,7 @@ void *map_buffer_onto_external_memory(CUexternalMemory ext_mem,
   cuExternalMemoryGetMappedBuffer((CUdeviceptr *)&ptr, ext_mem, &desc);
   return ptr;
 }
-
-#endif
+#endif // TI_WITH_CUDA
 
 template<class T>
 void InteropHelper<T>::copy_from_cuda(GraphicsRuntime& runtime, 
@@ -220,7 +218,7 @@ void InteropHelper<T>::copy_from_cuda(GraphicsRuntime& runtime,
     CUdeviceptr src_cuda_ptr = cuda_interop_info.ptr;
 
     cuMemcpyDtoD_v2(dst_cuda_ptr, src_cuda_ptr, vulkan_interop_info.size);
-#endif
+#endif // TI_WITH_CUDA
 }
 
 template class InteropHelper<double>;

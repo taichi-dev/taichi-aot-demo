@@ -75,6 +75,8 @@ list(APPEND TaichiAotDemoFramework_SOURCES
 # Interop helpers.
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp"
 )
+
+
 list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
     ${Vulkan_LIBRARY}
     ${taichi_c_api}
@@ -91,6 +93,18 @@ list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glslang/glslang/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glm"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
+
+if(TI_WITH_CUDA)
+    find_package(CUDAToolkit REQUIRED)
+
+    list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
+        CUDA::cupti
+    )
+
+    list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES
+        ${CUDAToolkit_INCLUDE_DIRS}
+    )
+endif()
 
 foreach(TAICHI_AOT_DEMO_DIR ${TAICHI_AOT_DEMO_LIST})
     add_subdirectory(${TAICHI_AOT_DEMO_DIR} ${TAICHI_AOT_DEMO_CURRENT_TARGET})
