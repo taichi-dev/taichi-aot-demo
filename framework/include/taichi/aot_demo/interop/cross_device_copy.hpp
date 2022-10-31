@@ -14,6 +14,11 @@ public:
                               ti::NdArray<T>& vulkan_ndarray, 
                               ti::Runtime& cpu_runtime,
                               ti::NdArray<T>& cpu_ndarray); 
+    
+    static void copy_from_cuda(GraphicsRuntime& runtime, 
+                               ti::NdArray<T>& vulkan_ndarray, 
+                               ti::Runtime& cuda_runtime,
+                               ti::NdArray<T>& cuda_ndarray); 
 };
 
 }

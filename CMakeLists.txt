@@ -88,22 +88,6 @@ list(APPEND TaichiAotDemoFramework_SOURCES
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_mesh.cpp"
 )
-
-if (TI_WITH_VULKAN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_VULKAN=ON")
-endif()
-
-if (TI_WITH_CPU)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CPU")
-    list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cpu_interop")
-    list(APPEND TaichiAotDemoFramework_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp")
-    
-    if (TI_WITH_CUDA)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA")
-    endif()
-endif()
-
-
 list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
     ${Vulkan_LIBRARY}
     ${taichi_c_api}
@@ -120,6 +104,28 @@ list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glslang/glslang/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glm"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
+
+if (TI_WITH_VULKAN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_VULKAN=ON")
+endif()
+
+if (TI_WITH_CPU)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CPU")
+    list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cpu_interop")
+    list(APPEND TaichiAotDemoFramework_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp")
+    
+endif()
+    
+if (TI_WITH_CUDA)
+    find_package(CUDAToolkit REQUIRED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA -DTI_NO_CUDA_INCLUDES=ON")
+    list(APPEND TaichiAotDemoFramework_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp")
+    list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cuda_interop")
+    list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES cuda)
+    list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${CUDAToolkit_INCLUDE_DIRS})
+endif()
+list(REMOVE_DUPLICATES TaichiAotDemoFramework_SOURCES)
+
 
 foreach(TAICHI_AOT_DEMO_DIR ${TAICHI_AOT_DEMO_LIST})
     add_subdirectory(${TAICHI_AOT_DEMO_DIR} ${TAICHI_AOT_DEMO_CURRENT_TARGET})
