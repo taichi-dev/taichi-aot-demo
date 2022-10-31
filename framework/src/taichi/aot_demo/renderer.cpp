@@ -17,6 +17,7 @@ std::vector<uint32_t> frag2spv(const std::string& frag);
 
 inline void check_vulkan_result(VkResult result) {
   if (result < VK_SUCCESS) {
+    std::cout << static_cast<int>(result) << std::endl;
     throw std::runtime_error("vulkan failed");
   }
 }
