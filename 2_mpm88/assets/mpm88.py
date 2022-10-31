@@ -25,7 +25,7 @@ def compile_mpm88(arch, save_compute_graph):
     bound = 3
     E = 400
 
-    ti.init(arch=arch)
+    ti.init(arch=arch, debug=True)
 
     @ti.kernel
     def substep_reset_grid(grid_v: ti.any_arr(field_dim=2),
@@ -81,6 +81,7 @@ def compile_mpm88(arch, save_compute_graph):
                     pos: ti.any_arr(field_dim=1)):
         for p in x:
             dx = 1 / grid_v.shape[0]
+            print('Hello', dx)
             Xp = x[p] / dx
             base = int(Xp - 0.5)
             fx = Xp - base
@@ -182,7 +183,7 @@ def compile_mpm88(arch, save_compute_graph):
     mod = ti.aot.Module(arch)
     mod.add_graph('init', g_init)
     mod.add_graph('update', g_update)
-    
+
     save_dir = os.path.join(curr_dir, "mpm88")
     os.makedirs(save_dir, exist_ok=True)
     mod.save(save_dir, '')

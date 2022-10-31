@@ -34,7 +34,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_validation_callback(
   const VkDebugUtilsMessengerCallbackDataEXT *data,
   void *user_data
 ) {
-  if (severity > VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+  if (severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
     std::cout << "Vulkan Validation: " << data->pMessage << std::endl;
   }
   return VK_FALSE;
@@ -86,6 +86,8 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
     dumci.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     dumci.messageSeverity =
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
     dumci.messageType =
       VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
@@ -103,6 +105,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   };
   VkValidationFeaturesEXT vf {};
   if (debug) {
+    std::cout << "enabling debug print" << std::endl;
     vf.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
     vf.enabledValidationFeatureCount = vfes.size();
     vf.pEnabledValidationFeatures = vfes.data();
@@ -531,7 +534,7 @@ void Renderer::set_framebuffer_size(uint32_t width, uint32_t height) {
   davci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
   davci.subresourceRange.levelCount = 1;
   davci.subresourceRange.layerCount = 1;
-  
+
   VkImageView depth_attachment_view = VK_NULL_HANDLE;
   res = vkCreateImageView(device_, &davci, nullptr, &depth_attachment_view);
   check_vulkan_result(res);
@@ -1254,7 +1257,7 @@ GraphicsTask::GraphicsTask(
   VkPipelineColorBlendAttachmentState pcbas {};
   pcbas.blendEnable = VK_TRUE;
   pcbas.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-  pcbas.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; 
+  pcbas.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
   pcbas.colorBlendOp = VK_BLEND_OP_ADD;
   pcbas.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
   pcbas.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;

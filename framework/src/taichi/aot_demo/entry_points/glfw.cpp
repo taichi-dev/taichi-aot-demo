@@ -10,7 +10,7 @@ static_assert(TI_AOT_DEMO_WITH_GLFW, "glfw must be provided");
 
 struct Config {
   TiArch arch = TI_ARCH_VULKAN;
-  bool debug = false;
+  bool debug = true;
 } CFG;
 
 void initialize(const char* app_name, int argc, const char** argv) {
