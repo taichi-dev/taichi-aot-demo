@@ -8,6 +8,7 @@ parser.add_argument("--arch", type=str)
 parser.add_argument("--cgraph", action='store_true', default=False)
 args = parser.parse_args()
 
+curr_dir = os.path.dirname(os.path.realpath(__file__))
 
 def compile_mpm88(arch, save_compute_graph):
     ti.init(arch, vk_api_version="1.0")
@@ -181,7 +182,10 @@ def compile_mpm88(arch, save_compute_graph):
     mod = ti.aot.Module(arch)
     mod.add_graph('init', g_init)
     mod.add_graph('update', g_update)
-    mod.save("2_mpm88/assets/mpm88", '')
+    
+    save_dir = os.path.join(curr_dir, "mpm88")
+    os.makedirs(save_dir, exist_ok=True)
+    mod.save(save_dir, '')
 
 if __name__ == "__main__":
     compile_for_cgraph = args.cgraph

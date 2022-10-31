@@ -6,21 +6,28 @@ import taichi as ti
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dim', type=int, default=3)
-parser.add_argument('--aot', default=False, action='store_true')
+parser.add_argument('--jit', default=False, action='store_true')
+parser.add_argument("--arch", default="vulkan", type=str)
 args = parser.parse_args()
+    
+curr_dir = os.path.dirname(os.path.realpath(__file__))
 
 # TODO: asserts cuda or vulkan backend
-ti.init(arch=ti.vulkan, vk_api_version="1.0")
+if args.arch == "vulkan":
+    arch = ti.vulkan
+else:
+    assert False
+ti.init(arch=arch, vk_api_version="1.0")
 
-def get_rel_path(*segs):
-    return os.path.join("3_implicit_fem/assets/", *segs)
+def get_path(*segs):
+    return os.path.join(curr_dir, *segs)
 
 
-c2e_np = np.fromfile(get_rel_path('c2e.bin'), dtype=np.int32).reshape(-1, 6)
-vertices_np = np.fromfile(get_rel_path('vertices.bin'), dtype=np.int32).reshape(-1, 4)
-indices_np = np.fromfile(get_rel_path('indices.bin'), dtype=np.int32).reshape(-1, 3)
-edges_np = np.fromfile(get_rel_path('edges.bin'), dtype=np.int32).reshape(-1, 2)
-ox_np = np.fromfile(get_rel_path('ox.bin'), dtype=np.float32).reshape(-1, 3)
+c2e_np = np.fromfile(get_path('c2e.bin'), dtype=np.int32).reshape(-1, 6)
+vertices_np = np.fromfile(get_path('vertices.bin'), dtype=np.int32).reshape(-1, 4)
+indices_np = np.fromfile(get_path('indices.bin'), dtype=np.int32).reshape(-1, 3)
+edges_np = np.fromfile(get_path('edges.bin'), dtype=np.int32).reshape(-1, 2)
+ox_np = np.fromfile(get_path('ox.bin'), dtype=np.float32).reshape(-1, 3)
 
 n_edges = edges_np.shape[0]
 n_verts = ox_np.shape[0]
@@ -295,7 +302,10 @@ def run_aot():
     mod = ti.aot.Module(ti.vulkan)
     mod.add_graph('init', g_init)
     mod.add_graph('substep', g_substep)
-    mod.save("3_implicit_fem/assets/implicit_fem", "")
+    
+    save_dir = os.path.join(curr_dir, "implicit_fem")
+    os.makedirs(save_dir, exist_ok=True)
+    mod.save(save_dir, '')
     print('AOT done')
 
 
@@ -432,7 +442,7 @@ def run_ggui():
 
 if __name__ == '__main__':
     print(f'dt={dt} num_substeps={num_substeps}')
-    if args.aot:
+    if not args.jit:
         run_aot()
     else:
         g_init.run({'hes_edge': hes_edge, 'hes_vert': hes_vert, 'x': x, 'v': v, 'f': f, 'ox': ox, 'vertices': vertices, 'm': m, 'B': B,

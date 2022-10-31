@@ -15,6 +15,11 @@ list(APPEND TAICHI_AOT_DEMO_LIST
     "3_implicit_fem"
 )
 
+list(APPEND TAICHI_AOT_PYTHON_LIST
+     "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py"
+     "${CMAKE_CURRENT_SOURCE_DIR}/3_implicit_fem/assets/implicit_fem.py"
+)
+
 # Add platform entry points here.
 list(APPEND TAICHI_AOT_ENTRY_POINT_LIST
     "headless"
@@ -199,4 +204,16 @@ foreach(TAICHI_AOT_ENTRY_POINT ${TAICHI_AOT_ENTRY_POINT_LIST})
 
     endforeach()
 
+endforeach()
+
+# Generate AOT compiled files
+if(NOT ${PYTHON_EXECUTABLE})
+    find_package(PythonInterp REQUIRED)
+    if(NOT ${PYTHONINTERP_FOUND})
+        message(FATAL_ERROR "Unable to find python executable")
+    endif()
+endif()
+
+foreach(PYTHON_SCRIPT ${TAICHI_AOT_PYTHON_LIST})
+    execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_SCRIPT} --arch vulkan)
 endforeach()
