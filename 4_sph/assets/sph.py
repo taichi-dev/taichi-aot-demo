@@ -1,5 +1,4 @@
 import argparse
-from attr import field
 import taichi as ti
 import numpy as np
 import math
@@ -10,7 +9,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--arch", type=str)
 args = parser.parse_args()
 
-curr_dir = os.path.dirname(os.path.realpath(__file__))
+def get_save_dir(name, arch):
+    curr_dir = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(curr_dir, f"{name}_{arch}")
 
 if args.arch == "cuda":
     arch = ti.cuda
@@ -21,7 +22,7 @@ elif args.arch == "vulkan":
 else:
     assert False
 
-ti.init(arch=arch)
+ti.init(arch=arch, offline_cache=False)
 
 screen_res = (1000, 1000)
 
@@ -213,6 +214,6 @@ if __name__ == "__main__":
     mod.add_kernel(advance,             template_args={'pos':pos, 'vel':vel, 'acc':acc})
     mod.add_kernel(boundary_handle,     template_args={'pos':pos, 'vel':vel, 'boundary_box':boundary_box})
 
-    save_dir = os.path.join(curr_dir, "sph")
+    save_dir = get_save_dir("sph", args.arch)
     os.makedirs(save_dir, exist_ok=True)
     mod.save(save_dir, '')
