@@ -1,5 +1,6 @@
 #pragma once
 #include "draws/draw_points.hpp"
+#include "draws/draw_particles.hpp"
 #include "draws/draw_mesh.hpp"
 
 namespace ti {
@@ -33,6 +34,11 @@ public:
     const ti::NdArray<float>& positions
   ) {
     return DrawPointsBuilder(renderer_, positions);
+  }
+  DrawParticlesBuilder draw_particles(
+    const ti::NdArray<float>& positions
+  ) {
+    return DrawParticlesBuilder(renderer_, positions);
   }
   DrawMeshBuilder draw_mesh(
     const ti::NdArray<float>& positions,
