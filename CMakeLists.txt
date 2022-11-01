@@ -113,9 +113,9 @@ if (TI_WITH_CPU)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CPU")
     list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cpu_interop")
     list(APPEND TaichiAotDemoFramework_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp")
-    
+
 endif()
-    
+
 if (TI_WITH_CUDA)
     find_package(CUDAToolkit REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA -DTI_NO_CUDA_INCLUDES=ON")
@@ -126,6 +126,7 @@ if (TI_WITH_CUDA)
 endif()
 list(REMOVE_DUPLICATES TaichiAotDemoFramework_SOURCES)
 
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/backward-cpp")
 
 foreach(TAICHI_AOT_DEMO_DIR ${TAICHI_AOT_DEMO_LIST})
     add_subdirectory(${TAICHI_AOT_DEMO_DIR} ${TAICHI_AOT_DEMO_CURRENT_TARGET})
@@ -143,7 +144,7 @@ foreach(TAICHI_AOT_ENTRY_POINT ${TAICHI_AOT_ENTRY_POINT_LIST})
 
         add_executable(${TAICHI_AOT_DEMO_CURRENT_TARGET}
             "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/${TAICHI_AOT_ENTRY_POINT}.cpp"
-            ${TaichiAotDemoFramework_SOURCES})
+            ${TaichiAotDemoFramework_SOURCES} ${BACKWARD_ENABLE})
         set_target_properties(${TAICHI_AOT_DEMO_CURRENT_TARGET} PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${TAICHI_AOT_ENTRY_POINT})
         target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
@@ -151,6 +152,7 @@ foreach(TAICHI_AOT_ENTRY_POINT ${TAICHI_AOT_ENTRY_POINT_LIST})
             ${TaichiAotDemoFramework_LINK_LIBRARIES})
         target_include_directories(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
             ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
+        add_backward(${TAICHI_AOT_DEMO_CURRENT_TARGET})
 
         # Some settings for specific entry points.
         if(${TAICHI_AOT_ENTRY_POINT} STREQUAL "glfw")

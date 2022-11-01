@@ -6,6 +6,15 @@
 
 using namespace ti::aot_demo;
 
+namespace {
+void ti_check_error(const std::string& msg) {
+  TiError error = ti_get_last_error(0, nullptr);
+  if (error < TI_ERROR_SUCCESS) {
+    throw std::runtime_error(msg);
+  }
+}
+}
+
 struct App2_mpm88 : public App {
   static const uint32_t NPARTICLE = 8192 * 2;
   static const uint32_t GRID_SIZE = 128;
@@ -35,8 +44,11 @@ struct App2_mpm88 : public App {
     GraphicsRuntime& runtime = F.runtime();
 
     module_ = runtime.load_aot_module("2_mpm88/assets/mpm88");
+    ti_check_error("load_aot_module failed");
+
     g_init_ = module_.get_compute_graph("init");
     g_update_ = module_.get_compute_graph("update");
+    ti_check_error("get_compute_graph failed");
 
     x_ = runtime.allocate_vertex_buffer(NPARTICLE, 2);
     v_ = runtime.allocate_ndarray<float>({NPARTICLE}, {2});
@@ -45,6 +57,7 @@ struct App2_mpm88 : public App {
     J_ = runtime.allocate_ndarray<float>({NPARTICLE}, {});
     grid_v_ = runtime.allocate_ndarray<float>({GRID_SIZE, GRID_SIZE}, {2});
     grid_m_ = runtime.allocate_ndarray<float>({GRID_SIZE, GRID_SIZE}, {});
+    ti_check_error("allocate_ndarray failed");
 
     draw_points = runtime.draw_points(x_)
       .point_size(3.0f)
