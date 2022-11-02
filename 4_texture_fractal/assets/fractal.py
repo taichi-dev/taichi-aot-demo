@@ -36,7 +36,9 @@ def fractal(t: ti.f32, canvas: ti.types.rw_texture(num_dimensions=2,
         while z.norm() < 20 and iterations < 50:
             z = complex_sqr(z) + c
             iterations += 1
-        canvas.store(ti.Vector([i, j]), ti.Vector([1 - iterations * 0.02, 0.0, 0.0, 0.0]))
+
+        color = 1 - iterations * 0.02
+        canvas.store(ti.Vector([i, j]), ti.Vector([color, color, color, 1.0]))
 
 
 sym_t = ti.graph.Arg(ti.graph.ArgKind.SCALAR,

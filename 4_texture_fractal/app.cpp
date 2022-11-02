@@ -43,7 +43,7 @@ struct App4_texture_fractal : public App {
     std::cout << "initialized!" << std::endl;
   }
   virtual bool update() override final {
-    graph_["t"] = float(F.t() * 0.03f);
+    graph_["t"] = float(F.frame() * 0.03f);
     graph_.launch();
 
     std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
