@@ -388,9 +388,9 @@ try_another_physical_device:
     std::vector<glm::vec2> data {
       glm::vec2(0.0, 1.0),
       glm::vec2(0.0, 0.0),
+      glm::vec2(1.0, 0.0),
       glm::vec2(0.0, 1.0),
-      glm::vec2(0.0, 1.0),
-      glm::vec2(0.0, 1.0),
+      glm::vec2(1.0, 0.0),
       glm::vec2(1.0, 1.0),
     };
     rect_texcoord_buffer.write(data);

@@ -68,7 +68,7 @@ std::unique_ptr<GraphicsTask> DrawTextureBuilder::build() {
   config.vertex_buffer = renderer_->rect_vertex_buffer().memory();
   config.resources = std::move(rscs);
   config.vertex_component_count = 2;
-  config.vertex_count = 4;
+  config.vertex_count = 6;
   config.instance_count = 1;
   config.primitive_topology = L_PRIMITIVE_TOPOLOGY_TRIANGLE;
 

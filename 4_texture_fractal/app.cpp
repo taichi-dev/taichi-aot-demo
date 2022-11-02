@@ -52,7 +52,7 @@ struct App4_texture_fractal : public App {
   virtual void render() override final {
     ti::Runtime& runtime = F.runtime();
     runtime.transition_image(canvas_.image(), TI_IMAGE_LAYOUT_SHADER_READ);
-    runtime.submit();
+    runtime.wait();
 
     Renderer& renderer = F.renderer();
     renderer.enqueue_graphics_task(*draw_points);
