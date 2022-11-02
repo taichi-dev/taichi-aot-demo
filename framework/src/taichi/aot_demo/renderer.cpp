@@ -50,7 +50,10 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   check_vulkan_result(res);
 
   std::vector<const char*> llns {};
-  std::vector<const char*> lens {};
+  std::vector<const char*> lens(nlep);
+  for (size_t i = 0; i < leps.size(); ++i) {
+    lens.at(i) = leps.at(i).extensionName;
+  }
 
   if (debug) {
     llns.emplace_back("VK_LAYER_KHRONOS_validation");
