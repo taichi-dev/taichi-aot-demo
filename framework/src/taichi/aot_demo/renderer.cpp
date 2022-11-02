@@ -50,17 +50,14 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   check_vulkan_result(res);
 
   std::vector<const char*> llns {};
-  std::vector<const char*> lens(nlep);
-  for (size_t i = 0; i < leps.size(); ++i) {
-    lens.at(i) = leps.at(i).extensionName;
-  }
+  std::vector<const char*> lens {};
 
   if (debug) {
     llns.emplace_back("VK_LAYER_KHRONOS_validation");
     lens.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
 
-  uint32_t api_version = VK_API_VERSION_1_2;
+  uint32_t api_version = VK_API_VERSION_1_1;
 
   VkApplicationInfo ai {};
   ai.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -74,7 +71,8 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   ici.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 #ifdef __MACH__
   ici.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif // __MACH__  ici.pApplicationInfo = &ai;
+#endif // __MACH__ 
+  ici.pApplicationInfo = &ai;
   ici.enabledLayerCount = (uint32_t)llns.size();
   ici.ppEnabledLayerNames = llns.data();
   ici.enabledExtensionCount = (uint32_t)lens.size();
@@ -157,24 +155,10 @@ try_another_physical_device:
   VkPhysicalDeviceFeatures2KHR pdf2 {};
   pdf2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
-  VkPhysicalDeviceVulkan11Features pdv11 {};
-  pdv11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-
-  VkPhysicalDeviceVulkan12Features pdv12 {};
-  pdv12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-
   VkPhysicalDeviceShaderAtomicFloatFeaturesEXT pdsaff {};
   pdsaff.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
 
   if (has_pdp2) {
-    if (is_vk_1_1) {
-      pdv11.pNext = pdf2.pNext;
-      pdf2.pNext = &pdv11;
-    }
-    if (is_vk_1_2) {
-      pdv12.pNext = pdf2.pNext;
-      pdf2.pNext = &pdv12;
-    }
     if (has_saf) {
       pdsaff.pNext = pdf2.pNext;
       pdf2.pNext = &pdsaff;
@@ -219,14 +203,6 @@ try_another_physical_device:
   dci.queueCreateInfoCount = 1;
   dci.pQueueCreateInfos = &dqci;
 
-  if (is_vk_1_1) {
-    pdv11.pNext = (void*)dci.pNext;
-    dci.pNext = &pdv11;
-  }
-  if (is_vk_1_2) {
-    pdv12.pNext = (void*)dci.pNext;
-    dci.pNext = &pdv12;
-  }
   if (has_saf) {
     pdsaff.pNext = (void*)dci.pNext;
     dci.pNext = &pdsaff;
@@ -245,7 +221,7 @@ try_another_physical_device:
   VmaAllocatorCreateInfo aci {};
   // FIXME: (penguinliong) Use the real Vulkan API version when device
   // capability is in.
-  aci.vulkanApiVersion = VK_API_VERSION_1_0;
+  aci.vulkanApiVersion = api_version;
   aci.instance = instance;
   aci.physicalDevice = physical_device;
   aci.device = device;
@@ -343,7 +319,7 @@ try_another_physical_device:
   vrii.get_instance_proc_addr = loader;
   // FIXME: (penguinliong) Use the real Vulkan API version when device
   // capability is in.
-  vrii.api_version = VK_API_VERSION_1_0;
+  vrii.api_version = api_version;
   vrii.instance = instance;
   vrii.physical_device = physical_device;
   vrii.device = device;
