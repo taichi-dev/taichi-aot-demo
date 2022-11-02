@@ -351,8 +351,50 @@ try_another_physical_device:
   vrii.compute_queue_family_index = queue_family_index;
   vrii.graphics_queue = queue;
   vrii.graphics_queue_family_index = queue_family_index;
-  TiRuntime runtime = ti_import_vulkan_runtime(&vrii);
+  ti::Runtime runtime =
+    ti::Runtime(TI_ARCH_VULKAN, ti_import_vulkan_runtime(&vrii), true);
   check_taichi_error();
+
+  ti::NdArray<float> rect_vertex_buffer {};
+  {
+    TiMemoryAllocateInfo mai {};
+    mai.size = sizeof(glm::vec2) * 6;
+    mai.host_write = true;
+    mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_VERTEX_BIT;
+
+    ti::Memory memory = runtime.allocate_memory(mai);
+    TiNdArray ndarray {};
+    ndarray.memory = memory;
+    ndarray.shape.dim_count = 1;
+    ndarray.shape.dims[0] = 6;
+    ndarray.elem_shape.dim_count = 1;
+    ndarray.elem_shape.dims[0] = 2;
+    ndarray.elem_type = TI_DATA_TYPE_F32;
+    rect_vertex_buffer = ti::NdArray<float>(std::move(memory), std::move(ndarray));
+
+    std::vector<glm::vec2> data {
+      glm::vec2(-1.0, 1.0),
+      glm::vec2(-1.0, -1.0),
+      glm::vec2(1.0, -1.0),
+      glm::vec2(-1.0, 1.0),
+      glm::vec2(1.0, -1.0),
+      glm::vec2(1.0, 1.0),
+    };
+    rect_vertex_buffer.write(data);
+  }
+  ti::NdArray<float> rect_texcoord_buffer =
+    runtime.allocate_ndarray<float>({6}, {2}, true);
+  {
+    std::vector<glm::vec2> data {
+      glm::vec2(0.0, 1.0),
+      glm::vec2(0.0, 0.0),
+      glm::vec2(0.0, 1.0),
+      glm::vec2(0.0, 1.0),
+      glm::vec2(0.0, 1.0),
+      glm::vec2(1.0, 1.0),
+    };
+    rect_texcoord_buffer.write(data);
+  }
 
   in_frame_ = false;
 
@@ -373,14 +415,20 @@ try_another_physical_device:
   acquire_fence_ = acquire_fence;
   present_fence_ = present_fence;
 
-  runtime_ = runtime;
+  runtime_ = std::move(runtime);
   loader_ = loader;
+
+  rect_vertex_buffer_ = std::move(rect_vertex_buffer);
+  rect_texcoord_buffer_ = std::move(rect_texcoord_buffer);
 }
 Renderer::~Renderer() {
   destroy();
 }
 void Renderer::destroy() {
-  ti_destroy_runtime(runtime_);
+  rect_vertex_buffer_.destroy();
+  rect_texcoord_buffer_.destroy();
+
+  runtime_.destroy();
 
   vkDestroyFence(device_, acquire_fence_, nullptr);
   vkDestroyFence(device_, present_fence_, nullptr);
@@ -419,8 +467,6 @@ void Renderer::destroy() {
 
   surface_ = VK_NULL_HANDLE;
   swapchain_ = VK_NULL_HANDLE;
-
-  runtime_ = TI_NULL_HANDLE;
 }
 
 #if TI_AOT_DEMO_WITH_GLFW

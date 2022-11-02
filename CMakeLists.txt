@@ -13,11 +13,13 @@ list(APPEND TAICHI_AOT_DEMO_LIST
     "1_hello_world"
     "2_mpm88"
     "3_implicit_fem"
+    "4_texture_fractal"
 )
 
 list(APPEND TAICHI_AOT_PYTHON_LIST
      "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py"
      "${CMAKE_CURRENT_SOURCE_DIR}/3_implicit_fem/assets/implicit_fem.py"
+     "${CMAKE_CURRENT_SOURCE_DIR}/4_texture_fractal/assets/fractal.py"
 )
 
 # Add platform entry points here.
@@ -85,8 +87,10 @@ list(APPEND TaichiAotDemoFramework_SOURCES
 # Draw functions.
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_points.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_mesh.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_texture.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_mesh.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_texture.cpp"
 )
 list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
     ${Vulkan_LIBRARY}
