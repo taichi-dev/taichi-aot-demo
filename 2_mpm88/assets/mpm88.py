@@ -8,7 +8,9 @@ parser.add_argument("--arch", type=str)
 parser.add_argument("--cgraph", action='store_true', default=False)
 args = parser.parse_args()
 
-curr_dir = os.path.dirname(os.path.realpath(__file__))
+def get_save_dir(name, arch):
+    curr_dir = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(curr_dir, f"{name}_{arch}")
 
 def compile_mpm88(arch, save_compute_graph):
     ti.init(arch, offline_cache=False, vk_api_version="1.0")
@@ -183,13 +185,18 @@ def compile_mpm88(arch, save_compute_graph):
     mod.add_graph('init', g_init)
     mod.add_graph('update', g_update)
     
-    save_dir = os.path.join(curr_dir, "mpm88")
+    save_dir = get_save_dir("mpm88", args.arch)
     os.makedirs(save_dir, exist_ok=True)
     mod.save(save_dir, '')
 
 if __name__ == "__main__":
     compile_for_cgraph = args.cgraph
+
     if args.arch == "vulkan":
         compile_mpm88(arch=ti.vulkan, save_compute_graph=compile_for_cgraph)
+    elif args.arch == "cuda":
+        compile_mpm88(arch=ti.cuda, save_compute_graph=compile_for_cgraph)
+    elif args.arch == "x64":
+        compile_mpm88(arch=ti.x64, save_compute_graph=compile_for_cgraph)
     else:
         assert False

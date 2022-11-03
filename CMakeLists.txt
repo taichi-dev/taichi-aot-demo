@@ -116,7 +116,10 @@ if (TI_WITH_CPU)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CPU")
     list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cpu_interop")
     list(APPEND TaichiAotDemoFramework_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp")
-    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/4_sph/assets/sph.py --arch=x64")
+    list(APPEND TAICHI_AOT_PYTHON_LIST 
+        "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py --arch=x64"
+        "${CMAKE_CURRENT_SOURCE_DIR}/4_sph/assets/sph.py --arch=x64"
+    )
 
     # find runtime.bc files
     add_definitions(-DTI_LIB_DIR="${TAICHI_C_API_INSTALL_DIR}/runtime")
@@ -127,7 +130,10 @@ if (TI_WITH_CUDA)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA -DTI_NO_CUDA_INCLUDES=ON")
     list(APPEND TaichiAotDemoFramework_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp")
     list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cuda_interop")
-    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/4_sph/assets/sph.py --arch=cuda")
+    list(APPEND TAICHI_AOT_PYTHON_LIST 
+        "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py --arch=cuda"
+        "${CMAKE_CURRENT_SOURCE_DIR}/4_sph/assets/sph.py --arch=cuda"
+    )
     list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES cuda)
     list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${CUDAToolkit_INCLUDE_DIRS})
     
