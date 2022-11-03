@@ -15,6 +15,7 @@ list(APPEND TAICHI_AOT_DEMO_LIST
     "3_implicit_fem"
     "4_sph"
     "5_taichi_sparse"
+    "4_texture_fractal"
 )
 
 # Add platform entry points here.
@@ -83,9 +84,11 @@ list(APPEND TaichiAotDemoFramework_SOURCES
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_points.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_mesh.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_particles.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_texture.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_mesh.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_particles.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_texture.cpp"
 )
 list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
     ${Vulkan_LIBRARY}
@@ -110,6 +113,7 @@ if (TI_WITH_VULKAN)
          "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py --arch=vulkan"
          "${CMAKE_CURRENT_SOURCE_DIR}/3_implicit_fem/assets/implicit_fem.py --arch=vulkan"
          "${CMAKE_CURRENT_SOURCE_DIR}/4_sph/assets/sph.py --arch=vulkan"
+         "${CMAKE_CURRENT_SOURCE_DIR}/4_texture_fractal/assets/fractal.py --arch=vulkan"
     )
 endif()
 
