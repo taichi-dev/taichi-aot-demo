@@ -35,8 +35,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_validation_callback(
   const VkDebugUtilsMessengerCallbackDataEXT *data,
   void *user_data
 ) {
-  if (severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+  if (severity > VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
     std::printf("Vulkan Validation: %s\n", data->pMessage);
+  }
+  if (type == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT &&
+      severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT &&
+      strstr(data->pMessage, "DEBUG-PRINTF") != nullptr) {
+    // Message format is "BLABLA | MessageID=xxxxx | <DEBUG_PRINT_MSG>"
+    std::string msg(data->pMessage);
+    auto const pos = msg.find_last_of("|");
+    std::cout << msg.substr(pos + 2);
   }
   return VK_FALSE;
 }
@@ -75,7 +83,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   ici.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 #ifdef __MACH__
   ici.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif // __MACH__ 
+#endif // __MACH__
   ici.pApplicationInfo = &ai;
   ici.enabledLayerCount = (uint32_t)llns.size();
   ici.ppEnabledLayerNames = llns.data();
@@ -107,7 +115,6 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   };
   VkValidationFeaturesEXT vf {};
   if (debug) {
-    std::cout << "enabling debug print" << std::endl;
     vf.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
     vf.enabledValidationFeatureCount = vfes.size();
     vf.pEnabledValidationFeatures = vfes.data();

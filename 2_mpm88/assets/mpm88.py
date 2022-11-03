@@ -180,7 +180,7 @@ def compile_mpm88(arch, save_compute_graph):
     grid_v = ti.Vector.ndarray(2, ti.f32, shape=(n_grid, n_grid))
     grid_m = ti.ndarray(ti.f32, shape=(n_grid, n_grid))
 
-    mod = ti.aot.Module(arch)
+    mod = ti.aot.Module(arch, caps=['spirv_has_non_semantic_info'])
     mod.add_graph('init', g_init)
     mod.add_graph('update', g_update)
 
