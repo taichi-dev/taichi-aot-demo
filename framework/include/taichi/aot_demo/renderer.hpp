@@ -18,6 +18,7 @@ class Renderer {
   friend class InteropHelper;
 
   VkInstance instance_;
+  VkDebugUtilsMessengerEXT debug_utils_messenger_;
   VkPhysicalDevice physical_device_;
   VkDevice device_;
   uint32_t queue_family_index_;
