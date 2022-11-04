@@ -29,7 +29,7 @@ def fractal(t: ti.f32, canvas: ti.types.rw_texture(num_dimensions=2,
                                                    num_channels=1,
                                                    channel_format=ti.f32,
                                                    lod=0)):
-    for i, j in canvas:  # Parallelized over all pixels
+    for i, j in ti.ndrange(640, 320):  # Parallelized over all pixels
         c = ti.Vector([-0.8, ti.cos(t) * 0.2])
         z = ti.Vector([i / n - 1, j / n - 0.5]) * 2
         iterations = 0
