@@ -223,3 +223,8 @@ endif()
 foreach(PYTHON_SCRIPT ${TAICHI_AOT_PYTHON_LIST})
     execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_SCRIPT} --arch vulkan)
 endforeach()
+
+# 0_tutorial is intended to be minimal code for demonstration so it's independent of framework.
+add_subdirectory("0_tutorial")
+
+execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/0_tutorial/assets/tutorial.py" --arch vulkan --aot)
