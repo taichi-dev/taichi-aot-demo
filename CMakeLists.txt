@@ -33,11 +33,11 @@ endif()
 # Check for `TAICHI_C_API_INSTALL_DIR`.
 if (NOT EXISTS ${TAICHI_C_API_INSTALL_DIR})
     set(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR})
+    if (NOT EXISTS $ENV{TAICHI_C_API_INSTALL_DIR})
+        message(FATAL_ERROR "Environment variable TAICHI_C_API_INSTALL_DIR is not specified")
+    endif()
 endif()
-if (NOT EXISTS $ENV{TAICHI_C_API_INSTALL_DIR})
-    message(FATAL_ERROR "Environment variable TAICHI_C_API_INSTALL_DIR is not specified")
-endif()
-get_filename_component(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR} ABSOLUTE CACHE)
+get_filename_component(TAICHI_C_API_INSTALL_DIR ${TAICHI_C_API_INSTALL_DIR} ABSOLUTE CACHE)
 message("-- TAICHI_C_API_INSTALL_DIR=" ${TAICHI_C_API_INSTALL_DIR})
 
 
@@ -90,6 +90,7 @@ list(APPEND TaichiAotDemoFramework_SOURCES
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_particles.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_texture.cpp"
 )
+
 list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
     ${Vulkan_LIBRARY}
     ${taichi_c_api}
@@ -117,10 +118,12 @@ if (TI_WITH_VULKAN)
     )
 endif()
 
+file(GLOB INTEROP_FILES ${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/*.cpp)
 if (TI_WITH_CPU)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CPU")
     list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cpu_interop")
-    list(APPEND TaichiAotDemoFramework_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp")
+    list(APPEND TaichiAotDemoFramework_SOURCES ${INTEROP_FILES})
+    
     list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/4_sph/assets/sph.py --arch=x64")
     list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/5_taichi_sparse/assets/taichi_sparse.py --arch=x64")
 
@@ -131,7 +134,8 @@ endif()
 if (TI_WITH_CUDA)
     find_package(CUDAToolkit REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA -DTI_NO_CUDA_INCLUDES=ON")
-    list(APPEND TaichiAotDemoFramework_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp")
+    list(APPEND TaichiAotDemoFramework_SOURCES ${INTEROP_FILES})
+    
     list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cuda_interop")
     list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/4_sph/assets/sph.py --arch=cuda")
     list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/5_taichi_sparse/assets/taichi_sparse.py --arch=cuda")

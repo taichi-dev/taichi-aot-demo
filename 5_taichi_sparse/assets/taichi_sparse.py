@@ -26,7 +26,6 @@ ti.init(arch=arch)
 n = 512
 img_h = 680
 img_w = 680
-img_c = 4
 
 img = ti.field(dtype=ti.f32, shape=(img_h, img_w))
 
@@ -36,12 +35,11 @@ block2 = block1.pointer(ti.ij, 4)
 block3 = block2.pointer(ti.ij, 4)
 block3.dense(ti.ij, 4).place(x)
 
-arr = ti.ndarray(ti.f32, shape=(img_h, img_w, img_c))
+arr = ti.ndarray(ti.f32, shape=(img_h, img_w))
 @ti.kernel
 def img_to_ndarray(arr: ti.types.ndarray()):
     for I in grouped(img):
-        for c in range(img_c):
-            arr[I, c] = img[I]
+        arr[I] = img[I]
 
 
 @ti.kernel
