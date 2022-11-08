@@ -37,11 +37,11 @@ endif()
 # Check for `TAICHI_C_API_INSTALL_DIR`.
 if (NOT EXISTS ${TAICHI_C_API_INSTALL_DIR})
     set(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR})
+    if (NOT EXISTS $ENV{TAICHI_C_API_INSTALL_DIR})
+        message(FATAL_ERROR "Environment variable TAICHI_C_API_INSTALL_DIR is not specified")
+    endif()
 endif()
-if (NOT EXISTS $ENV{TAICHI_C_API_INSTALL_DIR})
-    message(FATAL_ERROR "Environment variable TAICHI_C_API_INSTALL_DIR is not specified")
-endif()
-get_filename_component(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR} ABSOLUTE CACHE)
+get_filename_component(TAICHI_C_API_INSTALL_DIR ${TAICHI_C_API_INSTALL_DIR} ABSOLUTE CACHE)
 message("-- TAICHI_C_API_INSTALL_DIR=" ${TAICHI_C_API_INSTALL_DIR})
 
 
