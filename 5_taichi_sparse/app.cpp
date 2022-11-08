@@ -5,6 +5,7 @@
 #include "glm/ext.hpp"
 #include "taichi/aot_demo/framework.hpp"
 #include "taichi/aot_demo/interop/texture_utils.hpp"
+#include "taichi/aot_demo/interop/cross_device_copy.hpp"
 
 using namespace ti::aot_demo;
 
@@ -95,7 +96,7 @@ struct App5_taichi_sparse : public App {
     k_img_to_ndarray_ = module_.get_kernel("img_to_ndarray");
 
     // 4. Create kernel arguments - Ndarrays
-    arr_ = runtime_.allocate_ndarray<float>({img_w, img_h}, {});
+    arr_ = runtime_.allocate_ndarray<float>({img_w, img_h}, {}, true);
     
     // 5. Handle image presentation
     tex_ = g_runtime.allocate_texture2d(img_w, img_h, TI_FORMAT_R32F, TI_NULL_HANDLE);
@@ -103,10 +104,11 @@ struct App5_taichi_sparse : public App {
 
     // 6. Setup taichi kernels
     k_img_to_ndarray_[0] = arr_;
-    runtime_.wait();
     
     // 7. Run initialization kernels
     k_fill_img_.launch();
+    
+    runtime_.wait();
 
     Renderer& renderer = F.renderer();
     renderer.set_framebuffer_size(img_w, img_h);
@@ -115,6 +117,7 @@ struct App5_taichi_sparse : public App {
   }
   virtual bool update() override final {
     // 8. Run compute kernels
+    auto& g_runtime = F.runtime();
     val += 0.05f;
     k_activate_[0] = val;
 
@@ -123,8 +126,15 @@ struct App5_taichi_sparse : public App {
     k_paint_.launch();
     k_img_to_ndarray_.launch();
     
-    // 9. Update to texture
+    runtime_.wait();
+    
+    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
+    return true;
+  }
+  virtual void render() override final {
     auto& g_runtime = F.runtime();
+    
+    // 9. Update to texture
     if(arch_ == TI_ARCH_CUDA) {
         TextureHelper<float>::copy_from_cuda_ndarray(g_runtime, tex_, runtime_, arr_);
     } else if(arch_ == TI_ARCH_X64) {
@@ -132,13 +142,9 @@ struct App5_taichi_sparse : public App {
     } else {
         throw std::runtime_error("Unrecognized architecture");
     }
-    runtime_.wait();
     g_runtime.wait();
-
-    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
-    return true;
-  }
-  virtual void render() override final {
+    runtime_.wait();
+    
     Renderer& renderer = F.renderer();
     renderer.enqueue_graphics_task(*draw_texture);
   }

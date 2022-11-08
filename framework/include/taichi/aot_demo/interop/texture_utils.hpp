@@ -11,10 +11,11 @@ template<class T>
 class TextureHelper {
 public:
     
-    static void copy_from_vulkan_ndarray(GraphicsRuntime& g_runtime, 
-                                         ti::Texture& vulkan_texture,
-                                         ti::Runtime& vulkan_runtime,
-                                         ti::NdArray<T>& vulkan_ndarray); 
+    static void interchange_vulkan_ndarray_texture(GraphicsRuntime& g_runtime, 
+                                                   ti::Texture& vulkan_texture,
+                                                   ti::Runtime& vulkan_runtime,
+                                                   ti::NdArray<T>& vulkan_ndarray,
+                                                   bool texture_to_ndarray); 
 
     static void copy_from_cpu_ndarray(GraphicsRuntime& g_runtime, 
                                       ti::Texture& vulkan_texture, 

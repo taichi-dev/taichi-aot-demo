@@ -6,6 +6,7 @@
 #include <cuda.h>
 #endif
 
+#include <iostream>
 #include <vulkan/vulkan.h>
 #include "taichi/taichi.h"
 
@@ -127,12 +128,13 @@ void InteropHelper<T>::copy_from_cuda(GraphicsRuntime& runtime,
     VkDevice vk_device = runtime.renderer_->device_;
     VkDeviceMemory vertex_buffer_mem = vulkan_interop_info.memory;
 
+    int alloc_offset = vulkan_interop_info.offset;
+    int alloc_size   = vulkan_interop_info.size;
+    int mem_size = alloc_offset + alloc_size;
     auto handle = get_device_mem_handle(vertex_buffer_mem, vk_device);
     CUexternalMemory externalMem =
-          import_vk_memory_object_from_handle(handle, vulkan_interop_info.size, false);
-    
-    int offset = 0;
-    CUdeviceptr dst_cuda_ptr = reinterpret_cast<CUdeviceptr>(map_buffer_onto_external_memory(externalMem, offset, vulkan_interop_info.size));
+          import_vk_memory_object_from_handle(handle, mem_size, false);
+    CUdeviceptr dst_cuda_ptr = reinterpret_cast<CUdeviceptr>(map_buffer_onto_external_memory(externalMem, alloc_offset, vulkan_interop_info.size));
     CUdeviceptr src_cuda_ptr = reinterpret_cast<CUdeviceptr>(cuda_interop_info.ptr);
 
     cuMemcpyDtoD_v2(dst_cuda_ptr, src_cuda_ptr, vulkan_interop_info.size);

@@ -120,9 +120,7 @@ void copyImage2Buffer(VkDevice& device,
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;
 
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_NONE; //VK_IMAGE_ASPECT_COLOR_BIT;
-    if(channel > 1) region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
     region.imageSubresource.mipLevel = 0;
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;

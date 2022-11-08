@@ -27,11 +27,13 @@ ti::NdArray<T> clone_ndarray(ti::Runtime& runtime,
     return target_ndarray;
 }
 
+
 template<class T>
-void TextureHelper<T>::copy_from_vulkan_ndarray(GraphicsRuntime& g_runtime, 
-                                              ti::Texture& vulkan_texture,
-                                              ti::Runtime& vulkan_runtime,
-                                              ti::NdArray<T>& vulkan_ndarray) {
+void TextureHelper<T>::interchange_vulkan_ndarray_texture(GraphicsRuntime& g_runtime, 
+                                                          ti::Texture& vulkan_texture,
+                                                          ti::Runtime& vulkan_runtime,
+                                                          ti::NdArray<T>& vulkan_ndarray,
+                                                          bool texture_to_ndarray) {
     // Get Vulkan Ndarray Interop Info
     TiVulkanMemoryInteropInfo vulkan_interop_info;
     ti_export_vulkan_memory(vulkan_runtime.runtime(),
@@ -45,7 +47,12 @@ void TextureHelper<T>::copy_from_vulkan_ndarray(GraphicsRuntime& g_runtime,
     uint32_t channel = vulkan_ndarray.shape().dim_count > 2 ? vulkan_ndarray.shape().dims[2] : 1;
     
     // Get VkImage
-    g_runtime.transition_image(vulkan_texture.image(), TI_IMAGE_LAYOUT_TRANSFER_SRC);
+    VkImageLayout image_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    g_runtime.transition_image(vulkan_texture.image(), TI_IMAGE_LAYOUT_TRANSFER_DST);
+    if(texture_to_ndarray) {
+        image_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        g_runtime.transition_image(vulkan_texture.image(), TI_IMAGE_LAYOUT_TRANSFER_SRC);
+    }
 
     TiVulkanImageInteropInfo interop_info;
     ti_export_vulkan_image(g_runtime,
@@ -53,7 +60,6 @@ void TextureHelper<T>::copy_from_vulkan_ndarray(GraphicsRuntime& g_runtime,
                            &interop_info);
 
     VkImage vk_image = interop_info.image;
-    VkImageLayout image_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     VkDevice vk_device = g_runtime.renderer_->device_;
     VkCommandPool cmd_pool = g_runtime.renderer_->command_pool_;
     VkQueue graphics_queue = g_runtime.renderer_->queue_;
@@ -66,7 +72,7 @@ void TextureHelper<T>::copy_from_vulkan_ndarray(GraphicsRuntime& g_runtime,
                      width,
                      height,
                      channel,
-                     false /*image_to_buffer*/);
+                     texture_to_ndarray /*image_to_buffer*/);
 }
 
 
@@ -83,7 +89,7 @@ void TextureHelper<T>::copy_from_cpu_ndarray(GraphicsRuntime& g_runtime,
     InteropHelper<T>::copy_from_cpu(g_runtime, vulkan_ndarray, cpu_runtime, cpu_ndarray);
     
     // 3. Copy vulkan ndarray to vulkan texture
-    TextureHelper<T>::copy_from_vulkan_ndarray(g_runtime, vulkan_texture, g_runtime, vulkan_ndarray);
+    TextureHelper<T>::interchange_vulkan_ndarray_texture(g_runtime, vulkan_texture, g_runtime, vulkan_ndarray, false /*texture_to_ndarray*/);
 
 }
 
@@ -98,10 +104,9 @@ void TextureHelper<T>::copy_from_cuda_ndarray(GraphicsRuntime& g_runtime,
 
     // 2. Copy device ndarray to vulkan ndarray
     InteropHelper<T>::copy_from_cuda(g_runtime, vulkan_ndarray, cuda_runtime, cuda_ndarray);
-    
-    // 3. Copy vulkan ndarray to vulkan texture
-    TextureHelper<T>::copy_from_vulkan_ndarray(g_runtime, vulkan_texture, g_runtime, vulkan_ndarray);
 
+    // 3. Copy vulkan ndarray to vulkan texture
+    TextureHelper<T>::interchange_vulkan_ndarray_texture(g_runtime, vulkan_texture, g_runtime, vulkan_ndarray, false /*texture_to_ndarray*/);
 } 
 
 template class TextureHelper<double>;
