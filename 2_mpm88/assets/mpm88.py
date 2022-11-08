@@ -11,7 +11,7 @@ args = parser.parse_args()
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
 def compile_mpm88(arch, save_compute_graph):
-    ti.init(arch, offline_cache=False, vk_api_version="1.0")
+    ti.init(arch, vk_api_version="1.0")
 
     if ti.lang.impl.current_cfg().arch != arch:
         return
