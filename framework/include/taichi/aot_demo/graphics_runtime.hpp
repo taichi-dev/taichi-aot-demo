@@ -13,6 +13,9 @@ class GraphicsRuntime : public ti::Runtime {
   template<class T>
   friend class InteropHelper;
   
+  template<class T>
+  friend class TextureHelper;
+  
   std::shared_ptr<Renderer> renderer_;
 
 public:

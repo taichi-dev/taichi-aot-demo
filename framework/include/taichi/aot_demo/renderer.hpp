@@ -16,6 +16,9 @@ class Renderer {
   
   template<class T>
   friend class InteropHelper;
+  
+  template<class T>
+  friend class TextureHelper;
 
   VkInstance instance_;
   VkPhysicalDevice physical_device_;
