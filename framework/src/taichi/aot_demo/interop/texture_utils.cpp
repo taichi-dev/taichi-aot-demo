@@ -22,13 +22,13 @@ ti::NdArray<T> clone_ndarray(ti::Runtime& runtime,
         element_shape.push_back(ndarray.elem_shape().dims[i]);
     }
 
-    ti::NdArray<T> target_ndarray = runtime.allocate_ndarray(shape, element_shape, true /*host_access*/);
+    ti::NdArray<T> target_ndarray = runtime.allocate_ndarray<T>(shape, element_shape, true /*host_access*/);
     
     return target_ndarray;
 }
 
 template<class T>
-void TextureHelper::copy_from_vulkan_ndarray(GraphicsRuntime& g_runtime, 
+void TextureHelper<T>::copy_from_vulkan_ndarray(GraphicsRuntime& g_runtime, 
                                               ti::Texture& vulkan_texture,
                                               ti::Runtime& vulkan_runtime,
                                               ti::NdArray<T>& vulkan_ndarray) {
@@ -40,9 +40,9 @@ void TextureHelper::copy_from_vulkan_ndarray(GraphicsRuntime& g_runtime,
     
     VkBuffer ndarray_buffer = vulkan_interop_info.buffer;
 
-    uint32_t width   = vulkan_ndarray.shape().dim_count > 0 ? vulkan_ndarray.shape().dims[0] : 1
-    uint32_t heigth  = vulkan_ndarray.shape().dim_count > 1 ? vulkan_ndarray.shape().dims[1] : 1
-    uint32_t channel = vulkan_ndarray.shape().dim_count > 2 ? vulkan_ndarray.shape().dims[2] : 1
+    uint32_t width   = vulkan_ndarray.shape().dim_count > 0 ? vulkan_ndarray.shape().dims[0] : 1;
+    uint32_t height  = vulkan_ndarray.shape().dim_count > 1 ? vulkan_ndarray.shape().dims[1] : 1;
+    uint32_t channel = vulkan_ndarray.shape().dim_count > 2 ? vulkan_ndarray.shape().dims[2] : 1;
     
     // Get VkImage
     g_runtime.transition_image(vulkan_texture.image(), TI_IMAGE_LAYOUT_TRANSFER_SRC);
@@ -58,7 +58,7 @@ void TextureHelper::copy_from_vulkan_ndarray(GraphicsRuntime& g_runtime,
     VkCommandPool cmd_pool = g_runtime.renderer_->command_pool_;
     VkQueue graphics_queue = g_runtime.renderer_->queue_;
     copyImage2Buffer(vk_device,
-                     command_pool,
+                     cmd_pool,
                      graphics_queue,
                      vk_image, 
                      ndarray_buffer,
@@ -71,7 +71,7 @@ void TextureHelper::copy_from_vulkan_ndarray(GraphicsRuntime& g_runtime,
 
 
 template<class T>
-void TextureHelper::copy_from_cpu_ndarray(GraphicsRuntime& g_runtime, 
+void TextureHelper<T>::copy_from_cpu_ndarray(GraphicsRuntime& g_runtime, 
                                           ti::Texture& vulkan_texture, 
                                           ti::Runtime& cpu_runtime,
                                           ti::NdArray<T>& cpu_ndarray) {
@@ -88,7 +88,7 @@ void TextureHelper::copy_from_cpu_ndarray(GraphicsRuntime& g_runtime,
 }
 
 template<class T>
-void TextureHelper::copy_from_cuda_ndarray(GraphicsRuntime& g_runtime, 
+void TextureHelper<T>::copy_from_cuda_ndarray(GraphicsRuntime& g_runtime, 
                                    ti::Texture& vulkan_texture, 
                                    ti::Runtime& cuda_runtime,
                                    ti::NdArray<T>& cuda_ndarray) {

@@ -4,7 +4,7 @@
 #include "glm/glm.hpp"
 #include "glm/ext.hpp"
 #include "taichi/aot_demo/framework.hpp"
-#include "taichi/aot_demo/interop/cross_device_copy.hpp"
+#include "taichi/aot_demo/interop/texture_utils.hpp"
 
 using namespace ti::aot_demo;
 
@@ -99,7 +99,7 @@ struct App5_taichi_sparse : public App {
     tex_ = runtime_.allocate_texture2d(img_w, img_h, TI_FORMAT_R32F, TI_NULL_HANDLE);
     
     // 5. Handle image presentation
-    draw_texture = runtime.draw_texture(tex_).build();
+    draw_texture = g_runtime.draw_texture(tex_).build();
 
     // 6. Setup taichi kernels
     k_img_to_ndarray_[0] = arr_;
@@ -108,6 +108,7 @@ struct App5_taichi_sparse : public App {
     // 7. Run initialization kernels
     k_fill_img_.launch();
 
+    Renderer& renderer = F.renderer();
     renderer.set_framebuffer_size(img_w, img_h);
 
     std::cout << "initialized!" << std::endl;
@@ -125,9 +126,9 @@ struct App5_taichi_sparse : public App {
     // 9. Update to texture
     auto& g_runtime = F.runtime();
     if(arch_ == TI_ARCH_CUDA) {
-        TextureHelper<float>::copy_from_cuda_ndarray(g_runtime, tex_, runtime, arr_);
-    } else if(arch == TI_ARCH_X64) {
-        TextureHelper<float>::copy_from_cpu_ndarray(g_runtime, tex_, runtime, arr_);
+        TextureHelper<float>::copy_from_cuda_ndarray(g_runtime, tex_, runtime_, arr_);
+    } else if(arch_ == TI_ARCH_X64) {
+        TextureHelper<float>::copy_from_cpu_ndarray(g_runtime, tex_, runtime_, arr_);
     } else {
         throw std::runtime_error("Unrecognized architecture");
     }
@@ -146,7 +147,7 @@ struct App5_taichi_sparse : public App {
 std::unique_ptr<App> create_app() {
   auto arch = get_target_arch();
   if(arch == TI_ARCH_VULKAN) {
-    std::cout << "Taichi Sparse does not support Vulkan backend" << std::end;
+    std::cout << "Taichi Sparse does not support Vulkan backend" << std::endl;
     exit(0);
   } 
 
