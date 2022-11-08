@@ -32,13 +32,13 @@ static TiArch get_target_arch() {
 static std::string get_aot_file_dir(TiArch arch) {
     switch(arch) {
         case TI_ARCH_VULKAN: {
-            return "4_sph/assets/sph_vulkan";
+            return "5_sph/assets/sph_vulkan";
         }
         case TI_ARCH_X64: {
-            return "4_sph/assets/sph_x64";
+            return "5_sph/assets/sph_x64";
         }
         case TI_ARCH_CUDA: {
-            return "4_sph/assets/sph_cuda";
+            return "5_sph/assets/sph_cuda";
         }
         default: {
             throw std::runtime_error("Unrecognized arch");
@@ -77,7 +77,7 @@ static void copy_to_vulkan_ndarray(ti::NdArray<T>& dst,
     }
 }
 
-struct App4_sph : public App {
+struct App5_sph : public App {
   static const uint32_t NR_PARTICLES = 8000;
   static const uint32_t SUBSTEPS = 5;
 
@@ -105,13 +105,13 @@ struct App4_sph : public App {
   ti::NdArray<float> render_pos_;
   std::unique_ptr<GraphicsTask> draw_points;
 
-  App4_sph(TiArch arch) {
+  App5_sph(TiArch arch) {
     arch_ = arch;
   }
 
   virtual AppConfig cfg() const override final {
     AppConfig out {};
-    out.app_name = "4_sph";
+    out.app_name = "5_sph";
     out.framebuffer_width = 512;
     out.framebuffer_height = 512;
     return out;
@@ -226,5 +226,5 @@ struct App4_sph : public App {
 
 std::unique_ptr<App> create_app() {
   auto arch = get_target_arch();
-  return std::make_unique<App4_sph>(arch);
+  return std::make_unique<App5_sph>(arch);
 }

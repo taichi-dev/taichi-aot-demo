@@ -69,6 +69,7 @@ public:
 
   inline void next_frame() {
     renderer_->next_frame();
+    ++frame_;
     tic_ = std::exchange(toc_, std::chrono::steady_clock::now());
   }
   constexpr uint32_t frame() const {

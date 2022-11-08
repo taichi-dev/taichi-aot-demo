@@ -60,7 +60,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
     lens.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
 
-  uint32_t api_version = VK_API_VERSION_1_2;
+  uint32_t api_version = VK_API_VERSION_1_1;
 
   VkApplicationInfo ai {};
   ai.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -74,7 +74,8 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   ici.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 #ifdef __MACH__
   ici.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif // __MACH__  ici.pApplicationInfo = &ai;
+#endif // __MACH__ 
+  ici.pApplicationInfo = &ai;
   ici.enabledLayerCount = (uint32_t)llns.size();
   ici.ppEnabledLayerNames = llns.data();
   ici.enabledExtensionCount = (uint32_t)lens.size();
@@ -157,24 +158,10 @@ try_another_physical_device:
   VkPhysicalDeviceFeatures2KHR pdf2 {};
   pdf2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
-  VkPhysicalDeviceVulkan11Features pdv11 {};
-  pdv11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-
-  VkPhysicalDeviceVulkan12Features pdv12 {};
-  pdv12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-
   VkPhysicalDeviceShaderAtomicFloatFeaturesEXT pdsaff {};
   pdsaff.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
 
   if (has_pdp2) {
-    if (is_vk_1_1) {
-      pdv11.pNext = pdf2.pNext;
-      pdf2.pNext = &pdv11;
-    }
-    if (is_vk_1_2) {
-      pdv12.pNext = pdf2.pNext;
-      pdf2.pNext = &pdv12;
-    }
     if (has_saf) {
       pdsaff.pNext = pdf2.pNext;
       pdf2.pNext = &pdsaff;
@@ -219,14 +206,6 @@ try_another_physical_device:
   dci.queueCreateInfoCount = 1;
   dci.pQueueCreateInfos = &dqci;
 
-  if (is_vk_1_1) {
-    pdv11.pNext = (void*)dci.pNext;
-    dci.pNext = &pdv11;
-  }
-  if (is_vk_1_2) {
-    pdv12.pNext = (void*)dci.pNext;
-    dci.pNext = &pdv12;
-  }
   if (has_saf) {
     pdsaff.pNext = (void*)dci.pNext;
     dci.pNext = &pdsaff;
@@ -245,7 +224,7 @@ try_another_physical_device:
   VmaAllocatorCreateInfo aci {};
   // FIXME: (penguinliong) Use the real Vulkan API version when device
   // capability is in.
-  aci.vulkanApiVersion = VK_API_VERSION_1_0;
+  aci.vulkanApiVersion = api_version;
   aci.instance = instance;
   aci.physicalDevice = physical_device;
   aci.device = device;
@@ -343,7 +322,7 @@ try_another_physical_device:
   vrii.get_instance_proc_addr = loader;
   // FIXME: (penguinliong) Use the real Vulkan API version when device
   // capability is in.
-  vrii.api_version = VK_API_VERSION_1_0;
+  vrii.api_version = api_version;
   vrii.instance = instance;
   vrii.physical_device = physical_device;
   vrii.device = device;
@@ -351,8 +330,50 @@ try_another_physical_device:
   vrii.compute_queue_family_index = queue_family_index;
   vrii.graphics_queue = queue;
   vrii.graphics_queue_family_index = queue_family_index;
-  TiRuntime runtime = ti_import_vulkan_runtime(&vrii);
+  ti::Runtime runtime =
+    ti::Runtime(TI_ARCH_VULKAN, ti_import_vulkan_runtime(&vrii), true);
   check_taichi_error();
+
+  ti::NdArray<float> rect_vertex_buffer {};
+  {
+    TiMemoryAllocateInfo mai {};
+    mai.size = sizeof(glm::vec2) * 6;
+    mai.host_write = true;
+    mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_VERTEX_BIT;
+
+    ti::Memory memory = runtime.allocate_memory(mai);
+    TiNdArray ndarray {};
+    ndarray.memory = memory;
+    ndarray.shape.dim_count = 1;
+    ndarray.shape.dims[0] = 6;
+    ndarray.elem_shape.dim_count = 1;
+    ndarray.elem_shape.dims[0] = 2;
+    ndarray.elem_type = TI_DATA_TYPE_F32;
+    rect_vertex_buffer = ti::NdArray<float>(std::move(memory), std::move(ndarray));
+
+    std::vector<glm::vec2> data {
+      glm::vec2(-1.0, 1.0),
+      glm::vec2(-1.0, -1.0),
+      glm::vec2(1.0, -1.0),
+      glm::vec2(-1.0, 1.0),
+      glm::vec2(1.0, -1.0),
+      glm::vec2(1.0, 1.0),
+    };
+    rect_vertex_buffer.write(data);
+  }
+  ti::NdArray<float> rect_texcoord_buffer =
+    runtime.allocate_ndarray<float>({6}, {2}, true);
+  {
+    std::vector<glm::vec2> data {
+      glm::vec2(0.0, 1.0),
+      glm::vec2(0.0, 0.0),
+      glm::vec2(1.0, 0.0),
+      glm::vec2(0.0, 1.0),
+      glm::vec2(1.0, 0.0),
+      glm::vec2(1.0, 1.0),
+    };
+    rect_texcoord_buffer.write(data);
+  }
 
   in_frame_ = false;
 
@@ -373,14 +394,20 @@ try_another_physical_device:
   acquire_fence_ = acquire_fence;
   present_fence_ = present_fence;
 
-  runtime_ = runtime;
+  runtime_ = std::move(runtime);
   loader_ = loader;
+
+  rect_vertex_buffer_ = std::move(rect_vertex_buffer);
+  rect_texcoord_buffer_ = std::move(rect_texcoord_buffer);
 }
 Renderer::~Renderer() {
   destroy();
 }
 void Renderer::destroy() {
-  ti_destroy_runtime(runtime_);
+  rect_vertex_buffer_.destroy();
+  rect_texcoord_buffer_.destroy();
+
+  runtime_.destroy();
 
   vkDestroyFence(device_, acquire_fence_, nullptr);
   vkDestroyFence(device_, present_fence_, nullptr);
@@ -419,8 +446,6 @@ void Renderer::destroy() {
 
   surface_ = VK_NULL_HANDLE;
   swapchain_ = VK_NULL_HANDLE;
-
-  runtime_ = TI_NULL_HANDLE;
 }
 
 #if TI_AOT_DEMO_WITH_GLFW
