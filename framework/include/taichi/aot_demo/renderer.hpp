@@ -16,6 +16,9 @@ class Renderer {
   
   template<class T>
   friend class InteropHelper;
+  
+  template<class T>
+  friend class TextureHelper;
 
   VkInstance instance_;
   VkPhysicalDevice physical_device_;
@@ -49,7 +52,10 @@ class Renderer {
   uint32_t swapchain_image_height_;
 
   PFN_vkGetInstanceProcAddr loader_;
-  TiRuntime runtime_;
+  ti::Runtime runtime_;
+
+  ti::NdArray<float> rect_vertex_buffer_;
+  ti::NdArray<float> rect_texcoord_buffer_;
 
   // Within a pair of `begin_frame` and `end_frame`.
   bool in_frame_;
@@ -111,6 +117,13 @@ public:
   }
   constexpr uint32_t height() const {
     return height_;
+  }
+
+  const ti::NdArray<float>& rect_vertex_buffer() const {
+    return rect_vertex_buffer_;
+  }
+  const ti::NdArray<float>& rect_texcoord_buffer() const {
+    return rect_texcoord_buffer_;
   }
 };
 

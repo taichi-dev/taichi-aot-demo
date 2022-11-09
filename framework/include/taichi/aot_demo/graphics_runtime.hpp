@@ -2,6 +2,7 @@
 #include "draws/draw_points.hpp"
 #include "draws/draw_particles.hpp"
 #include "draws/draw_mesh.hpp"
+#include "draws/draw_texture.hpp"
 
 namespace ti {
 namespace aot_demo {
@@ -11,6 +12,9 @@ class Renderer;
 class GraphicsRuntime : public ti::Runtime {
   template<class T>
   friend class InteropHelper;
+  
+  template<class T>
+  friend class TextureHelper;
   
   std::shared_ptr<Renderer> renderer_;
 
@@ -45,6 +49,11 @@ public:
     const ti::NdArray<uint32_t>& indices
   ) {
     return DrawMeshBuilder(renderer_, positions, indices);
+  }
+  DrawTextureBuilder draw_texture(
+    const ti::Texture& texture
+  ) {
+    return DrawTextureBuilder(renderer_, texture);
   }
 };
 

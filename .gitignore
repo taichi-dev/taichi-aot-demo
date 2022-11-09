@@ -2,7 +2,7 @@
 .vscode
 .vs
 .DS_Store
-build
+build*
 out
 tmp
 bin
@@ -10,6 +10,11 @@ __pycache__
 *.pyc
 *.log
 imgui.ini
+0_tutorial_cgraph/assets/tutorial/*
+0_tutorial_kernel/assets/tutorial/*
 2_mpm88/assets/mpm88_*/**
-3_implicit_fem/assets/implicit_fem
-4_sph/assets/sph_*/**
+3_implicit_fem/assets/implicit_fem/*
+4_texture_fractal/assets/fractal/*
+5_sph/assets/sph_*/**
+6_taichi_sparse/assets/taichi_sparse_*/**
+7_comet/assets/comet_*/**
