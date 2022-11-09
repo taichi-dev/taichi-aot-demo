@@ -17,7 +17,6 @@ list(APPEND TAICHI_AOT_DEMO_LIST
     "5_sph"
     "6_taichi_sparse"
     "7_comet"
-)
 
 # Add platform entry points here.
 list(APPEND TAICHI_AOT_ENTRY_POINT_LIST
