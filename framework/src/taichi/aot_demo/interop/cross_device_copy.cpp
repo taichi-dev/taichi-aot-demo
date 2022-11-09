@@ -20,8 +20,8 @@ void InteropHelper<T>::copy_from_cpu(GraphicsRuntime& runtime,
                                      ti::NdArray<T>& vulkan_ndarray, 
                                      ti::Runtime& cpu_runtime,
                                      ti::NdArray<T>& cpu_ndarray) {
-
-    // Get Interop Info
+#ifdef TI_WITH_CPU
+    // Get Interop Info 
     TiVulkanMemoryInteropInfo vulkan_interop_info;
     ti_export_vulkan_memory(runtime.runtime(),
                             vulkan_ndarray.memory().memory(),
@@ -48,6 +48,9 @@ void InteropHelper<T>::copy_from_cpu(GraphicsRuntime& runtime,
     VkCommandPool cmd_pool = runtime.renderer_->command_pool_;
     VkQueue graphics_queue = runtime.renderer_->queue_;
     copyBuffer(vk_device, cmd_pool, graphics_queue, staging_buffer, vulkan_interop_info.buffer, buffer_size);
+#else
+    throw std::runtime_error("Unable to perform copy_from_cpu<T>() with TI_WITH_CPU=OFF");
+#endif // TI_WITH_CPU
 }
 
 /*---------------------*/

@@ -59,18 +59,14 @@ static void copy_to_vulkan_ndarray(ti::NdArray<T>& dst,
             dst.write(buffer);
             break;
         }
-#ifdef TI_WITH_CPU
         case TI_ARCH_X64: {
             InteropHelper<T>::copy_from_cpu(dst_runtime, dst, src_runtime, src);
             break;
         }
-#endif
-#ifdef TI_WITH_CUDA
         case TI_ARCH_CUDA: {
             InteropHelper<T>::copy_from_cuda(dst_runtime, dst, src_runtime, src);
             break;
         }
-#endif
         default: {
             throw std::runtime_error("Unable to perform NdArray memory copy");
         }
