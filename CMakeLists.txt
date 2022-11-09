@@ -131,7 +131,7 @@ if (TI_WITH_CPU)
     # find runtime.bc files
     add_definitions(-DTI_LIB_DIR="${TAICHI_C_API_INSTALL_DIR}/runtime")
 endif()
-    
+
 if (TI_WITH_CUDA)
     find_package(CUDAToolkit REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA -DTI_NO_CUDA_INCLUDES=ON")
@@ -141,7 +141,7 @@ if (TI_WITH_CUDA)
     list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/7_comet/assets/comet.py --arch=cuda")
     list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES cuda)
     list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${CUDAToolkit_INCLUDE_DIRS})
-    
+
     # find runtime.bc files
     add_definitions(-DTI_LIB_DIR="${TAICHI_C_API_INSTALL_DIR}/runtime")
 endif()
@@ -246,3 +246,10 @@ foreach(PYTHON_SCRIPT ${TAICHI_AOT_PYTHON_LIST})
     list(GET PYTHON_SCRIPT 1 ARGS)
     execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_FILE} ${ARGS})
 endforeach()
+
+# 0_tutorial is intended to be minimal code for demonstration so it's independent of framework.
+add_subdirectory("0_tutorial_cgraph")
+add_subdirectory("0_tutorial_kernel")
+
+execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/0_tutorial_cgraph/assets/tutorial.py" --arch vulkan --aot)
+execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/0_tutorial_kernel/assets/tutorial.py" --arch vulkan --aot)
