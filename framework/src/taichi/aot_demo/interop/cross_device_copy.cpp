@@ -218,7 +218,10 @@ void InteropHelper<T>::copy_from_cuda(GraphicsRuntime& runtime,
     CUdeviceptr src_cuda_ptr = reinterpret_cast<CUdeviceptr>(cuda_interop_info.ptr);
 
     cuMemcpyDtoD_v2(dst_cuda_ptr, src_cuda_ptr, vulkan_interop_info.size);
+#else
+    throw std::runtime_error("Unable to perform copy_from_cuda<T>() with TI_WITH_CUDA=OFF");
 #endif // TI_WITH_CUDA
+
 }
 
 template class InteropHelper<double>;

@@ -1,13 +1,14 @@
 #include <sstream>
 #include <vulkan/vulkan.h>
 #include "taichi/aot_demo/renderer.hpp"
-#include "taichi/aot_demo/draws/draw_mesh.hpp"
+#include "taichi/aot_demo/draws/draw_particles.hpp"
+#include <iostream>
 
 
 namespace ti {
 namespace aot_demo {
 
-std::unique_ptr<GraphicsTask> DrawMeshBuilder::build() {
+std::unique_ptr<GraphicsTask> DrawParticlesBuilder::build() {
   uint32_t ncomp = positions_.elem_shape.dims[0];
   const char* vertex_declr;
   const char* vertex_get;
@@ -36,16 +37,19 @@ std::unique_ptr<GraphicsTask> DrawMeshBuilder::build() {
     layout(binding=0) uniform Uniform {
       mat4 model2world;
       mat4 world2view;
+      mat4 view2clip;
       vec4 color;
     } u;
   )";
   struct UniformBuffer {
     glm::mat4 model2world;
     glm::mat4 world2view;
+    glm::mat4 view2clip;
     glm::vec4 color;
   } u;
   u.model2world = model2world_;
   u.world2view = world2view_;
+  u.view2clip = view2clip_;
   u.color = color_;
 
   std::vector<GraphicsTaskResource> rscs;
@@ -83,7 +87,7 @@ std::unique_ptr<GraphicsTask> DrawMeshBuilder::build() {
       uniform_buffer_declr <<
       color_buffer_declr << R"(
       void main() {
-        gl_Position = u.world2view * u.model2world * )" <<  vertex_get << R"(;
+        gl_Position = u.view2clip * u.world2view * u.model2world * )" <<  vertex_get << R"(;
         v_color = )" << color_get << R"(;
       }
     )";
@@ -107,10 +111,8 @@ std::unique_ptr<GraphicsTask> DrawMeshBuilder::build() {
   config.resources = std::move(rscs);
   config.vertex_component_count = ncomp;
   config.vertex_count = positions_.shape.dims[0];
-  config.index_buffer = indices_.memory;
-  config.index_count = indices_.shape.dims[0] * indices_.elem_shape.dims[0];
   config.instance_count = 1;
-  config.primitive_topology = L_PRIMITIVE_TOPOLOGY_TRIANGLE;
+  config.primitive_topology = L_PRIMITIVE_TOPOLOGY_POINT;
 
   return std::make_unique<GraphicsTask>(renderer_, config);
 }

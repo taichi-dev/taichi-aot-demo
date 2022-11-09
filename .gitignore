@@ -13,3 +13,4 @@ imgui.ini
 2_mpm88/assets/mpm88/*
 3_implicit_fem/assets/implicit_fem/*
 4_texture_fractal/assets/fractal/*
+5_sph/assets/sph_*/**

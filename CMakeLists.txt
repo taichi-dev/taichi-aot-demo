@@ -14,12 +14,7 @@ list(APPEND TAICHI_AOT_DEMO_LIST
     "2_mpm88"
     "3_implicit_fem"
     "4_texture_fractal"
-)
-
-list(APPEND TAICHI_AOT_PYTHON_LIST
-     "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py"
-     "${CMAKE_CURRENT_SOURCE_DIR}/3_implicit_fem/assets/implicit_fem.py"
-     "${CMAKE_CURRENT_SOURCE_DIR}/4_texture_fractal/assets/fractal.py"
+    "5_sph"
 )
 
 # Add platform entry points here.
@@ -88,9 +83,11 @@ list(APPEND TaichiAotDemoFramework_SOURCES
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_points.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_mesh.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_texture.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_particles.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_mesh.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_texture.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_particles.cpp"
 )
 list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
     ${Vulkan_LIBRARY}
@@ -111,13 +108,22 @@ list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES
 
 if (TI_WITH_VULKAN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_VULKAN=ON")
+    list(APPEND TAICHI_AOT_PYTHON_LIST
+         "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py --arch=vulkan"
+         "${CMAKE_CURRENT_SOURCE_DIR}/3_implicit_fem/assets/implicit_fem.py --arch=vulkan"
+         "${CMAKE_CURRENT_SOURCE_DIR}/5_sph/assets/sph.py --arch=vulkan"
+         "${CMAKE_CURRENT_SOURCE_DIR}/4_texture_fractal/assets/fractal.py --arch=vulkan"
+    )
 endif()
 
 if (TI_WITH_CPU)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CPU")
     list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cpu_interop")
     list(APPEND TaichiAotDemoFramework_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp")
-    
+    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/5_sph/assets/sph.py --arch=x64")
+
+    # find runtime.bc files
+    add_definitions(-DTI_LIB_DIR="${TAICHI_C_API_INSTALL_DIR}/runtime")
 endif()
     
 if (TI_WITH_CUDA)
@@ -125,8 +131,12 @@ if (TI_WITH_CUDA)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA -DTI_NO_CUDA_INCLUDES=ON")
     list(APPEND TaichiAotDemoFramework_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/cross_device_copy.cpp")
     list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cuda_interop")
+    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/5_sph/assets/sph.py --arch=cuda")
     list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES cuda)
     list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${CUDAToolkit_INCLUDE_DIRS})
+    
+    # find runtime.bc files
+    add_definitions(-DTI_LIB_DIR="${TAICHI_C_API_INSTALL_DIR}/runtime")
 endif()
 list(REMOVE_DUPLICATES TaichiAotDemoFramework_SOURCES)
 
@@ -225,5 +235,8 @@ if(NOT ${PYTHON_EXECUTABLE})
 endif()
 
 foreach(PYTHON_SCRIPT ${TAICHI_AOT_PYTHON_LIST})
-    execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_SCRIPT} --arch vulkan)
+    string(REPLACE " " ";" PYTHON_SCRIPT ${PYTHON_SCRIPT})
+    list(GET PYTHON_SCRIPT 0 PYTHON_FILE)
+    list(GET PYTHON_SCRIPT 1 ARGS)
+    execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_FILE} ${ARGS})
 endforeach()
