@@ -89,7 +89,7 @@ struct App7_comet : public App {
     g_update_ = module_.get_compute_graph("update");
 
     // 4. Create kernel arguments - Ndarrays
-    arr_ = runtime_.allocate_ndarray<float>({img_w, img_h}, {}, true/*host_access*/);
+    arr_ = runtime_.allocate_ndarray<float>({img_w, img_h}, {}, false/*host_access*/);
     
     // 5. Handle image presentation
     tex_ = g_runtime.allocate_texture2d(img_w, img_h, TI_FORMAT_R32F, TI_NULL_HANDLE);

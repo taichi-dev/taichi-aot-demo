@@ -53,23 +53,17 @@ static void copy_to_vulkan_ndarray(ti::NdArray<T>& dst,
     
     switch(src_arch) {
         case TI_ARCH_VULKAN: {
-            std::vector<T> buffer(src.memory().size());
-            src.read(buffer);
-            dst.write(buffer);
+            InteropHelper<T>::copy_from_vulkan(dst_runtime, dst, src_runtime, src);
             break;
         }
-#ifdef TI_WITH_CPU
         case TI_ARCH_X64: {
             InteropHelper<T>::copy_from_cpu(dst_runtime, dst, src_runtime, src);
             break;
         }
-#endif
-#ifdef TI_WITH_CUDA
         case TI_ARCH_CUDA: {
             InteropHelper<T>::copy_from_cuda(dst_runtime, dst, src_runtime, src);
             break;
         }
-#endif
         default: {
             throw std::runtime_error("Unable to perform NdArray memory copy");
         }
@@ -121,9 +115,9 @@ struct App2_mpm88 : public App {
     g_init_ = module_.get_compute_graph("init");
     g_update_ = module_.get_compute_graph("update");
 
-    render_x_ = g_runtime.allocate_vertex_buffer(NPARTICLE, 2, true/*host_access*/);
+    render_x_ = g_runtime.allocate_vertex_buffer(NPARTICLE, 2, false/*host_access*/);
 
-    x_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {2}, true/*host_access*/);
+    x_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {2}, false/*host_access*/);
     v_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {2});
     pos_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {3});
     C_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {2, 2});
