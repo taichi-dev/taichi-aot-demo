@@ -13,6 +13,31 @@
 namespace ti {
 namespace aot_demo {
 
+template<class T>
+void InteropHelper<T>::copy_from_vulkan(GraphicsRuntime& dst_runtime, 
+                                     ti::NdArray<T>& dst_vulkan_ndarray, 
+                                     ti::Runtime& src_runtime,
+                                     ti::NdArray<T>& src_vulkan_ndarray) {
+    // Get Dst Vulkan Interop Info 
+    TiVulkanMemoryInteropInfo dst_vulkan_interop_info;
+    ti_export_vulkan_memory(dst_runtime.runtime(),
+                            dst_vulkan_ndarray.memory().memory(),
+                            &dst_vulkan_interop_info);
+    
+    TiVulkanMemoryInteropInfo src_vulkan_interop_info;
+    ti_export_vulkan_memory(src_runtime, src_vulkan_ndarray.memory().memory(), &src_vulkan_interop_info);
+    
+    VkBuffer src_buffer = src_vulkan_interop_info.buffer;
+    VkBuffer dst_buffer = dst_vulkan_interop_info.buffer;
+    
+    VkDeviceSize buffer_size = dst_vulkan_interop_info.size;
+
+    VkDevice vk_device = dst_runtime.renderer_->device_;
+    VkCommandPool cmd_pool = dst_runtime.renderer_->command_pool_;
+    VkQueue graphics_queue = dst_runtime.renderer_->queue_;
+    copyBuffer(vk_device, cmd_pool, graphics_queue, src_buffer, dst_buffer, buffer_size);
+}
+
 // TiMemory does not expose interface to check whether it's host accessible
 // Therefore we'll copy via staging buffer anyway.
 template<class T>

@@ -54,9 +54,7 @@ static void copy_to_vulkan_ndarray(ti::NdArray<T>& dst,
     
     switch(src_arch) {
         case TI_ARCH_VULKAN: {
-            std::vector<T> buffer(src.memory().size());
-            src.read(buffer);
-            dst.write(buffer);
+            InteropHelper<T>::copy_from_vulkan(dst_runtime, dst, src_runtime, src);
             break;
         }
         case TI_ARCH_X64: {
@@ -142,9 +140,9 @@ struct App5_sph : public App {
     boundary_box_ = runtime_.allocate_ndarray<float>(shape_1d, vec3_shape);
     spawn_box_ = runtime_.allocate_ndarray<float>(shape_1d, vec3_shape);
     gravity_ = runtime_.allocate_ndarray<float>({}, vec3_shape);
-    pos_ = runtime_.allocate_ndarray<float>(shape_1d, vec3_shape, true/*host_access*/);
+    pos_ = runtime_.allocate_ndarray<float>(shape_1d, vec3_shape, false/*host_access*/);
     
-    render_pos_ = g_runtime.allocate_vertex_buffer(shape_1d[0], vec3_shape[0], true/*host_access*/);
+    render_pos_ = g_runtime.allocate_vertex_buffer(shape_1d[0], vec3_shape[0], false/*host_access*/);
     
     // 5. Handle image presentation
     Renderer& renderer = F.renderer();

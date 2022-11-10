@@ -96,7 +96,7 @@ struct App6_taichi_sparse : public App {
     k_img_to_ndarray_ = module_.get_kernel("img_to_ndarray");
 
     // 4. Create kernel arguments - Ndarrays
-    arr_ = runtime_.allocate_ndarray<float>({img_w, img_h}, {}, true);
+    arr_ = runtime_.allocate_ndarray<float>({img_w, img_h}, {}, false /*host_access*/);
     
     // 5. Handle image presentation
     tex_ = g_runtime.allocate_texture2d(img_w, img_h, TI_FORMAT_R32F, TI_NULL_HANDLE);
