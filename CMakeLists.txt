@@ -11,6 +11,7 @@ option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
 # Add demo source subdirectories.
 list(APPEND TAICHI_AOT_DEMO_LIST
     "1_hello_world"
+    "1_hello_world_with_interop"
     "2_mpm88"
     "3_implicit_fem"
     "4_texture_fractal"
@@ -123,7 +124,6 @@ endif()
 
 if (TI_WITH_CPU)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CPU")
-    list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cpu_interop")
     list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py --arch=x64")
     list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/5_sph/assets/sph.py --arch=x64")
     list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/6_taichi_sparse/assets/taichi_sparse.py --arch=x64")
@@ -136,7 +136,6 @@ endif()
 if (TI_WITH_CUDA)
     find_package(CUDAToolkit REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA -DTI_NO_CUDA_INCLUDES=ON")
-    list(APPEND TAICHI_AOT_DEMO_LIST "1_hello_world_with_cuda_interop")
     list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py --arch=cuda")
     list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/5_sph/assets/sph.py --arch=cuda")
     list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/6_taichi_sparse/assets/taichi_sparse.py --arch=cuda")
