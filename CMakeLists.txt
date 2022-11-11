@@ -8,6 +8,24 @@ option(TI_WITH_VULKAN "Compile with Vulkan backend" ON)
 option(TI_WITH_CPU "Compile with CPU backend" OFF)
 option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
 
+# 1. Configure Environments and Third-party Libraries
+include("cmake/utils.cmake")
+
+set(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR})
+
+configure_environment(${TAICHI_C_API_INSTALL_DIR})
+configure_third_party()
+
+# 2. Compile for tutorials - tutorials have standalone build system
+add_subdirectory("0_tutorial_cgraph")
+add_subdirectory("0_tutorial_kernel")
+execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/0_tutorial_cgraph/assets/tutorial.py" --arch vulkan --aot)
+execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/0_tutorial_kernel/assets/tutorial.py" --arch vulkan --aot)
+
+# 3. Compile for renderer framework
+
+# 4. Compile for each demo
+
 # Add demo source subdirectories.
 list(APPEND TAICHI_AOT_DEMO_LIST
     "1_hello_world"
@@ -30,45 +48,6 @@ if (NOT ANDROID)
         "glfw"
     )
 endif()
-
-
-# Check for `TAICHI_C_API_INSTALL_DIR`.
-if (NOT EXISTS ${TAICHI_C_API_INSTALL_DIR})
-    set(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR})
-    if (NOT EXISTS $ENV{TAICHI_C_API_INSTALL_DIR})
-        message(FATAL_ERROR "Environment variable TAICHI_C_API_INSTALL_DIR is not specified")
-    endif()
-endif()
-get_filename_component(TAICHI_C_API_INSTALL_DIR ${TAICHI_C_API_INSTALL_DIR} ABSOLUTE CACHE)
-message("-- TAICHI_C_API_INSTALL_DIR=" ${TAICHI_C_API_INSTALL_DIR})
-
-
-# Find built taichi C-API library in `TAICHI_C_API_INSTALL_DIR`.
-find_library(taichi_c_api taichi_c_api HINTS
-    ${TAICHI_C_API_INSTALL_DIR}/lib
-    # CMake find root is overriden by Android toolchain.
-    NO_CMAKE_FIND_ROOT_PATH)
-if (NOT EXISTS ${taichi_c_api})
-    message(FATAL_ERROR "Couldn't find C-API library; ensure your Taichi is built with `TI_WITH_CAPI=ON`")
-endif()
-
-
-# Find dependencies.
-find_package(Vulkan REQUIRED)
-if (NOT ANDROID)
-    add_subdirectory(external/glfw)
-endif()
-add_subdirectory(external/VulkanMemoryAllocator)
-add_subdirectory(external/glslang)
-set(BUILD_TESTING OFF)
-set(BUILD_STATIC_LIBS ON)
-add_subdirectory(external/glm)
-add_library(GraphiT OBJECT
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/util.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/args.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/util.cpp")
-target_include_directories(GraphiT PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
 
 
 # Declare framework target.
@@ -247,10 +226,3 @@ foreach(PYTHON_SCRIPT ${TAICHI_AOT_PYTHON_LIST})
     list(GET PYTHON_SCRIPT 1 ARGS)
     execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_FILE} ${ARGS})
 endforeach()
-
-# 0_tutorial is intended to be minimal code for demonstration so it's independent of framework.
-add_subdirectory("0_tutorial_cgraph")
-add_subdirectory("0_tutorial_kernel")
-
-execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/0_tutorial_cgraph/assets/tutorial.py" --arch vulkan --aot)
-execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/0_tutorial_kernel/assets/tutorial.py" --arch vulkan --aot)
