@@ -75,7 +75,6 @@ struct App2_mpm88 : public App {
   static const uint32_t GRID_SIZE = 128;
 
   ti::AotModule module_;
-  ti::Runtime runtime_;
   TiArch arch_;
 
   ti::ComputeGraph g_init_;
@@ -105,27 +104,26 @@ struct App2_mpm88 : public App {
     return out;
   }
   virtual void initialize() override final {
-    GraphicsRuntime& g_runtime = F.runtime();
-    runtime_ = ti::Runtime(arch_);
+    GraphicsRuntime& runtime = F.runtime();
     
     // 2. Load AOT module
     auto aot_file_path = get_aot_file_dir(arch_);
-    module_ = runtime_.load_aot_module(aot_file_path);
+    module_ = runtime.load_aot_module(aot_file_path);
 
     g_init_ = module_.get_compute_graph("init");
     g_update_ = module_.get_compute_graph("update");
 
-    render_x_ = g_runtime.allocate_vertex_buffer(NPARTICLE, 2, false/*host_access*/);
+    render_x_ = runtime.allocate_vertex_buffer(NPARTICLE, 2, false/*host_access*/);
 
-    x_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {2}, false/*host_access*/);
-    v_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {2});
-    pos_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {3});
-    C_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {2, 2});
-    J_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {});
-    grid_v_ = runtime_.allocate_ndarray<float>({GRID_SIZE, GRID_SIZE}, {2});
-    grid_m_ = runtime_.allocate_ndarray<float>({GRID_SIZE, GRID_SIZE}, {});
+    x_ = runtime.allocate_ndarray<float>({NPARTICLE}, {2}, false/*host_access*/);
+    v_ = runtime.allocate_ndarray<float>({NPARTICLE}, {2});
+    pos_ = runtime.allocate_ndarray<float>({NPARTICLE}, {3});
+    C_ = runtime.allocate_ndarray<float>({NPARTICLE}, {2, 2});
+    J_ = runtime.allocate_ndarray<float>({NPARTICLE}, {});
+    grid_v_ = runtime.allocate_ndarray<float>({GRID_SIZE, GRID_SIZE}, {2});
+    grid_m_ = runtime.allocate_ndarray<float>({GRID_SIZE, GRID_SIZE}, {});
 
-    draw_points = g_runtime.draw_points(render_x_)
+    draw_points = runtime.draw_points(render_x_)
       .point_size(3.0f)
       .color(glm::vec3(0,0,1))
       .build();
@@ -151,9 +149,9 @@ struct App2_mpm88 : public App {
   virtual bool update() override final {
     g_update_.launch();
 
-    auto& g_runtime = F.runtime();
-    copy_to_vulkan_ndarray<float>(render_x_, g_runtime, x_, runtime_, arch_);
-    runtime_.wait();
+    auto& runtime = F.runtime();
+    copy_to_vulkan_ndarray<float>(render_x_, runtime, x_, runtime, arch_);
+    runtime.wait();
     
     std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
     return true;

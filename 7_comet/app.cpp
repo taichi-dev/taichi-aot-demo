@@ -52,7 +52,6 @@ struct App7_comet : public App {
   static const uint32_t img_h = 680;
 
   ti::AotModule module_;
-  ti::Runtime runtime_;
   TiArch arch_;
     
   ti::ComputeGraph g_init_;
@@ -77,30 +76,29 @@ struct App7_comet : public App {
 
   virtual void initialize() override final {
     // 1. Create runtime
-    GraphicsRuntime& g_runtime = F.runtime();
-    runtime_ = ti::Runtime(arch_);
+    GraphicsRuntime& runtime = F.runtime();
     
     // 2. Load AOT module
     auto aot_file_path = get_aot_file_dir(arch_);
-    module_ = runtime_.load_aot_module(aot_file_path);
+    module_ = runtime.load_aot_module(aot_file_path);
     
     // 3. Load compute graphs
     g_init_ = module_.get_compute_graph("init");
     g_update_ = module_.get_compute_graph("update");
 
     // 4. Create kernel arguments - Ndarrays
-    arr_ = runtime_.allocate_ndarray<float>({img_w, img_h}, {}, false/*host_access*/);
+    arr_ = runtime.allocate_ndarray<float>({img_w, img_h}, {}, false/*host_access*/);
     
     // 5. Handle image presentation
-    tex_ = g_runtime.allocate_texture2d(img_w, img_h, TI_FORMAT_R32F, TI_NULL_HANDLE);
-    draw_texture = g_runtime.draw_texture(tex_).build();
+    tex_ = runtime.allocate_texture2d(img_w, img_h, TI_FORMAT_R32F, TI_NULL_HANDLE);
+    draw_texture = runtime.draw_texture(tex_).build();
 
     // 6. Setup taichi kernels
     g_update_["arr"] = arr_;
     
     // 7. Run initialization kernels
     g_init_.launch();
-    runtime_.wait();
+    runtime.wait();
 
     Renderer& renderer = F.renderer();
     renderer.set_framebuffer_size(img_w, img_h);
@@ -110,24 +108,24 @@ struct App7_comet : public App {
   virtual bool update() override final {
     // 8. Run compute kernels
     g_update_.launch();
-    runtime_.wait();
+    auto& runtime = F.runtime();
+    runtime.wait();
     
     std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
     return true;
   }
   virtual void render() override final {
-    auto& g_runtime = F.runtime();
+    auto& runtime = F.runtime();
     
     // 9. Update to texture
     if(arch_ == TI_ARCH_CUDA) {
-        TextureHelper<float>::copy_from_cuda_ndarray(g_runtime, tex_, runtime_, arr_);
+        TextureHelper<float>::copy_from_cuda_ndarray(runtime, tex_, runtime, arr_);
     } else if(arch_ == TI_ARCH_X64) {
-        TextureHelper<float>::copy_from_cpu_ndarray(g_runtime, tex_, runtime_, arr_);
+        TextureHelper<float>::copy_from_cpu_ndarray(runtime, tex_, runtime, arr_);
     } else {
         throw std::runtime_error("Unrecognized architecture");
     }
-    g_runtime.wait();
-    runtime_.wait();
+    runtime.wait();
     
     Renderer& renderer = F.renderer();
     renderer.enqueue_graphics_task(*draw_texture);
