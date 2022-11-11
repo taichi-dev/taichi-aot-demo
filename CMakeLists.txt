@@ -4,225 +4,51 @@ project(TaichiAotDemo LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 14)
 
-option(TI_WITH_VULKAN "Compile with Vulkan backend" ON)
 option(TI_WITH_CPU "Compile with CPU backend" OFF)
 option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
 
 # 1. Configure Environments and Third-party Libraries
-include("cmake/utils.cmake")
+include("cmake/env.cmake")
 
 set(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR})
 
-configure_environment(${TAICHI_C_API_INSTALL_DIR})
+configure_environment()
 configure_third_party()
 
+###############################################################
+# If you're looking for minimal code to play with Taichi AOT, #
+# then the tutorials are all what you need.                   #
+###############################################################
 # 2. Compile for tutorials - tutorials have standalone build system
 add_subdirectory("0_tutorial_cgraph")
 add_subdirectory("0_tutorial_kernel")
-execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/0_tutorial_cgraph/assets/tutorial.py" --arch vulkan --aot)
-execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/0_tutorial_kernel/assets/tutorial.py" --arch vulkan --aot)
+# Note: Tutorial readers dont have to bother with anything below this line
 
+
+##############################################################
+# The following codes aim at compiling for AOT Demos, which  #
+# demonstrates how to integrate Taichi C-API into a          #
+# customized renderer framework                              #
+##############################################################
 # 3. Compile for renderer framework
+add_subdirectory(framework) # defined TaichiAotDemoFramework_INCLUDE_DIRECTORIES, RENDER_FRAMEWORK_TARGET 
 
 # 4. Compile for each demo
+include("cmake/demo.cmake")
+include("cmake/test.cmake")
 
-# Add demo source subdirectories.
-list(APPEND TAICHI_AOT_DEMO_LIST
-    "1_hello_world"
-    "1_hello_world_with_interop"
-    "2_mpm88"
-    "3_implicit_fem"
-    "4_texture_fractal"
-    "5_sph"
-    "6_taichi_sparse"
-    "7_comet"
-)
+set(HEADLESS_DEMO_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/headless)
+set(GLFW_DEMO_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/glfw)
 
-# Add platform entry points here.
-list(APPEND TAICHI_AOT_ENTRY_POINT_LIST
-    "headless"
-)
+add_subdirectory(1_hello_world)
+add_subdirectory(1_hello_world_with_interop)
+add_subdirectory(2_mpm88)
+add_subdirectory(3_implicit_fem)
+add_subdirectory(4_texture_fractal)
+add_subdirectory(5_sph)
+add_subdirectory(6_taichi_sparse)
+add_subdirectory(7_comet)
 
-if (NOT ANDROID)
-    list(APPEND TAICHI_AOT_ENTRY_POINT_LIST
-        "glfw"
-    )
-endif()
-
-
-# Declare framework target.
-list(APPEND TaichiAotDemoFramework_SOURCES
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/common.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/framework.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/renderer.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/graphics_runtime.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/asset_manager.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/framework.cpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/renderer.cpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/glslang.cpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/graphics_runtime.cpp"
-# Draw functions.
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_points.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_mesh.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_texture.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_particles.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_mesh.cpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_texture.cpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_particles.cpp"
-)
-file(GLOB INTEROP_FILES ${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/interop/*.cpp)
-list(APPEND TaichiAotDemoFramework_SOURCES ${INTEROP_FILES})
-
-list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
-    ${Vulkan_LIBRARY}
-    ${taichi_c_api}
-    glm
-    VulkanMemoryAllocator
-    glslang
-    SPIRV
-    GraphiT)
-list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES
-    ${Vulkan_INCLUDE_DIR}
-    "${TAICHI_C_API_INSTALL_DIR}/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/VulkanMemoryAllocator/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/glslang/glslang/Include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/glm"
-    "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
-
-if (TI_WITH_VULKAN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_VULKAN=ON")
-    list(APPEND TAICHI_AOT_PYTHON_LIST
-         "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py --arch=vulkan"
-         "${CMAKE_CURRENT_SOURCE_DIR}/3_implicit_fem/assets/implicit_fem.py --arch=vulkan"
-         "${CMAKE_CURRENT_SOURCE_DIR}/5_sph/assets/sph.py --arch=vulkan"
-         "${CMAKE_CURRENT_SOURCE_DIR}/4_texture_fractal/assets/fractal.py --arch=vulkan"
-    )
-endif()
-
-if (TI_WITH_CPU)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CPU")
-    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py --arch=x64")
-    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/5_sph/assets/sph.py --arch=x64")
-    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/6_taichi_sparse/assets/taichi_sparse.py --arch=x64")
-    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/7_comet/assets/comet.py --arch=x64")
-
-    # find runtime.bc files
-    add_definitions(-DTI_LIB_DIR="${TAICHI_C_API_INSTALL_DIR}/runtime")
-endif()
-
-if (TI_WITH_CUDA)
-    find_package(CUDAToolkit REQUIRED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA -DTI_NO_CUDA_INCLUDES=ON")
-    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/2_mpm88/assets/mpm88.py --arch=cuda")
-    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/5_sph/assets/sph.py --arch=cuda")
-    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/6_taichi_sparse/assets/taichi_sparse.py --arch=cuda")
-    list(APPEND TAICHI_AOT_PYTHON_LIST "${CMAKE_CURRENT_SOURCE_DIR}/7_comet/assets/comet.py --arch=cuda")
-    list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES cuda)
-    list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${CUDAToolkit_INCLUDE_DIRS})
-
-    # find runtime.bc files
-    add_definitions(-DTI_LIB_DIR="${TAICHI_C_API_INSTALL_DIR}/runtime")
-endif()
-
-
-foreach(TAICHI_AOT_DEMO_DIR ${TAICHI_AOT_DEMO_LIST})
-    add_subdirectory(${TAICHI_AOT_DEMO_DIR} ${TAICHI_AOT_DEMO_CURRENT_TARGET})
-
-    target_link_libraries(${TAICHI_AOT_DEMO_DIR} PUBLIC ${TaichiAotDemoFramework_LINK_LIBRARIES})
-    target_include_directories(${TAICHI_AOT_DEMO_DIR} PUBLIC ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
-endforeach()
-
-message("-- Building demo libraries:")
-foreach(TAICHI_AOT_ENTRY_POINT ${TAICHI_AOT_ENTRY_POINT_LIST})
-
-    foreach(TAICHI_AOT_DEMO_DIR ${TAICHI_AOT_DEMO_LIST})
-        message("--   ${TAICHI_AOT_DEMO_DIR} @ ${TAICHI_AOT_ENTRY_POINT}")
-        set(TAICHI_AOT_DEMO_CURRENT_TARGET E${TAICHI_AOT_DEMO_DIR}_${TAICHI_AOT_ENTRY_POINT})
-
-        add_executable(${TAICHI_AOT_DEMO_CURRENT_TARGET}
-            "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/${TAICHI_AOT_ENTRY_POINT}.cpp"
-            ${TaichiAotDemoFramework_SOURCES})
-        set_target_properties(${TAICHI_AOT_DEMO_CURRENT_TARGET} PROPERTIES
-            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${TAICHI_AOT_ENTRY_POINT})
-        target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
-            ${TAICHI_AOT_DEMO_DIR}
-            ${TaichiAotDemoFramework_LINK_LIBRARIES})
-        target_include_directories(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
-            ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
-
-        # Some settings for specific entry points.
-        if(${TAICHI_AOT_ENTRY_POINT} STREQUAL "glfw")
-            target_compile_definitions(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
-                TI_AOT_DEMO_WITH_GLFW=1)
-            target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
-                glfw)
-            target_include_directories(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
-                ${Vulkan_INCLUDE_DIR}
-                "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/include")
-        endif()
-
-
-
-        # - Cross-platform compatibility below this line -------------------------------
-
-        # If you are building for Android, you need to link to system libraries.
-        if (ANDROID)
-            find_library(android android)
-            find_library(log log)
-            target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC android log)
-        endif()
-
-
-        # Copy Taichi C-API dynamic library to build artifact directory.
-        if (WIN32)
-            file(GLOB taichi_c_api_SRC "${TAICHI_C_API_INSTALL_DIR}/bin/*")
-            string(REPLACE "${TAICHI_C_API_INSTALL_DIR}/bin" "" taichi_c_api_DST ${taichi_c_api_SRC})
-            add_custom_command(
-                TARGET ${TAICHI_AOT_DEMO_CURRENT_TARGET}
-                POST_BUILD
-                COMMAND ${CMAKE_COMMAND}
-                ARGS -E copy ${taichi_c_api_SRC} $<TARGET_FILE_DIR:${TAICHI_AOT_DEMO_CURRENT_TARGET}>/${taichi_c_api_DST}
-                VERBATIM)
-        else()
-            set(taichi_c_api_SRC ${taichi_c_api})
-            string(REPLACE "${TAICHI_C_API_INSTALL_DIR}/lib" "" taichi_c_api_DST ${taichi_c_api_SRC})
-            add_custom_command(
-                TARGET ${TAICHI_AOT_DEMO_CURRENT_TARGET}
-                POST_BUILD
-                COMMAND ${CMAKE_COMMAND}
-                ARGS -E copy ${taichi_c_api_SRC} $<TARGET_FILE_DIR:${TAICHI_AOT_DEMO_CURRENT_TARGET}>/${taichi_c_api_DST}
-                VERBATIM)
-        endif()
-
-
-        # MoltenVK dylib should be copied to the output directory.
-        if (APPLE)
-            find_library(MoltenVK libMoltenVK.dylib PATHS $HOMEBREW_CELLAR/molten-vk $VULKAN_SDK REQUIRED)
-            add_custom_command(
-                TARGET ${TAICHI_AOT_DEMO_CURRENT_TARGET}
-                POST_BUILD
-                COMMAND ${CMAKE_COMMAND}
-                ARGS -E copy ${MoltenVK} $<TARGET_FILE_DIR:${TAICHI_AOT_DEMO_CURRENT_TARGET}>/libMoltenVK.dylib
-                VERBATIM)
-        endif()
-
-    endforeach()
-
-endforeach()
-
-# Generate AOT compiled files
-if(NOT ${PYTHON_EXECUTABLE})
-    find_package(PythonInterp REQUIRED)
-    if(NOT ${PYTHONINTERP_FOUND})
-        message(FATAL_ERROR "Unable to find python executable")
-    endif()
-endif()
-
-foreach(PYTHON_SCRIPT ${TAICHI_AOT_PYTHON_LIST})
-    string(REPLACE " " ";" PYTHON_SCRIPT ${PYTHON_SCRIPT})
-    list(GET PYTHON_SCRIPT 0 PYTHON_FILE)
-    list(GET PYTHON_SCRIPT 1 ARGS)
-    execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_FILE} ${ARGS})
-endforeach()
+# 5. Install runtime libraries
+install_shared_libraries(${GLFW_DEMO_OUTPUT_DIRECTORY}, "glfw_dummy")
+install_shared_libraries(${HEADLESS_DEMO_OUTPUT_DIRECTORY}, "headless_dummy")
