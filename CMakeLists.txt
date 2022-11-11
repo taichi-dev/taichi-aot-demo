@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.13)
 project(TaichiAotDemo LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 14)
+# Change this to release in real application.
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 option(TI_WITH_VULKAN "Compile with Vulkan backend" ON)
 option(TI_WITH_CPU "Compile with CPU backend" OFF)
@@ -68,7 +70,8 @@ add_library(GraphiT OBJECT
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/args.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/util.cpp")
 target_include_directories(GraphiT PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
-
+# Backward-cpp
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/backward-cpp")
 
 # Declare framework target.
 list(APPEND TaichiAotDemoFramework_SOURCES
@@ -246,7 +249,7 @@ foreach(PYTHON_SCRIPT ${TAICHI_AOT_PYTHON_LIST})
     string(REPLACE " " ";" PYTHON_SCRIPT ${PYTHON_SCRIPT})
     list(GET PYTHON_SCRIPT 0 PYTHON_FILE)
     list(GET PYTHON_SCRIPT 1 ARGS)
-    execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_FILE} ${ARGS})
+    execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_FILE} ${ARGS} --arch vulkan)
 endforeach()
 
 # 0_tutorial is intended to be minimal code for demonstration so it's independent of framework.
@@ -255,3 +258,4 @@ add_subdirectory("0_tutorial_kernel")
 
 execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/0_tutorial_cgraph/assets/tutorial.py" --arch vulkan --aot)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/0_tutorial_kernel/assets/tutorial.py" --arch vulkan --aot)
+
