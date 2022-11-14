@@ -22,6 +22,10 @@ Framework::Framework(const AppConfig& app_cfg, TiArch arch, bool debug) {
 }
 Framework::~Framework() {
   if (renderer_ != nullptr) {
+    asset_mgr_.reset();
+    runtime_.destroy();
+    renderer_.reset();
+
     std::cout << "framework finalized" << std::endl;
   }
 }
