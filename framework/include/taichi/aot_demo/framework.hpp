@@ -33,8 +33,8 @@ namespace ti {
 namespace aot_demo {
 
 class Framework {
-  GraphicsRuntime runtime_;
   std::shared_ptr<class Renderer> renderer_;
+  GraphicsRuntime runtime_;
   std::unique_ptr<AssetManager> asset_mgr_;
 
   uint32_t frame_;
