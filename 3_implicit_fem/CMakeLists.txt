@@ -1,2 +1,2 @@
-add_library(3_implicit_fem OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/app.cpp)
+add_demo(3_implicit_fem ${CMAKE_CURRENT_SOURCE_DIR}/app.cpp)
+generate_aot_files(3_implicit_fem "assets/implicit_fem.py" "vulkan")

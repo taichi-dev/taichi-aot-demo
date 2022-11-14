@@ -1,2 +1,4 @@
-add_library(5_sph OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/app.cpp)
+add_demo(5_sph ${CMAKE_CURRENT_SOURCE_DIR}/app.cpp)
+generate_aot_files(5_sph "assets/sph.py" "vulkan")
+generate_aot_files(5_sph "assets/sph.py" "x64")
+generate_aot_files(5_sph "assets/sph.py" "cuda")
