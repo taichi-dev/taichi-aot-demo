@@ -54,7 +54,7 @@ function(configure_third_party)
     find_package(Vulkan REQUIRED)
     
     add_subdirectory(external)
-
+    
     # Compile for GraphiT
     add_library(GraphiT OBJECT
         "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp"
@@ -62,6 +62,11 @@ function(configure_third_party)
         "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/args.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/util.cpp")
     target_include_directories(GraphiT PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
+
+    # Compile for Backward-cpp
+    if(NOT ANDROID)
+        add_subdirectory("${CMAKE_SOURCE_DIR}/external/backward-cpp")
+    endif()
 endfunction()
 
 

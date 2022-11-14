@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 project(TaichiAotDemo LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 option(TI_WITH_CPU "Compile with CPU backend" OFF)
 option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
@@ -35,7 +36,6 @@ add_subdirectory(framework) # defined TaichiAotDemoFramework_INCLUDE_DIRECTORIES
 
 # 4. Compile for each demo
 include("cmake/demo.cmake")
-include("cmake/test.cmake")
 
 set(HEADLESS_DEMO_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/headless)
 set(GLFW_DEMO_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/glfw)

@@ -1,23 +1,23 @@
 # Internal
 function(add_entrance ENTRY_PATH DEMO_PATH DEMO_OUTPUT_DIRECTORY TAICHI_AOT_DEMO_TARGET)
-        add_executable(${TAICHI_AOT_DEMO_TARGET}
-                       ${ENTRY_PATH}
-                       ${DEMO_PATH}
-        )
+    add_executable(${TAICHI_AOT_DEMO_TARGET}
+                   ${ENTRY_PATH}
+                   ${DEMO_PATH}
+    )
 
-        set_target_properties(${TAICHI_AOT_DEMO_TARGET} PROPERTIES
-            RUNTIME_OUTPUT_DIRECTORY ${DEMO_OUTPUT_DIRECTORY})
-        target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC
-            ${RENDER_FRAMEWORK_TARGET})
-        target_include_directories(${TAICHI_AOT_DEMO_TARGET} PUBLIC
-            ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
+    set_target_properties(${TAICHI_AOT_DEMO_TARGET} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${DEMO_OUTPUT_DIRECTORY})
+    target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC
+        ${RENDER_FRAMEWORK_TARGET})
+    target_include_directories(${TAICHI_AOT_DEMO_TARGET} PUBLIC
+        ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
 
-        # If you are building for Android, you need to link to system libraries.
-        if (ANDROID)
-            find_library(android android)
-            find_library(log log)
-            target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC android log)
-        endif()
+    # If you are building for Android, you need to link to system libraries.
+    if (ANDROID)
+        find_library(android android)
+        find_library(log log)
+        target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC android log)
+    endif()
 endfunction()
 
 
@@ -49,6 +49,7 @@ function(add_demo NAME DEMO_PATH)
         add_glfw_demo(${NAME} ${DEMO_PATH} ${GLFW_AOT_DEMO_TARGET})
     endif()
 endfunction()
+
 
 function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
     # Generate AOT files
