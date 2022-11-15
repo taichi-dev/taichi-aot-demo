@@ -33,8 +33,8 @@ namespace ti {
 namespace aot_demo {
 
 class Framework {
-  GraphicsRuntime runtime_;
   std::shared_ptr<class Renderer> renderer_;
+  GraphicsRuntime runtime_;
   std::unique_ptr<AssetManager> asset_mgr_;
 
   uint32_t frame_;
@@ -47,8 +47,8 @@ public:
   Framework(const AppConfig& app_cfg, TiArch arch, bool debug);
   Framework(const Framework&) = delete;
   Framework(Framework&& b) :
-    runtime_(std::move(b.runtime_)),
     renderer_(std::move(b.renderer_)),
+    runtime_(std::move(b.runtime_)),
     asset_mgr_(std::move(b.asset_mgr_)),
     frame_(std::exchange(b.frame_, 0)),
     tic0_(std::move(b.tic0_)),
@@ -57,8 +57,8 @@ public:
   ~Framework();
 
   Framework& operator=(Framework&& b) {
-    runtime_ = std::move(b.runtime_);
     renderer_ = std::move(b.renderer_);
+    runtime_ = std::move(b.runtime_);
     asset_mgr_ = std::move(b.asset_mgr_);
     frame_ = std::exchange(b.frame_, 0);
     tic0_ = std::move(b.tic0_);
