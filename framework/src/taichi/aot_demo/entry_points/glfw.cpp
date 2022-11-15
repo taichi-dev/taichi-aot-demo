@@ -82,10 +82,10 @@ int main(int argc, const char** argv) {
 
   initialize(app_cfg.app_name, argc, argv);
 
-  ti::aot_demo::F = ti::aot_demo::Framework(app_cfg, CFG.arch, CFG.debug);
-  ti::aot_demo::Framework& F = ti::aot_demo::F;
-  ti::aot_demo::GraphicsRuntime& runtime = F.runtime();
-  ti::aot_demo::Renderer& renderer = F.renderer();
+  auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, CFG.arch, CFG.debug);
+  app->set_framework(F);
+  ti::aot_demo::GraphicsRuntime& runtime = F->runtime();
+  ti::aot_demo::Renderer& renderer = F->renderer();
 
   app->initialize();
 
@@ -94,7 +94,7 @@ int main(int argc, const char** argv) {
 
   while (!glfwWindowShouldClose(glfw_window)) {
     if (!app->update()) {
-      F.next_frame();
+      F->next_frame();
       glfwSetWindowShouldClose(glfw_window, GLFW_TRUE);
       continue;
     }
@@ -106,7 +106,7 @@ int main(int argc, const char** argv) {
     renderer.present_to_surface();
 
     glfwPollEvents();
-    F.next_frame();
+    F->next_frame();
   }
 
   glfwDestroyWindow(glfw_window);

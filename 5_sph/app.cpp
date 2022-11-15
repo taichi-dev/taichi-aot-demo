@@ -113,7 +113,7 @@ struct App5_sph : public App {
 
   virtual void initialize() override final {
     // 1. Create runtime
-    GraphicsRuntime& g_runtime = F.runtime();
+    GraphicsRuntime& g_runtime = F_->runtime();
     runtime_ = ti::Runtime(arch_);
     
     // 2. Load AOT module
@@ -145,7 +145,7 @@ struct App5_sph : public App {
     render_pos_ = g_runtime.allocate_vertex_buffer(shape_1d[0], vec3_shape[0], false/*host_access*/);
     
     // 5. Handle image presentation
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     glm::mat4 model2world = glm::mat4(1.0f);
     model2world = glm::scale(model2world, glm::vec3(5.0f));
     glm::mat4 world2view = glm::lookAt(glm::vec3(10, 10, 10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
@@ -206,14 +206,14 @@ struct App5_sph : public App {
     runtime_.wait();
 
     // 9. Update vertex buffer
-    auto& g_runtime = F.runtime();
+    auto& g_runtime = F_->runtime();
     copy_to_vulkan_ndarray<float>(render_pos_, g_runtime, pos_, runtime_, arch_);
 
-    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
+    std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;
   }
   virtual void render() override final {
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.enqueue_graphics_task(*draw_points);
   }
 };

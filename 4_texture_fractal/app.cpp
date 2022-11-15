@@ -25,7 +25,7 @@ struct App4_texture_fractal : public App {
     return out;
   }
   virtual void initialize() override final {
-    GraphicsRuntime& runtime = F.runtime();
+    GraphicsRuntime& runtime = F_->runtime();
 
     module_ = runtime.load_aot_module("4_texture_fractal/assets/fractal");
     graph_ = module_.get_compute_graph("fractal");
@@ -37,24 +37,24 @@ struct App4_texture_fractal : public App {
 
     graph_["canvas"] = canvas_;
 
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.set_framebuffer_size(640, 320);
 
     std::cout << "initialized!" << std::endl;
   }
   virtual bool update() override final {
-    graph_["t"] = float(F.frame() * 0.03f);
+    graph_["t"] = float(F_->frame() * 0.03f);
     graph_.launch();
 
-    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
+    std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;
   }
   virtual void render() override final {
-    ti::Runtime& runtime = F.runtime();
+    ti::Runtime& runtime = F_->runtime();
     runtime.transition_image(canvas_.image(), TI_IMAGE_LAYOUT_SHADER_READ);
     runtime.wait();
 
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.enqueue_graphics_task(*draw_points);
   }
 };

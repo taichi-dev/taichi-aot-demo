@@ -81,7 +81,7 @@ struct App6_taichi_sparse : public App {
 
   virtual void initialize() override final {
     // 1. Create runtime
-    GraphicsRuntime& g_runtime = F.runtime();
+    GraphicsRuntime& g_runtime = F_->runtime();
     runtime_ = ti::Runtime(arch_);
     
     // 2. Load AOT module
@@ -110,14 +110,14 @@ struct App6_taichi_sparse : public App {
     
     runtime_.wait();
 
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.set_framebuffer_size(img_w, img_h);
 
     std::cout << "initialized!" << std::endl;
   }
   virtual bool update() override final {
     // 8. Run compute kernels
-    auto& g_runtime = F.runtime();
+    auto& g_runtime = F_->runtime();
     val += 0.05f;
     k_activate_[0] = val;
 
@@ -128,11 +128,11 @@ struct App6_taichi_sparse : public App {
     
     runtime_.wait();
     
-    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
+    std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;
   }
   virtual void render() override final {
-    auto& g_runtime = F.runtime();
+    auto& g_runtime = F_->runtime();
     
     // 9. Update to texture
     if(arch_ == TI_ARCH_CUDA) {
@@ -145,7 +145,7 @@ struct App6_taichi_sparse : public App {
     g_runtime.wait();
     runtime_.wait();
     
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.enqueue_graphics_task(*draw_texture);
   }
 };

@@ -105,7 +105,7 @@ struct App2_mpm88 : public App {
     return out;
   }
   virtual void initialize() override final {
-    GraphicsRuntime& g_runtime = F.runtime();
+    GraphicsRuntime& g_runtime = F_->runtime();
     runtime_ = ti::Runtime(arch_);
     
     // 2. Load AOT module
@@ -143,7 +143,7 @@ struct App2_mpm88 : public App {
     g_update_["grid_v"] = grid_v_;
     g_update_["grid_m"] = grid_m_;
 
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.set_framebuffer_size(256, 256);
 
     std::cout << "initialized!" << std::endl;
@@ -151,15 +151,15 @@ struct App2_mpm88 : public App {
   virtual bool update() override final {
     g_update_.launch();
 
-    auto& g_runtime = F.runtime();
+    auto& g_runtime = F_->runtime();
     copy_to_vulkan_ndarray<float>(render_x_, g_runtime, x_, runtime_, arch_);
     runtime_.wait();
     
-    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
+    std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;
   }
   virtual void render() override final {
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.enqueue_graphics_task(*draw_points);
   }
 };

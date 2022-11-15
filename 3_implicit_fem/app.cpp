@@ -47,14 +47,14 @@ struct App3_implicit_fem : public App {
     return out;
   }
   virtual void initialize() override final {
-    GraphicsRuntime& runtime = F.runtime();
-    Renderer& renderer = F.renderer();
+    GraphicsRuntime& runtime = F_->runtime();
+    Renderer& renderer = F_->renderer();
 
     module_ = runtime.load_aot_module("3_implicit_fem/assets/implicit_fem");
     g_init_ = module_.get_compute_graph("init");
     g_substep_ = module_.get_compute_graph("substep");
 
-    AssetManager& asset_mgr = F.asset_mgr();
+    AssetManager& asset_mgr = F_->asset_mgr();
     std::vector<uint32_t> c2e_data;
     std::vector<uint32_t> edges_data;
     std::vector<glm::uvec3> indices_data;
@@ -158,11 +158,11 @@ struct App3_implicit_fem : public App {
   }
   virtual bool update() override final {
     g_substep_.launch();
-    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
+    std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;
   }
   virtual void render() override final {
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.enqueue_graphics_task(*draw_mesh);
   }
 };
