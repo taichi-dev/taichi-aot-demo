@@ -7,22 +7,6 @@
 
 using namespace ti::aot_demo;
   
-static TiArch get_target_arch() {
-  TiArch arch = TI_ARCH_VULKAN;
-
-  if(const char* arch_ptr = std::getenv("TI_AOT_ARCH")) {
-    std::string arch_str = arch_ptr;
-    if(arch_str == "vulkan") arch = TI_ARCH_VULKAN;
-    else if(arch_str == "x64") arch = TI_ARCH_X64;
-    else if(arch_str == "cuda") arch = TI_ARCH_CUDA;
-    else {
-        std::cout << "Unrecognized TI_AOT_ARCH: " << arch_str << std::endl;
-    }
-  }
-  
-  return arch;
-}
-
 struct App1_hello_world_with_interop : public App {
   // Runtime/Ndarray to perform computations
   TiArch arch_;
@@ -35,18 +19,23 @@ struct App1_hello_world_with_interop : public App {
 
   std::unique_ptr<GraphicsTask> draw_points;
   
-  App1_hello_world_with_interop(TiArch arch) {
-    arch_ = arch;
-  }
-
   virtual AppConfig cfg() const override final {
     AppConfig out {};
     out.app_name = "1_hello_world_with_interop";
     return out;
   }
-  virtual void initialize() override final{
+  virtual void initialize(TiArch arch) override final{
+    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA)
+        throw std::runtime_error("1_hello_world_with_interop only supports cuda, x64, vulkan backends");
+    arch_ = arch;
+    
     // Prepare Ndarray to store computation results
-    runtime = ti::Runtime(arch_);
+    if(arch_ == TI_ARCH_VULKAN) {
+        // Reuse the vulkan runtime from renderer framework
+        runtime = ti::Runtime(arch_, F_->runtime(), false);;
+    } else {
+        runtime = ti::Runtime(arch_);
+    }
     points = runtime.allocate_ndarray<float>({3}, {2}, true);
 
     // Prepare vertex buffers for the renderer
@@ -97,6 +86,5 @@ struct App1_hello_world_with_interop : public App {
 };
 
 std::unique_ptr<App> create_app() {
-  auto arch = get_target_arch();
-  return std::make_unique<App1_hello_world_with_interop>(arch);
+  return std::make_unique<App1_hello_world_with_interop>();
 }

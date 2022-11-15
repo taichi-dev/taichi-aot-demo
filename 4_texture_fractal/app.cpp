@@ -24,7 +24,10 @@ struct App4_texture_fractal : public App {
     out.framebuffer_height = 320;
     return out;
   }
-  virtual void initialize() override final {
+  virtual void initialize(TiArch arch) override final{
+    if(arch != TI_ARCH_VULKAN)
+        throw std::runtime_error("4_texture_fractal only supports vulkan backend");
+    
     GraphicsRuntime& runtime = F_->runtime();
 
     module_ = runtime.load_aot_module("4_texture_fractal/assets/fractal");

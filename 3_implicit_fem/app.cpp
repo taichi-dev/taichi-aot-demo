@@ -46,7 +46,10 @@ struct App3_implicit_fem : public App {
     out.framebuffer_height = 256;
     return out;
   }
-  virtual void initialize() override final {
+  virtual void initialize(TiArch arch) override final{
+    if(arch != TI_ARCH_VULKAN)
+        throw std::runtime_error("3_implicit_fem only supports vulkan backend");
+    
     GraphicsRuntime& runtime = F_->runtime();
     Renderer& renderer = F_->renderer();
 
