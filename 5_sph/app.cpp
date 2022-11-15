@@ -87,12 +87,16 @@ struct App5_sph : public App {
   }
 
   virtual void initialize(TiArch arch) override final{
-    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA)
-        throw std::runtime_error("5_sph only supports cuda, x64, vulkan backends");
+
+    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
+        std::cout << "5_sph only supports cuda, x64, vulkan backends" << std::endl;
+        exit(0);
+    }
     arch_ = arch;
     
     // 1. Create runtime
     GraphicsRuntime& g_runtime = F_->runtime();
+
     if(arch_ == TI_ARCH_VULKAN) {
         // Reuse the vulkan runtime from renderer framework
         runtime_ = ti::Runtime(arch_, F_->runtime(), false);;

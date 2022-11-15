@@ -25,8 +25,11 @@ struct App1_hello_world_with_interop : public App {
     return out;
   }
   virtual void initialize(TiArch arch) override final{
-    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA)
-        throw std::runtime_error("1_hello_world_with_interop only supports cuda, x64, vulkan backends");
+
+    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
+        std::cout << "1_hello_world_with_interop only supports cuda, x64, vulkan backends" << std::endl;
+        exit(0);
+    }
     arch_ = arch;
     
     // Prepare Ndarray to store computation results

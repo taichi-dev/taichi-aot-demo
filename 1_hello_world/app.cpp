@@ -18,8 +18,11 @@ struct App1_hello_world : public App {
     return out;
   }
   virtual void initialize(TiArch arch) override final{
-    if(arch != TI_ARCH_VULKAN)
-        throw std::runtime_error("1_hello_world only supports vulkan backend");
+
+    if(arch != TI_ARCH_VULKAN) {
+        std::cout << "1_hello_world only supports vulkan backend" << std::endl;
+        exit(0);
+    }
 
     GraphicsRuntime& runtime = F_->runtime();
 

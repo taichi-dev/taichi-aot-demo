@@ -51,8 +51,11 @@ struct App7_comet : public App {
   }
 
   virtual void initialize(TiArch arch) override final{
-    if(arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA)
-        throw std::runtime_error("7_comet only supports cuda, x64 backends");
+
+    if(arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
+        std::cout << "7_comet only supports cuda, x64 backends" << std::endl;
+        exit(0);
+    }
     arch_ = arch;
     
     // 1. Create runtime
