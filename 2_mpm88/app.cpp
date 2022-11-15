@@ -79,6 +79,7 @@ struct App2_mpm88 : public App {
     out.framebuffer_height = 256;
     return out;
   }
+
   virtual void initialize(TiArch arch) override final{
     if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
         std::cout << "1_hello_world_with_interop only supports cuda, x64, vulkan backends" << std::endl;
@@ -93,6 +94,7 @@ struct App2_mpm88 : public App {
     } else {
         runtime_ = ti::Runtime(arch_);
     }
+
     
     // 2. Load AOT module
     auto aot_file_path = get_aot_file_dir(arch_);

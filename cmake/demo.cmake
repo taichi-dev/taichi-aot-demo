@@ -52,6 +52,14 @@ endfunction()
 
 
 function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
+    if(NOT TI_WITH_CUDA AND ARCH STREQUAL "cuda")
+        return()
+    endif()
+    
+    if(NOT TI_WITH_CPU AND ARCH STREQUAL "x64")
+        return()
+    endif()
+
     # Generate AOT files
     set(DUMMY_TARGET ${NAME}_${ARCH}_DYMMY_TARGET)
     add_custom_target(${DUMMY_TARGET} ALL)

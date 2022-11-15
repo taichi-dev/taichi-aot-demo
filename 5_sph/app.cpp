@@ -95,6 +95,7 @@ struct App5_sph : public App {
     
     // 1. Create runtime
     GraphicsRuntime& g_runtime = F_->runtime();
+
     if(arch_ == TI_ARCH_VULKAN) {
         // Reuse the vulkan runtime from renderer framework
         runtime_ = ti::Runtime(arch_, F_->runtime(), false);;

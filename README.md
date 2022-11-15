@@ -9,6 +9,9 @@
 ./ci/build_and_test_linux.sh
 ```
 
-This repo hosts several projects to demonstrate how to use the [Taichi AOT](https://github.com/taichi-dev/taichi/issues/3642) feature. We recommend you to take a look at [`implicit_fem`](implicit_fem/) first.
+# Tutorial
 
-<img width=35% src=https://github.com/taichi-dev/taichi/releases/download/v1.0.0/taichi-aot-demo.gif>
+We're working on an end to end [tutorial](./tutorial.md) to show the best practice of using TiRT (Taichi RunTime) in real applications. 
+Although the content is subject to change as taichi-aot-demo is under heavy development at the moment, we'll try our best to keep the tutorial unaffected.
+
+You're welcome to ask questions via github issues or contribute a PR directly if you find anything missing!
