@@ -53,8 +53,8 @@ struct App2_mpm88 : public App {
   static const uint32_t NPARTICLE = 8192 * 2;
   static const uint32_t GRID_SIZE = 128;
 
-  ti::AotModule module_;
   ti::Runtime runtime_;
+  ti::AotModule module_;
   TiArch arch_;
 
   ti::ComputeGraph g_init_;
@@ -79,6 +79,7 @@ struct App2_mpm88 : public App {
     out.framebuffer_height = 256;
     return out;
   }
+
 
   virtual void initialize(TiArch arch) override final{
     if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {

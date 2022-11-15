@@ -54,8 +54,8 @@ struct App5_sph : public App {
   static const uint32_t NR_PARTICLES = 8000;
   static const uint32_t SUBSTEPS = 5;
 
-  ti::AotModule module_;
   ti::Runtime runtime_;
+  ti::AotModule module_;
   TiArch arch_;
 
   ti::Kernel k_initialize_;
@@ -87,6 +87,7 @@ struct App5_sph : public App {
   }
 
   virtual void initialize(TiArch arch) override final{
+
     if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
         std::cout << "5_sph only supports cuda, x64, vulkan backends" << std::endl;
         exit(0);

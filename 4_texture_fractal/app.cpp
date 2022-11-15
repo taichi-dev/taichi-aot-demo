@@ -25,6 +25,7 @@ struct App4_texture_fractal : public App {
     return out;
   }
   virtual void initialize(TiArch arch) override final{
+
     if(arch != TI_ARCH_VULKAN) {
         std::cout << "4_texture_fractal only supports vulkan backend" << std::endl;
         exit(0);

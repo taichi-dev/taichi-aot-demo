@@ -47,6 +47,7 @@ struct App3_implicit_fem : public App {
     return out;
   }
   virtual void initialize(TiArch arch) override final{
+
     if(arch != TI_ARCH_VULKAN) {
         std::cout << "3_implicit_fem only supports vulkan backend" << std::endl;
         exit(0);
