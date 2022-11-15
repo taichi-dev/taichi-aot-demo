@@ -35,7 +35,13 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_validation_callback(
   void *user_data
 ) {
   if (severity > VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-    std::cout << "Vulkan Validation: " << data->pMessage << std::endl;
+    std::printf("Vulkan Validation: %s\n", data->pMessage);
+  }
+  if (type == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT && severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT && strstr(data->pMessage, "DEBUG-PRINTF") != nullptr) {
+    // Message format is "BLABLA | MessageID=xxxxx | <DEBUG_PRINT_MSG>"
+     std::string msg(data->pMessage);
+     auto const pos = msg.find_last_of("|");
+     std::cout << msg.substr(pos + 2);
   }
   return VK_FALSE;
 }
@@ -74,7 +80,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   ici.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 #ifdef __MACH__
   ici.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif // __MACH__ 
+#endif // __MACH__
   ici.pApplicationInfo = &ai;
   ici.enabledLayerCount = (uint32_t)llns.size();
   ici.ppEnabledLayerNames = llns.data();
@@ -86,6 +92,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
     dumci.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     dumci.messageSeverity =
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
     dumci.messageType =
       VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
@@ -94,6 +101,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
     dumci.pfnUserCallback = &vulkan_validation_callback;
     dumci.pUserData = nullptr;
 
+    dumci.pNext = (void*)ici.pNext;
     ici.pNext = &dumci;
   }
 
@@ -114,6 +122,14 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   VkInstance instance = VK_NULL_HANDLE;
   res = vkCreateInstance(&ici, nullptr, &instance);
   check_vulkan_result(res);
+
+  VkDebugUtilsMessengerEXT debug_utils_messenger = VK_NULL_HANDLE;
+  if (debug) {
+    dumci.pNext = nullptr;
+    PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT_ = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    res = vkCreateDebugUtilsMessengerEXT_(instance, &dumci, nullptr, &debug_utils_messenger);
+    check_vulkan_result(res);
+  }
 
   uint32_t npd = 0;
   res = vkEnumeratePhysicalDevices(instance, &npd, nullptr);
@@ -378,6 +394,7 @@ try_another_physical_device:
   in_frame_ = false;
 
   instance_ = instance;
+  debug_utils_messenger_ = debug_utils_messenger;
   physical_device_ = physical_device;
   device_ = device;
   queue_family_index_ = queue_family_index;
@@ -422,6 +439,10 @@ void Renderer::destroy() {
   vkDestroySampler(device_, sampler_, nullptr);
   vmaDestroyAllocator(vma_allocator_);
   vkDestroyDevice(device_, nullptr);
+  if (debug_utils_messenger_ != VK_NULL_HANDLE) {
+    PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT_ = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance_, "vkDestroyDebugUtilsMessengerEXT");
+    vkDestroyDebugUtilsMessengerEXT_(instance_, debug_utils_messenger_, nullptr);
+  }
   vkDestroyInstance(instance_, nullptr);
 
   instance_ = VK_NULL_HANDLE;
@@ -577,7 +598,7 @@ void Renderer::set_framebuffer_size(uint32_t width, uint32_t height) {
   davci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
   davci.subresourceRange.levelCount = 1;
   davci.subresourceRange.layerCount = 1;
-  
+
   VkImageView depth_attachment_view = VK_NULL_HANDLE;
   res = vkCreateImageView(device_, &davci, nullptr, &depth_attachment_view);
   check_vulkan_result(res);
@@ -1300,7 +1321,7 @@ GraphicsTask::GraphicsTask(
   VkPipelineColorBlendAttachmentState pcbas {};
   pcbas.blendEnable = VK_TRUE;
   pcbas.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-  pcbas.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; 
+  pcbas.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
   pcbas.colorBlendOp = VK_BLEND_OP_ADD;
   pcbas.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
   pcbas.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;

@@ -43,6 +43,7 @@ def compile_mpm88(arch, save_compute_graph):
                     grid_m: ti.any_arr(field_dim=2)):
         for p in x:
             dx = 1 / grid_v.shape[0]
+            print('Hello', dx)
             p_vol = (dx * 0.5)**2
             p_mass = p_vol * p_rho
             Xp = x[p] / dx
@@ -181,10 +182,10 @@ def compile_mpm88(arch, save_compute_graph):
     grid_v = ti.Vector.ndarray(2, ti.f32, shape=(n_grid, n_grid))
     grid_m = ti.ndarray(ti.f32, shape=(n_grid, n_grid))
 
-    mod = ti.aot.Module(arch)
+    mod = ti.aot.Module(caps=['spirv_has_non_semantic_info'])
     mod.add_graph('init', g_init)
     mod.add_graph('update', g_update)
-    
+
     save_dir = get_save_dir("mpm88", args.arch)
     os.makedirs(save_dir, exist_ok=True)
     mod.save(save_dir, '')
