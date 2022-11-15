@@ -20,7 +20,7 @@ class GraphicsRuntime : public ti::Runtime {
 
 public:
   GraphicsRuntime() : ti::Runtime() {}
-  GraphicsRuntime(TiArch arch, const std::shared_ptr<Renderer>& renderer);
+  GraphicsRuntime(const std::shared_ptr<Renderer>& renderer);
 
   ti::NdArray<float> allocate_vertex_buffer(
     uint32_t vertex_count,
