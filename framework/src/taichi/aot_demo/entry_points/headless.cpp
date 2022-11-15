@@ -4,6 +4,8 @@
 #include "gft/args.hpp"
 #include "gft/util.hpp"
 
+#include <iostream>
+
 struct Config {
   std::string output_prefix = "";
   uint32_t frame_count = 2;
@@ -67,9 +69,12 @@ int main(int argc, const char** argv) {
   initialize(app_cfg.app_name, argc, argv);
 
   auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, CFG.debug);
+  
   app->set_framework(F);
+  
   ti::aot_demo::GraphicsRuntime& runtime = F->runtime();
   ti::aot_demo::Renderer& renderer = F->renderer();
+
 
   app->initialize(CFG.arch);
 
@@ -93,6 +98,5 @@ int main(int argc, const char** argv) {
 
     save_framebuffer_to_bmp(framebuffer, i);
   }
-
   return 0;
 }

@@ -54,8 +54,8 @@ struct App5_sph : public App {
   static const uint32_t NR_PARTICLES = 8000;
   static const uint32_t SUBSTEPS = 5;
 
-  ti::AotModule module_;
   ti::Runtime runtime_;
+  ti::AotModule module_;
   TiArch arch_;
 
   ti::Kernel k_initialize_;

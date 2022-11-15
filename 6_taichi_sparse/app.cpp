@@ -30,8 +30,8 @@ struct App6_taichi_sparse : public App {
   static const uint32_t img_w = 680;
   static const uint32_t img_h = 680;
 
-  ti::AotModule module_;
   ti::Runtime runtime_;
+  ti::AotModule module_;
   TiArch arch_;
     
   ti::Kernel k_fill_img_;

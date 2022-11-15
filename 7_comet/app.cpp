@@ -30,8 +30,8 @@ struct App7_comet : public App {
   static const uint32_t img_w = 680;
   static const uint32_t img_h = 680;
 
-  ti::AotModule module_;
   ti::Runtime runtime_;
+  ti::AotModule module_;
   TiArch arch_;
     
   ti::ComputeGraph g_init_;
