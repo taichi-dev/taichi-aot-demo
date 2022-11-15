@@ -1,6 +1,6 @@
 # Tutorial: Embedding Taichi in C++ application
 
-As Python becomes the de facto language for a wide variety of areas like scientific computation, image processing and deep learning, deploying alogirthms written in Python in production is now a common challenge for many industries. Taichi's Python frontend provides easy-to-write syntax which makes writing performant parallel code really simple. And Taichi also offers a runtime library (TiRT) and C interface so that kernels written in Python can be embedded into a real application. In this tutorial, we'll walkthrough the steps to deploy a Taichi program in an C++ application.
+Taichi's Python frontend provides easy-to-write syntax which greatly simplifies the process of writing performant parallel computing code, but deploying these alogirthms written in Python into production can be yet another challenge. To bridge the gap between Python and industry, Taichi offers a runtime library (TiRT) with C interface so that kernels written in Python can be embedded into a real application. In this tutorial, we'll walkthrough the steps to deploy a Taichi program in an C++ application.
 
 ## Overview
 
@@ -17,7 +17,7 @@ TODO: add a picture of overall workflow
 
 ## 1. Find out the kernels to deploy
 
-Suppose that you're given a buffer with any length, the task is to first initialize the buffer as zeros and then add `base` value to all of its elements. Let's first write the kernels in Taichi:
+Suppose you have the following two kernels written in Python. In Taichi, an `Ndarray` essentially represents a memory buffer, so the kernel `init` takes a buffer with any length and initialize it with zeros, then kernel `add_base` add `base` value to all of its elements.
 
 ```
 @ti.kernel
@@ -31,7 +31,7 @@ def add_base(x: ti.types.ndarray(field_dim=1), base: ti.f32):
         x[i] += base
 ```
 
-Kernel `init` is called only once but the `add_base` logic maybe called multiple times:
+At runtime, kernel `init` is called only once but the `add_base` logic maybe called multiple times:
 
 ```
 x = ti.ndarray(ti.f32, shape=(8192)) 
@@ -53,9 +53,9 @@ mod.add_kernel(add_base, template_args={'x': x})
 mod.save(target_dir, '')
 ```
 
-`ti.types.ndarray` is a bit more complicated since it's a type templated on ndarray's `dtype` and `ndim`. If you call `add_base` twice in Python, one with an ti.ndarray of `dtype=ti.i32` and the other of `dtype=ti.math.vec2`, Taichi actually just-in-time compiles two kernels for you. As a result, Taichi won't be able to compile in AOT mode if ndarray's `dtype` or `ndim` is unknown, you'll have to supply that information either directly in the type annotation, or provide an example input via `template_args`.
+`ti.types.ndarray` is a bit more complicated since it requires both `dtype` and `ndim` as its type information. To compile Taichi kernels with `ti.types.ndarray` arguments, you'll have to supply that information either directly in the type annotation, or provide an example input via `template_args`.
 
-Let's take a look at the generated artifacts and its layout:
+Now that we're done with Kernel compilation, let's take a look at the generated artifacts and its layout:
 
 ```
 // FUTURE WORK: This is just a zip. Replace tcb with readable JSON
@@ -91,7 +91,7 @@ export TAICHI_C_API_INSTALL_DIR=$PWD/taichi_nightly-1.3.0.post20221102.data/data
 
 Currently, only TiRT for Linux systems is included in the nightly distributions. If you need one for Android / Windows, please see the FAQ below to build it from source.
 
-Then add `TiRT` to your CMakeLists.txt:
+Integrate `TiRT` to your CMakeLists.txt:
 
 ```
 # Find built taichi C-API library in `TAICHI_C_API_INSTALL_DIR`.
@@ -110,12 +110,12 @@ target_link_libraries(${TAICHI_TUTORIAL_DEMO_NAME} ${taichi_c_api})
 
 ## 4. Run taichi kernels in your application
 
-TiRT provides a C interface to maximize portability, as well as a light-weight C++ wrapper to save you from writing verbose C code. C++ wrapper is used in this tutorial for simplicity.
+TiRT provides a fundamental C interface to help achieve optimal portability, however we also kindly provide a header-only C++ wrapper to save you from writing verbose C code. For simplicity purpose, we'll stick with the C++ wrapper in this tutorial.
 
 Calling Taichi in C++ as easy as what you'd imagine:
 
 - Create a Taichi runtime with target arch
-- Load the compiled artifacts on disk through TiRT's `load_aot_module` interface.
+- Load the compiled artifacts from disk through TiRT's `load_aot_module` interface.
 - Load kernels from the module to `k_init_` and `k_add_base_`
 - Prepare the inputs: ndarray `x_` and float `base`
 - Launch the kernels!
