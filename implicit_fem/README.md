@@ -1,5 +1,7 @@
 # Taichi AOT Demo: Implicit FEM
 
+<img width=35% src=https://github.com/taichi-dev/taichi/releases/download/v1.0.0/taichi-aot-demo.gif>
+
 This repo includes Taichi AOT demo for implicit FEM.
 
 ```
