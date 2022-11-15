@@ -27,7 +27,7 @@ struct App {
   }
 
   virtual AppConfig cfg() const = 0;
-  virtual void initialize() = 0;
+  virtual void initialize(TiArch arch) = 0;
   virtual bool update() = 0;
   virtual void render() = 0;
 };
@@ -55,7 +55,7 @@ class Framework {
 
 public:
   Framework() {}
-  Framework(const AppConfig& app_cfg, TiArch arch, bool debug);
+  Framework(const AppConfig& app_cfg, bool debug);
   Framework(const Framework&) = delete;
   Framework(Framework&& b) :
     renderer_(std::move(b.renderer_)),

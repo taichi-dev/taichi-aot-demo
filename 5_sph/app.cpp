@@ -8,27 +8,6 @@
 
 using namespace ti::aot_demo;
 
-static TiArch get_target_arch() {
-  TiArch arch = TI_ARCH_VULKAN;
-#ifdef TI_LIB_DIR
-  // TI_LIB_DIR set by cmake
-  std::string ti_lib_dir = (TI_LIB_DIR);
-  setenv("TI_LIB_DIR", ti_lib_dir.c_str(), 1/*overwrite*/);
-#endif
-
-  if(const char* arch_ptr = std::getenv("TI_AOT_ARCH")) {
-    std::string arch_str = arch_ptr;
-    if(arch_str == "vulkan") arch = TI_ARCH_VULKAN;
-    else if(arch_str == "x64") arch = TI_ARCH_X64;
-    else if(arch_str == "cuda") arch = TI_ARCH_CUDA;
-    else {
-        std::cout << "Unrecognized TI_AOT_ARCH: " << arch_str << std::endl;
-    }
-  }
-  
-  return arch;
-}
-
 static std::string get_aot_file_dir(TiArch arch) {
     switch(arch) {
         case TI_ARCH_VULKAN: {
@@ -99,10 +78,6 @@ struct App5_sph : public App {
   ti::NdArray<float> render_pos_;
   std::unique_ptr<GraphicsTask> draw_points;
 
-  App5_sph(TiArch arch) {
-    arch_ = arch;
-  }
-
   virtual AppConfig cfg() const override final {
     AppConfig out {};
     out.app_name = "5_sph";
@@ -111,10 +86,21 @@ struct App5_sph : public App {
     return out;
   }
 
-  virtual void initialize() override final {
+  virtual void initialize(TiArch arch) override final{
+    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
+        std::cout << "5_sph only supports cuda, x64, vulkan backends" << std::endl;
+        exit(0);
+    }
+    arch_ = arch;
+    
     // 1. Create runtime
     GraphicsRuntime& g_runtime = F_->runtime();
-    runtime_ = ti::Runtime(arch_);
+    if(arch_ == TI_ARCH_VULKAN) {
+        // Reuse the vulkan runtime from renderer framework
+        runtime_ = ti::Runtime(arch_, F_->runtime(), false);;
+    } else {
+        runtime_ = ti::Runtime(arch_);
+    }
     
     // 2. Load AOT module
     auto aot_file_path = get_aot_file_dir(arch_);
@@ -219,6 +205,5 @@ struct App5_sph : public App {
 };
 
 std::unique_ptr<App> create_app() {
-  auto arch = get_target_arch();
-  return std::make_unique<App5_sph>(arch);
+  return std::make_unique<App5_sph>();
 }
