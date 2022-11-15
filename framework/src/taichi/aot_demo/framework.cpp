@@ -4,8 +4,6 @@
 namespace ti {
 namespace aot_demo {
 
-Framework F;
-
 Framework::Framework(const AppConfig& app_cfg, TiArch arch, bool debug) {
   renderer_ = std::make_unique<Renderer>(
     debug,

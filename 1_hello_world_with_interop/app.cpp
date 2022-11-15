@@ -50,7 +50,7 @@ struct App1_hello_world_with_interop : public App {
     points = runtime.allocate_ndarray<float>({3}, {2}, true);
 
     // Prepare vertex buffers for the renderer
-    GraphicsRuntime& g_runtime = F.runtime();
+    GraphicsRuntime& g_runtime = F_->runtime();
     render_points = g_runtime.allocate_vertex_buffer(3, 2, true);
     colors = g_runtime.allocate_ndarray<float>({3}, {4}, true);
 
@@ -61,7 +61,7 @@ struct App1_hello_world_with_interop : public App {
       .build();
   }
   virtual bool update() override final {
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
 
     // Store the computation results to "points"
     std::vector<float> points_data {
@@ -80,18 +80,18 @@ struct App1_hello_world_with_interop : public App {
 
     // Copy data from "points" to "render_points"
     if(arch_ == TI_ARCH_X64) {
-        InteropHelper<float>::copy_from_cpu(F.runtime(), render_points, runtime, points);
+        InteropHelper<float>::copy_from_cpu(F_->runtime(), render_points, runtime, points);
     } else if(arch_ == TI_ARCH_CUDA) {
-        InteropHelper<float>::copy_from_cuda(F.runtime(), render_points, runtime, points);
+        InteropHelper<float>::copy_from_cuda(F_->runtime(), render_points, runtime, points);
     } else if(arch_ == TI_ARCH_VULKAN) {
-        InteropHelper<float>::copy_from_vulkan(F.runtime(), render_points, runtime, points);
+        InteropHelper<float>::copy_from_vulkan(F_->runtime(), render_points, runtime, points);
     }
 
-    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
+    std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;
   }
   virtual void render() override final {
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.enqueue_graphics_task(*draw_points);
   }
 };
