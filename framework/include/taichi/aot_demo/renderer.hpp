@@ -13,14 +13,15 @@ class GraphicsTask;
 
 class Renderer {
   friend class GraphicsTask;
-  
+
   template<class T>
   friend class InteropHelper;
-  
+
   template<class T>
   friend class TextureHelper;
 
   VkInstance instance_;
+  VkDebugUtilsMessengerEXT debug_utils_messenger_;
   VkPhysicalDevice physical_device_;
   VkDevice device_;
   uint32_t queue_family_index_;
