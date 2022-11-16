@@ -1,0 +1,41 @@
+{
+
+"linux": {
+    "cmake_args" : ["-DTI_WITH_CUDA=ON", "-DTI_WITH_CPU=ON"],
+    "tests": [
+        ["tutorial/E0_tutorial_cgraph",                   "",              ""],
+        ["tutorial/E0_tutorial_kernel",                   "",              ""],
+        ["headless/E1_hello_world_headless",              "--arch vulkan", "ci/headless-truths/linux/vulkan/E1_hello_world_headless.bmp"],
+        ["headless/E1_hello_world_with_interop_headless", "--arch vulkan", "ci/headless-truths/linux/vulkan/E1_hello_world_with_interop_headless.bmp"],
+        ["headless/E1_hello_world_with_interop_headless", "--arch cuda",   "ci/headless-truths/linux/cuda/E1_hello_world_with_interop_headless.bmp"],
+        ["headless/E1_hello_world_with_interop_headless", "--arch x64",    "ci/headless-truths/linux/x64/E1_hello_world_with_interop_headless.bmp"],
+        ["headless/E2_mpm88_headless",                    "--arch vulkan", "ci/headless-truths/linux/vulkan/E2_mpm88_headless.bmp"],
+        ["headless/E2_mpm88_headless",                    "--arch cuda",   "ci/headless-truths/linux/cuda/E2_mpm88_headless.bmp"],
+        ["headless/E2_mpm88_headless",                    "--arch x64",    "ci/headless-truths/linux/x64/E2_mpm88_headless.bmp"],
+        ["headless/E3_implicit_fem_headless",             "--arch vulkan", "ci/headless-truths/linux/vulkan/E3_implicit_fem_headless.bmp"],
+        ["headless/E4_texture_fractal_headless",          "--arch vulkan", "ci/headless-truths/linux/vulkan/E4_texture_fractal_headless.bmp"],
+        ["headless/E5_sph_headless",                      "--arch vulkan", "ci/headless-truths/linux/vulkan/E5_sph_headless.bmp"],
+        ["headless/E5_sph_headless",                      "--arch cuda",   "ci/headless-truths/linux/cuda/E5_sph_headless.bmp"],
+        ["headless/E5_sph_headless",                      "--arch x64",    "ci/headless-truths/linux/x64/E5_sph_headless.bmp"],
+        ["headless/E6_taichi_sparse_headless",            "--arch cuda",   "ci/headless-truths/linux/cuda/E6_taichi_sparse_headless.bmp"],
+        ["headless/E6_taichi_sparse_headless",            "--arch x64",    "ci/headless-truths/linux/x64/E6_taichi_sparse_headless.bmp"],
+        ["headless/E7_comet_headless",                    "--arch cuda",   "ci/headless-truths/linux/cuda/E7_comet_headless.bmp"],
+        ["headless/E7_comet_headless",                    "--arch x64",    "ci/headless-truths/linux/x64/E7_comet_headless.bmp"]
+    ]
+},
+
+"android": {
+    "cmake_args" : [],
+    "tests": [
+        ["tutorial/E0_tutorial_cgraph",                   "",              ""],
+        ["tutorial/E0_tutorial_kernel",                   "",              ""],
+        ["headless/E1_hello_world_headless",              "--arch vulkan", "ci/headless-truths/linux/vulkan/E1_hello_world_headless.bmp"],
+        ["headless/E1_hello_world_with_interop_headless", "--arch vulkan", "ci/headless-truths/linux/vulkan/E1_hello_world_with_interop_headless.bmp"],
+        ["headless/E2_mpm88_headless",                    "--arch vulkan", "ci/headless-truths/linux/vulkan/E2_mpm88_headless.bmp"],
+        ["headless/E3_implicit_fem_headless",             "--arch vulkan", "ci/headless-truths/linux/vulkan/E3_implicit_fem_headless.bmp"],
+        ["headless/E4_texture_fractal_headless",          "--arch vulkan", "ci/headless-truths/linux/vulkan/E4_texture_fractal_headless.bmp"],
+        ["headless/E5_sph_headless",                      "--arch vulkan", "ci/headless-truths/linux/vulkan/E5_sph_headless.bmp"]
+    ]
+}
+
+}

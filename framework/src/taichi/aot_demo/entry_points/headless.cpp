@@ -7,7 +7,7 @@
 #include <iostream>
 
 struct Config {
-  std::string output_prefix = "";
+  std::string output_path = "";
   uint32_t frame_count = 2;
   TiArch arch = TI_ARCH_VULKAN;
   bool debug = false;
@@ -18,7 +18,7 @@ void initialize(const char* app_name, int argc, const char** argv) {
   std::string arch_lit = "vulkan";
 
   args::init_arg_parse(app_name, "One of the Taichi AOT demos.");
-  args::reg_arg<args::StringParser>("-o", "--output-prefix", CFG.output_prefix,
+  args::reg_arg<args::StringParser>("-o", "--output-path", CFG.output_path,
     "Prefix of the output BMP files.");
   args::reg_arg<args::UintParser>("-f", "--frames", CFG.frame_count,
     "Number of frames to run, or 0 to run forever.");
@@ -47,7 +47,10 @@ std::unique_ptr<ti::aot_demo::AssetManager> create_asset_manager() {
 void save_framebuffer_to_bmp(const ti::NdArray<uint8_t>& framebuffer, uint32_t i) {
   std::string index = std::to_string(i);
   std::string zero_padding(4 - index.size(), '0');
-  std::string path = CFG.output_prefix + zero_padding + std::to_string(i) + ".bmp";
+  std::string path = zero_padding + std::to_string(i) + ".bmp";
+  if(CFG.output_path != "") {
+    path = CFG.output_path;
+  }
   liong::util::save_bmp((const uint32_t*)framebuffer.map(),
     framebuffer.shape().dims[0],
     framebuffer.shape().dims[1],

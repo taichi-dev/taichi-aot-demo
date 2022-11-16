@@ -6,7 +6,7 @@
 ```
 # Make sure you have libtaichi_c_api.so in $TAICHI_C_API_INSTALL_DIR
 
-./ci/build_and_test_linux.sh
+python3 ./ci/run_tests.py -l $TAICHI_C_API_INSTALL_DIR
 ```
 
 # Tutorial
