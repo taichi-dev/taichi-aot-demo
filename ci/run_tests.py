@@ -66,7 +66,8 @@ def execute_test_command(test_command, arguments, platform):
     test_command = os.path.join(test_dir, test_command)
     
     arguments = arguments.strip().split(" ")
-    
+    arguments.extend(["--debug"])
+
     output_image_dir = test_command + "_result.bmp"
     arguments.extend(["-o", output_image_dir])
     
