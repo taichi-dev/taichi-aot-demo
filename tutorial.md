@@ -34,7 +34,7 @@ def add_base(x: ti.types.ndarray(field_dim=1), base: ti.f32):
 At runtime, kernel `init` is called only once but the `add_base` logic maybe called multiple times:
 
 ```
-x = ti.ndarray(ti.f32, shape=(8192)) 
+x = ti.ndarray(ti.f32, shape=(8192))
 init(x)
 
 N_ITER = 50
@@ -80,13 +80,13 @@ For now TiRT is shipped along with `taichi-nightly` Python wheels. Be aware that
 TODO: We'll figure out a proper way to release it once the versioning issue is improved.
 
 ```
-# Install python taichi: 
+# Install python taichi:
 pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly
 # Get the runtime library:
 pip download --no-deps -i https://pypi.taichi.graphics/simple/ taichi-nightly
 # For example
 unzip taichi_nightly-1.3.0.post20221102-cp38-cp38-manylinux_2_27_x86_64.whl
-export TAICHI_C_API_INSTALL_DIR=$PWD/taichi_nightly-1.3.0.post20221102.data/data/c_api/lib
+export TAICHI_C_API_INSTALL_DIR=$PWD/taichi_nightly-1.3.0.post20221102.data/data/c_api/
 ```
 
 Currently, only TiRT for Linux systems is included in the nightly distributions. If you need one for Android / Windows, please see the FAQ below to build it from source.
