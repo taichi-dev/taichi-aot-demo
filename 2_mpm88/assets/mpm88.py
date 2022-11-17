@@ -41,9 +41,9 @@ def compile_mpm88(arch, save_compute_graph):
                     C: ti.any_arr(field_dim=1), J: ti.any_arr(field_dim=1),
                     grid_v: ti.any_arr(field_dim=2),
                     grid_m: ti.any_arr(field_dim=2)):
+        print('Hello', x.shape[0])
         for p in x:
             dx = 1 / grid_v.shape[0]
-            print('Hello', dx)
             p_vol = (dx * 0.5)**2
             p_mass = p_vol * p_rho
             Xp = x[p] / dx
