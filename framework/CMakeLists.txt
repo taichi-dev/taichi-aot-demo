@@ -32,13 +32,15 @@ endif()
 
 # Compile for renderer framework
 add_library(${RENDER_FRAMEWORK_TARGET} ${TaichiAotDemoFramework_SOURCES})
-target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC ${TaichiAotDemoFramework_LINK_LIBRARIES})
-target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
 
 if(NOT ANDROID)
     list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES glfw)
+    list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/external/glfw/include)
     target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC TI_AOT_DEMO_WITH_GLFW=1)
 endif()
+
+target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC ${TaichiAotDemoFramework_LINK_LIBRARIES})
+target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
 
 # Propagate to parent scope
 set(RENDER_FRAMEWORK_TARGET render_framework PARENT_SCOPE)
