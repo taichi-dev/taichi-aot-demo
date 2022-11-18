@@ -3,6 +3,10 @@ function(configure_environment)
     # Configure TAICHI_C_API_INSTALL_DIR  #
     #######################################
     if (NOT EXISTS ${TAICHI_C_API_INSTALL_DIR})
+        set(${TAICHI_C_API_INSTALL_DIR} $ENV{TAICHI_C_API_INSTALL_DIR})
+    endif()
+    message("-- TAICHI_C_API_INSTALL_DIR=${TAICHI_C_API_INSTALL_DIR}")
+    if (NOT EXISTS ${TAICHI_C_API_INSTALL_DIR})
         message(FATAL_ERROR "Environment variable TAICHI_C_API_INSTALL_DIR is not specified")
     endif()
     get_filename_component(TAICHI_C_API_INSTALL_DIR ${TAICHI_C_API_INSTALL_DIR} ABSOLUTE CACHE)
@@ -70,7 +74,7 @@ function(configure_third_party)
 endfunction()
 
 
-function(install_shared_libraries DEMO_OUTPUT_DIRECTORY DUMMY_TARGET)        
+function(install_shared_libraries DEMO_OUTPUT_DIRECTORY)
     ###############################################
     # Copy Taichi C-API dylib to output directory #
     ###############################################
@@ -79,13 +83,6 @@ function(install_shared_libraries DEMO_OUTPUT_DIRECTORY DUMMY_TARGET)
     else()
         set(taichi_c_api_SRC ${taichi_c_api})
     endif()
-
-    add_custom_command(
-        OUTPUT ${DEMO_OUTPUT_DIRECTORY}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND}
-        ARGS -E copy ${taichi_c_api_SRC} ${DEMO_OUTPUT_DIRECTORY}
-        VERBATIM)
 
     # MoltenVK dylib should be copied to the output directory.
     ###########################################
@@ -100,9 +97,5 @@ function(install_shared_libraries DEMO_OUTPUT_DIRECTORY DUMMY_TARGET)
             ARGS -E copy ${MoltenVK} ${DEMO_OUTPUT_DIRECTORY}
             VERBATIM)
     endif()
-
-    add_custom_target(${DUMMY_TARGET} ALL
-        DEPENDS ${DEMO_OUTPUT_DIRECTORY}
-    )
 
 endfunction()

@@ -15,6 +15,10 @@ target_include_directories(${TAICHI_TUTORIAL_DEMO_NAME} PUBLIC ${TAICHI_C_API_IN
 target_link_libraries(${TAICHI_TUTORIAL_DEMO_NAME} ${taichi_c_api})
 set_target_properties(${TAICHI_TUTORIAL_DEMO_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tutorial)
 
+if (ANDROID)
+  target_link_libraries(${TAICHI_TUTORIAL_DEMO_NAME} android log)
+endif()
+
 if (NOT ANDROID)
   add_backward(${TAICHI_TUTORIAL_DEMO_NAME})
 endif()
