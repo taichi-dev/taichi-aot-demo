@@ -10,27 +10,11 @@
 
 static_assert(TI_AOT_DEMO_ANDROID_APP, "android native lib must be provided");
 struct Config {
-  TiArch arch = TI_ARCH_VULKAN;
-  bool debug = false;
+  AAssetManager* asset_mgr;
 } CFG;
 
-void initialize(const char* app_name, int argc, const char** argv) {
-  namespace args = liong::args;
-  std::string arch_lit = "vulkan";
-
-  args::init_arg_parse(app_name, "One of the Taichi AOT demos.");
-  args::reg_arg<args::StringParser>("", "--arch", arch_lit,
-    "Arch of Taichi runtime.");
-  args::reg_arg<args::SwitchParser>("", "--debug", CFG.debug,
-    "Enable Vulkan validation layers.");
-
-  args::parse_args(argc, argv);
-
-  if (arch_lit == "vulkan") {
-    CFG.arch = TI_ARCH_VULKAN;
-  } else {
-    throw std::runtime_error("unsupported arch");
-  }
+void initialize(android_app* state) {
+  CFG.asset_mgr = state->activity->assetManager;
 };
 
 namespace {
@@ -43,23 +27,33 @@ public:
   AndroidAssetManager(AAssetManager* asset_mgr) : asset_mgr_(asset_mgr) {}
 
   virtual bool load_file(const char* path, std::vector<uint8_t>& data) override final {
-    data = liong::util::load_file(path);
-    return data.size() != 0;
+    AAsset* file = AAssetManager_open(asset_mgr_, path, AASSET_MODE_BUFFER);
+    if (file == nullptr) {
+      return false;
+    }
+    size_t size = AAsset_getLength(file);
+    data.resize(size);
+    AAsset_read(file, data.data(), size);
+    AAsset_close(file);
+    return !data.empty();
   }
   virtual bool load_text(const char* path, std::string& str) override final{
-    str = liong::util::load_text(path);
-    return str.size() != 0;
+    AAsset* file = AAssetManager_open(asset_mgr_, path, AASSET_MODE_BUFFER);
+    if (file == nullptr) {
+      return false;
+    }
+    size_t size = AAsset_getLength(file);
+    str.resize(size);
+    AAsset_read(file, (void*)str.data(), size);
+    AAsset_close(file);
+    return !str.empty();
   }
 };
 
 } // namespace
 
-namespace {
-  AAssetManager* ASSET_MGR;
-} // namespace
-
 std::unique_ptr<ti::aot_demo::AssetManager> create_asset_manager() {
-  return std::unique_ptr<ti::aot_demo::AssetManager>(new AndroidAssetManager(ASSET_MGR));
+  return std::unique_ptr<ti::aot_demo::AssetManager>(new AndroidAssetManager(CFG.asset_mgr));
 }
 
 namespace {
@@ -71,26 +65,37 @@ struct AndroidApp {
 
 static void on_app_cmd_callback(struct android_app* state, int32_t cmd) {
   AndroidApp* app = (AndroidApp*)state->userData;
-  ti::aot_demo::Framework& F = ti::aot_demo::F;
   switch (cmd) {
     case APP_CMD_INIT_WINDOW:
     {
       std::unique_ptr<App> app2 = create_app();
+      ti::aot_demo::F = ti::aot_demo::Framework(app2->cfg(), TI_ARCH_VULKAN, false);
+      ti::aot_demo::Renderer& renderer = ti::aot_demo::F.renderer();
+
       app2->initialize();
-      F = ti::aot_demo::Framework(app2->cfg(), CFG.arch, CFG.debug);
-      F.renderer().set_surface_window(state->window);
+
+      renderer.set_surface_window(state->window);
+
       app->app = std::move(app2);
+      app->is_active = true;
       break;
     }
     case APP_CMD_TERM_WINDOW:
+    {
+      app->is_active = false;
       app->app.reset();
       break;
+    }
     case APP_CMD_GAINED_FOCUS:
+    {
       app->is_active = true;
       break;
+    }
     case APP_CMD_LOST_FOCUS:
+    {
       app->is_active = false;
       break;
+    }
     default:
       break;
   }
@@ -100,14 +105,13 @@ static void on_app_cmd_callback(struct android_app* state, int32_t cmd) {
 
 
 void android_main(struct android_app* state) {
-  ASSET_MGR = state->activity->assetManager;
+  initialize(state);
 
   std::unique_ptr<AndroidApp> app = std::make_unique<AndroidApp>();
   state->userData = app.get();
   state->onAppCmd = on_app_cmd_callback;
-  ti::aot_demo::Framework& F = ti::aot_demo::F;
 
-  while (true) {
+  for (;;) {
     // Read all pending events.
     int events;
     struct android_poll_source* source;
@@ -126,7 +130,8 @@ void android_main(struct android_app* state) {
       }
     }
 
-    if (app->is_active) {
+    if (app->is_active && app->app != nullptr) {
+      ti::aot_demo::Framework& F = ti::aot_demo::F;
       if (!app->app->update()) {
         F.next_frame();
         return;
