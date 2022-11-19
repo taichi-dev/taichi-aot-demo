@@ -6,7 +6,7 @@ android {
     // ndkVersion '22.1.7171670'
 
     defaultConfig {
-        applicationId = 'com.example.native_activity'
+        applicationId = 'org.taichi.aot_demo'
         minSdkVersion 27
         // noinspection ExpiredTargetSdkVersion
         targetSdkVersion 29
