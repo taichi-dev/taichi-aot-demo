@@ -1,4 +1,5 @@
 local.properties
 app/.cxx
 app/src/main/jniLibs/arm64-v8a/*.so
+app/src/main/assets/*.tcm
 .gradle

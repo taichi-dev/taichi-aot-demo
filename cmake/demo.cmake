@@ -81,6 +81,10 @@ function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
         return()
     endif()
 
+    if (NOT ANDROID AND ARCH MATCHES "android")
+        return()
+    endif()
+
     # Generate AOT files
     set(DUMMY_TARGET ${NAME}_${ARCH}_DYMMY_TARGET)
     add_custom_target(${DUMMY_TARGET} ALL)
