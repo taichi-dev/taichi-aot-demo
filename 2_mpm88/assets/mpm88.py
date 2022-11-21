@@ -188,7 +188,6 @@ def compile_mpm88(arch, platform=None):
     mod = ti.aot.Module(caps=['spirv_has_non_semantic_info'])
     mod.add_graph('init', g_init)
     mod.add_graph('update', g_update)
-
     if platform == "android":
         mod.archive(get_archive_path())
     else:
