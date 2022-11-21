@@ -514,7 +514,7 @@ void Renderer::set_swapchain() {
   swapchain_image_height_ = swapchain_image_height;
 }
 
-#if TI_AOT_DEMO_GLFW
+#if TI_AOT_DEMO_WITH_GLFW
 void Renderer::set_surface_window(GLFWwindow* window) {
   VkResult res = VK_SUCCESS;
 
@@ -525,7 +525,7 @@ void Renderer::set_surface_window(GLFWwindow* window) {
   surface_ = surface;
   set_swapchain();
 }
-#endif // TI_AOT_DEMO_GLFW
+#endif // TI_AOT_DEMO_WITH_GLFW
 
 #if TI_AOT_DEMO_ANDROID_APP
 void Renderer::set_surface_window(ANativeWindow* window) {
