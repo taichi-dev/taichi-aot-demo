@@ -24,6 +24,10 @@ if (ANDROID)
   target_link_libraries(${TAICHI_TUTORIAL_DEMO_NAME} android log)
 endif()
 
+if (ANDROID)
+  target_link_libraries(${TAICHI_TUTORIAL_DEMO_NAME} android log)
+endif()
+
 if (NOT ANDROID)
   add_backward(${TAICHI_TUTORIAL_DEMO_NAME})
 endif()
