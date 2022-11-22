@@ -55,9 +55,9 @@ struct App3_implicit_fem : public App {
     GraphicsRuntime& runtime = F_->runtime();
     Renderer& renderer = F_->renderer();
 
-#if ANDROID
+#ifdef TI_AOT_DEMO_WITH_ANDROID_APP
     std::vector<uint8_t> tcm;
-    F.asset_mgr().load_file("E3_implicit_fem.tcm", tcm);
+    F_->asset_mgr().load_file("E3_implicit_fem.tcm", tcm);
     module_ = runtime.create_aot_module(tcm);
 #else
     module_ = runtime.load_aot_module("3_implicit_fem/assets/implicit_fem");
