@@ -41,7 +41,6 @@ endfunction()
 
 #Internal
 function(add_android_app_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
-    return()
     # (penguinliong) Note that android app build have two steps:
     #   1. Build the entry point native library.
     #   2. Build the app and import the native library.
@@ -100,7 +99,6 @@ function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
             VERBATIM)
     endif()
 
-    return()
     # Copy binary assets to android asset directory.
     set(DUMMY_TARGET2 ${NAME}_${ARCH}_DYMMY_TARGET2)
     add_custom_target(${DUMMY_TARGET2} ALL)
