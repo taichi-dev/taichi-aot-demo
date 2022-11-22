@@ -54,6 +54,7 @@ function(add_android_app_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
     target_include_directories(${TAICHI_AOT_DEMO_TARGET} PUBLIC
         ${ANDROID_NDK}/sources/android/native_app_glue
         ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
+    target_compile_definitions(${TAICHI_AOT_DEMO_TARGET} PUBLIC TI_AOT_DEMO_WITH_ANDROID_APP=1)
 endfunction()
 
 
