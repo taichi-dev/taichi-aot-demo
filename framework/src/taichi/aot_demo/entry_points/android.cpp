@@ -69,14 +69,10 @@ static void on_app_cmd_callback(struct android_app* state, int32_t cmd) {
     case APP_CMD_INIT_WINDOW:
     {
       std::unique_ptr<App> app2 = create_app();
-      const AppConfig app_cfg = app2->cfg();
+      ti::aot_demo::F = ti::aot_demo::Framework(app2->cfg(), TI_ARCH_VULKAN, false);
+      ti::aot_demo::Renderer& renderer = ti::aot_demo::F.renderer();
 
-      auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, false);
-      app2->set_framework(F);
-
-      ti::aot_demo::Renderer& renderer = F->renderer();
-
-      app2->initialize(TI_ARCH_VULKAN);
+      app2->initialize();
 
       renderer.set_surface_window(state->window);
 
@@ -135,7 +131,7 @@ void android_main(struct android_app* state) {
     }
 
     if (app->is_active && app->app != nullptr) {
-      ti::aot_demo::Framework& F = *app->app->F_;
+      ti::aot_demo::Framework& F = ti::aot_demo::F;
       if (!app->app->update()) {
         F.next_frame();
         return;
