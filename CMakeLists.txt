@@ -39,8 +39,6 @@ include("cmake/demo.cmake")
 
 set(HEADLESS_DEMO_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/headless)
 set(GLFW_DEMO_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/glfw)
-set(ANDROID_APP_DEMO_OUTPUT_DIRECTORY
-    ${CMAKE_SOURCE_DIR}/framework/android/app/src/main/jniLibs/arm64-v8a)
 
 add_subdirectory(1_hello_world)
 add_subdirectory(1_hello_world_with_interop)
@@ -52,6 +50,5 @@ add_subdirectory(6_taichi_sparse)
 add_subdirectory(7_comet)
 
 # 5. Install runtime libraries
-install_shared_libraries(${GLFW_DEMO_OUTPUT_DIRECTORY})
-install_shared_libraries(${HEADLESS_DEMO_OUTPUT_DIRECTORY})
-install_shared_libraries(${ANDROID_APP_DEMO_OUTPUT_DIRECTORY})
+install_shared_libraries(${GLFW_DEMO_OUTPUT_DIRECTORY}, "glfw_dummy")
+install_shared_libraries(${HEADLESS_DEMO_OUTPUT_DIRECTORY}, "headless_dummy")

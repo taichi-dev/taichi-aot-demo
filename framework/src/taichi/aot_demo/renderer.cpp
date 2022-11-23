@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <set>
+#include <vulkan/vulkan.h>
 #include "taichi/aot_demo/renderer.hpp"
 
 namespace ti {
@@ -468,11 +469,16 @@ void Renderer::destroy() {
   swapchain_ = VK_NULL_HANDLE;
 }
 
-void Renderer::set_swapchain() {
+#if TI_AOT_DEMO_WITH_GLFW
+void Renderer::set_surface_window(GLFWwindow* window) {
   VkResult res = VK_SUCCESS;
 
+  VkSurfaceKHR surface = VK_NULL_HANDLE;
+  res = glfwCreateWindowSurface(instance_, window, nullptr, &surface);
+  check_vulkan_result(res);
+
   VkSurfaceCapabilitiesKHR sc {};
-  res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, surface_, &sc);
+  res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, surface, &sc);
   check_vulkan_result(res);
 
   uint32_t swapchain_image_width = sc.currentExtent.width;
@@ -480,11 +486,11 @@ void Renderer::set_swapchain() {
 
   uint32_t nsf = 1;
   VkSurfaceFormatKHR sf {};
-  vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device_, surface_, &nsf, &sf);
+  vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device_, surface, &nsf, &sf);
 
   VkSwapchainCreateInfoKHR sci {};
   sci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  sci.surface = surface_;
+  sci.surface = surface;
   sci.minImageCount = 2;
   sci.imageFormat = sf.format;
   sci.imageColorSpace = sf.colorSpace;
@@ -508,41 +514,13 @@ void Renderer::set_swapchain() {
   std::vector<VkImage> swapchain_images(nswapchain_image);
   vkGetSwapchainImagesKHR(device_, swapchain, &nswapchain_image, swapchain_images.data());
 
+  surface_ = surface;
   swapchain_ = swapchain;
   swapchain_images_ = std::move(swapchain_images);
   swapchain_image_width_ = swapchain_image_width;
   swapchain_image_height_ = swapchain_image_height;
 }
-
-#if TI_AOT_DEMO_WITH_GLFW
-void Renderer::set_surface_window(GLFWwindow* window) {
-  VkResult res = VK_SUCCESS;
-
-  VkSurfaceKHR surface = VK_NULL_HANDLE;
-  res = glfwCreateWindowSurface(instance_, window, nullptr, &surface);
-  check_vulkan_result(res);
-
-  surface_ = surface;
-  set_swapchain();
-}
 #endif // TI_AOT_DEMO_WITH_GLFW
-
-#if TI_AOT_DEMO_ANDROID_APP
-void Renderer::set_surface_window(ANativeWindow* window) {
-  VkResult res = VK_SUCCESS;
-
-  VkAndroidSurfaceCreateInfoKHR asci {};
-  asci.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-  asci.window = window;
-
-  VkSurfaceKHR surface = VK_NULL_HANDLE;
-  res = vkCreateAndroidSurfaceKHR(instance_, &asci, nullptr, &surface);
-  check_vulkan_result(res);
-
-  surface_ = surface;
-  set_swapchain();
-}
-#endif // TI_AOT_DEMO_ANDROID_APP
 
 void Renderer::set_framebuffer_size(uint32_t width, uint32_t height) {
   VkResult res = VK_SUCCESS;

@@ -11,11 +11,8 @@ args = parser.parse_args()
 def get_save_dir(name, arch):
     curr_dir = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(curr_dir, f"{name}_{arch}")
-def get_archive_path():
-    curr_dir = os.path.dirname(os.path.realpath(__file__))
-    return os.path.join(curr_dir, f"../../framework/android/app/src/main/assets/E2_mpm88.tcm")
 
-def compile_mpm88(arch, platform=None):
+def compile_mpm88(arch, save_compute_graph):
     ti.init(arch, vk_api_version="1.0")
 
     if ti.lang.impl.current_cfg().arch != arch:
@@ -189,21 +186,18 @@ def compile_mpm88(arch, platform=None):
     mod.add_graph('init', g_init)
     mod.add_graph('update', g_update)
 
-    if platform == "android":
-        mod.archive(get_archive_path())
-    else:
-        save_dir = get_save_dir("mpm88", args.arch)
-        os.makedirs(save_dir, exist_ok=True)
-        mod.save(save_dir, '')
+    save_dir = get_save_dir("mpm88", args.arch)
+    os.makedirs(save_dir, exist_ok=True)
+    mod.save(save_dir, '')
 
 if __name__ == "__main__":
+    compile_for_cgraph = args.cgraph
+
     if args.arch == "vulkan":
-        compile_mpm88(arch=ti.vulkan)
+        compile_mpm88(arch=ti.vulkan, save_compute_graph=compile_for_cgraph)
     elif args.arch == "cuda":
-        compile_mpm88(arch=ti.cuda)
+        compile_mpm88(arch=ti.cuda, save_compute_graph=compile_for_cgraph)
     elif args.arch == "x64":
-        compile_mpm88(arch=ti.x64)
-    elif args.arch == "android-vulkan":
-        compile_mpm88(arch=ti.vulkan, platform="android")
+        compile_mpm88(arch=ti.x64, save_compute_graph=compile_for_cgraph)
     else:
         assert False
