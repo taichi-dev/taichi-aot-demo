@@ -15,9 +15,9 @@ set(TaichiAotDemoFramework_LINK_LIBRARIES
     GraphiT)
 
 set(TaichiAotDemoFramework_INCLUDE_DIRECTORIES
+    ${Vulkan_INCLUDE_DIR}
     ${TAICHI_C_API_INSTALL_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/external/Vulkan-Headers/include
     ${PROJECT_SOURCE_DIR}/external/VulkanMemoryAllocator/include
     ${PROJECT_SOURCE_DIR}/external/glslang/glslang/Include
     ${PROJECT_SOURCE_DIR}/external/glm
@@ -32,13 +32,6 @@ endif()
 
 # Compile for renderer framework
 add_library(${RENDER_FRAMEWORK_TARGET} ${TaichiAotDemoFramework_SOURCES})
-
-if(ANDROID)
-    find_library(android android)
-    find_library(log log)
-    list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES android log)
-    target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC TI_AOT_DEMO_ANDROID_APP=1)
-endif()
 
 if(NOT ANDROID)
     list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES glfw)

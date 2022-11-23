@@ -63,17 +63,5 @@ Currently the framework supports the following entry points:
 |-|-|
 |`headless`|Standalone headless runners that saves frame outputs to `.bmp` files. Consult how to use the binary executables like this: `E1_hello_world_headless --help`.|
 |`glfw`|GLFW windowed runners for visualized outputs.|
-|`android`|Android native apps for deployment verification. For more information please consult the *Build Android Native Apps* section.|
 
 Among these, `headless` binaries can help a lot with CI/CD integration.
-
-## Build Android Apps
-
-The Android AOT native Apps are to demonstrate Taichi's cross-compilation and mobile platform deployment features. The installation procedures have been automated with the following scripts:
-
-|Script File|Description|
-|-|-|
-|`scripts/build-taichi-android.sh`|Build Taichi Runtime C-API library for `arm64-v8a` which is pretty common for Android devices.|
-|`scripts/build-android.sh`|Build demo native app libraries to `framework/android/app/src/main/jniLibs/arm64-v8a`.|
-|`scripts/build-android-app.sh [demo]`|Bundle Android native apps. Limited by the Android build system, you can only build one App at a time. `demo` is the name of the demo to be built, e.g., `E1_hello_world`. You can find the built APK package in `framework/android/app/build/outputs/apk/release`.|
-
