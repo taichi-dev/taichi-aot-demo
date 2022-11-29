@@ -96,10 +96,15 @@ struct App2_mpm88 : public App {
         runtime_ = ti::Runtime(arch_);
     }
 
-    
     // 2. Load AOT module
+#ifdef TI_AOT_DEMO_WITH_ANDROID_APP
+    std::vector<uint8_t> tcm;
+    F_->asset_mgr().load_file("E2_mpm88.tcm", tcm);
+    module_ = runtime_.create_aot_module(tcm);
+#else
     auto aot_file_path = get_aot_file_dir(arch_);
     module_ = runtime_.load_aot_module(aot_file_path);
+#endif
 
     g_init_ = module_.get_compute_graph("init");
     g_update_ = module_.get_compute_graph("update");
