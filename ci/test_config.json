@@ -1,5 +1,19 @@
 {
 
+"all-vulkan": {
+    "cmake_args" : ["-DTI_WITH_CUDA=ON", "-DTI_WITH_CPU=ON"],
+    "tests": [
+        ["tutorial/E0_tutorial_cgraph",                   "",              ""],
+        ["tutorial/E0_tutorial_kernel",                   "",              ""],
+        ["headless/E1_hello_world_headless",              "--arch vulkan", "ci/headless-truths/linux/vulkan/E1_hello_world_headless.bmp"],
+        ["headless/E1_hello_world_with_interop_headless", "--arch vulkan", "ci/headless-truths/linux/vulkan/E1_hello_world_with_interop_headless.bmp"],
+        ["headless/E2_mpm88_headless",                    "--arch vulkan", "ci/headless-truths/linux/vulkan/E2_mpm88_headless.bmp"],
+        ["headless/E3_implicit_fem_headless",             "--arch vulkan", "ci/headless-truths/linux/vulkan/E3_implicit_fem_headless.bmp"],
+        ["headless/E4_texture_fractal_headless",          "--arch vulkan", "ci/headless-truths/linux/vulkan/E4_texture_fractal_headless.bmp"],
+        ["headless/E5_sph_headless",                      "--arch vulkan", "ci/headless-truths/linux/vulkan/E5_sph_headless.bmp"]
+    ]
+},
+
 "linux": {
     "cmake_args" : ["-DTI_WITH_CUDA=ON", "-DTI_WITH_CPU=ON"],
     "tests": [

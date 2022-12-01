@@ -60,4 +60,4 @@ jobs:
 
     - name: Build and Test
       run: |
-        python3 ./ci/run_tests.py -l $TAICHI_C_API_INSTALL_DIR
+        python3 ./ci/run_tests.py -c all-vulkan -l $TAICHI_C_API_INSTALL_DIR
