@@ -31,10 +31,14 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
         pip3 install -i https://pypi.taichi.graphics/simple/ taichi-nightly
         pip3 install -r ./ci/requirements.txt
+        
+    - name: Setup Environment
+      run: |
+        pip3 show taichi-nightly | grep -Eo "Location: .*" | grep -Eo "/.*"
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
