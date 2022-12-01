@@ -28,12 +28,13 @@ jobs:
       
     - name: Setup Python
       uses: actions/setup-python@v2.3.3
+      with:
+        python-version: 3.10
 
     - name: Install dependencies
-      run: pip3 install -r ./ci/requirements.txt
-
-    - name: Install taichi-nightly
-      run: pip3 install -i https://pypi.taichi.graphics/simple/ taichi-nightly
+      run: |
+        pip3 install -i https://pypi.taichi.graphics/simple/ taichi-nightly
+        pip3 install -r ./ci/requirements.txt
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
