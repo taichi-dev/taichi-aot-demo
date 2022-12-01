@@ -20,13 +20,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
+    - name: Show uname
+      run: uname -a
+    
     - name: Setup Ninja
       uses: ashutoshvarma/setup-ninja@v1.1
       
     - name: Setup Python
       uses: actions/setup-python@v2.3.3
-      with:
-        architecture: x64
 
     - name: Install dependencies
       run: pip3 install -r ./ci/requirements.txt
