@@ -37,7 +37,7 @@ jobs:
         pip3 install -i https://pypi.taichi.graphics/simple/ taichi-nightly
         mkdir tmp
         pip3 download --no-deps -i https://pypi.taichi.graphics/simple/ taichi-nightly -d tmp
-        local TAICHI_WHEEL_NAME=$(ls tmp/taichi_nightly*.whl)
+        export TAICHI_WHEEL_NAME=$(ls tmp/taichi_nightly*.whl)
         unzip $TAICHI_WHEEL_NAME -d tmp
         export TAICHI_C_API_INSTALL_DIR=$(find tmp/**/c_api -type d -print | head -1)
         export TI_LIB_DIR=$TAICHI_C_API_INSTALL_DIR/runtime
