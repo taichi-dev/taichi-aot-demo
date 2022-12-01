@@ -40,7 +40,8 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        sudo apt-get install -y libxrender-dev mesa
+        sudo add-apt-repository ppa:kisak/kisak-mesa
+        sudo apt-get install -y libxrender-dev mesa-utils mesa
         pip3 install -r ./ci/requirements.txt
         pip3 install -i https://pypi.taichi.graphics/simple/ taichi-nightly
         mkdir tmp
