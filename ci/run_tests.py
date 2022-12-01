@@ -4,11 +4,7 @@ import argparse
 import subprocess
 import json
 import numpy as np
-import sys
 from PIL import Image
-
-# FIXME: (penguinliong) Get it back after a proper fix.
-sys.exit(0)
 
 parser = argparse.ArgumentParser(description=f"")
 parser.add_argument('-l',
