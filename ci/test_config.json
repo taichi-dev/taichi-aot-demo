@@ -1,7 +1,7 @@
 {
 
 "all-vulkan": {
-    "cmake_args" : ["-DTI_WITH_CUDA=ON", "-DTI_WITH_CPU=ON"],
+    "cmake_args" : ["-DTI_WITH_CPU=ON"],
     "tests": [
         ["tutorial/E0_tutorial_cgraph",                   "",              ""],
         ["tutorial/E0_tutorial_kernel",                   "",              ""],
