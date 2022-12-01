@@ -42,8 +42,7 @@ jobs:
       run: |
         sudo add-apt-repository ppa:kisak/kisak-mesa
         sudo apt-get update
-        sudo apt-get upgrade
-        sudo apt-get install -y libxrender-dev mesa-utils
+        sudo apt-get install -y libxrandr-dev libxi-dev libxinerama-dev libsdl2-dev libxcursor-dev mesa-utils
         pip3 install -r ./ci/requirements.txt
         pip3 install -i https://pypi.taichi.graphics/simple/ taichi-nightly
         mkdir tmp
