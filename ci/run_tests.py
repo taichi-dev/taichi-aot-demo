@@ -97,13 +97,15 @@ if __name__ == "__main__":
     project_dir = get_project_root_dir()
     build_dir = get_build_dir()
 
-    test_list, cmake_args = parse_test_config(config="linux")
+    config = args.config
+
+    test_list, cmake_args = parse_test_config(config=config)
 
     build_project(project_dir, build_dir, cmake_args)
 
     # 2. Run executable and compare with ground truth
     for test_command, arguments, ground_truth_dir in test_list:
-        output_image_dir = execute_test_command(test_command, arguments, config="linux")
+        output_image_dir = execute_test_command(test_command, arguments, config=config)
         if ground_truth_dir:
             ground_truth_dir = os.path.join(project_dir, ground_truth_dir)
             compare_bmp_images(output_image_dir, ground_truth_dir, threshold = 0.1)
