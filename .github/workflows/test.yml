@@ -40,6 +40,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
+        sudo apt-get install -y libxrender-dev mesa
         pip3 install -r ./ci/requirements.txt
         pip3 install -i https://pypi.taichi.graphics/simple/ taichi-nightly
         mkdir tmp
@@ -50,6 +51,7 @@ jobs:
         echo "TAICHI_C_API_INSTALL_DIR=$TAICHI_C_API_INSTALL_DIR" >> $GITHUB_ENV
         echo "TI_LIB_DIR=$TAICHI_C_API_INSTALL_DIR/runtime" >> $GITHUB_ENV
         cat $GITHUB_ENV
+        
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -GNinja
