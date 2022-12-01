@@ -26,7 +26,6 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v2.3.3
       with:
-        cache: true
         architecture: x64
 
     - name: Install dependencies
