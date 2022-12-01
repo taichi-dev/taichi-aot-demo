@@ -39,7 +39,8 @@ jobs:
         pip3 download --no-deps -i https://pypi.taichi.graphics/simple/ taichi-nightly -d tmp
         export TAICHI_WHEEL_NAME=$(ls tmp/taichi_nightly*.whl)
         unzip $TAICHI_WHEEL_NAME -d tmp
-        echo "TAICHI_C_API_INSTALL_DIR=$(find tmp -name c_api -type d -print | head -1)" >> $GITHUB_ENV
+        export TAICHI_C_API_INSTALL_DIR=$(pwd)/$(find tmp -name c_api -type d -print | head -1)
+        echo "TAICHI_C_API_INSTALL_DIR=$TAICHI_C_API_INSTALL_DIR" >> $GITHUB_ENV
         echo "TI_LIB_DIR=$TAICHI_C_API_INSTALL_DIR/runtime" >> $GITHUB_ENV
         cat $GITHUB_ENV
 
