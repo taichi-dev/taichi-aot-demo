@@ -143,8 +143,8 @@ try_another_physical_device:
   VkPhysicalDeviceProperties pdp {};
   vkGetPhysicalDeviceProperties(physical_device, &pdp);
 
-  // (penguinliong) Try not to be trapped by Intel's garbage integrated GPU.
-  if (pdp.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+  // (penguinliong) Try not to be trapped by Intel's garbage integrated GPU or CPU software rasterizers.
+  if (pdp.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU || pdp.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) {
     if (physical_device_index + 1 != pds.size()) {
       physical_device_index += 1;
       goto try_another_physical_device;
