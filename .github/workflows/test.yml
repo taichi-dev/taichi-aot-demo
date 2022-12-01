@@ -33,12 +33,14 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        pip3 install -i https://pypi.taichi.graphics/simple/ taichi-nightly
         pip3 install -r ./ci/requirements.txt
-        
-    - name: Setup Environment
-      run: |
-        pip3 show taichi-nightly | grep -Eo "Location: .*" | grep -Eo "/.*"
+        pip3 install -i https://pypi.taichi.graphics/simple/ taichi-nightly
+        mkdir tmp
+        pip3 download --no-deps -i https://pypi.taichi.graphics/simple/ taichi-nightly -d tmp
+        local TAICHI_WHEEL_NAME=$(ls tmp/taichi_nightly*.whl)
+        unzip $TAICHI_WHEEL_NAME -d tmp
+        export TAICHI_C_API_INSTALL_DIR=$(find tmp/**/c_api -type d -print | head -1)
+        export TI_LIB_DIR=$TAICHI_C_API_INSTALL_DIR/runtime
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
@@ -46,4 +48,3 @@ jobs:
     - name: Build and Test
       working-directory: ${{github.workspace}}/build
       run: python3 ./ci/run_tests.py
-
