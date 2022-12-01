@@ -59,4 +59,5 @@ jobs:
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -GNinja
 
     - name: Build and Test
-      run: python3 ./ci/run_tests.py
+      run: |
+        python3 ./ci/run_tests.py -l $TAICHI_C_API_INSTALL_DIR
