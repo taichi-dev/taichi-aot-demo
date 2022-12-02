@@ -16,9 +16,10 @@ parser.add_argument('-c',
                     '--config',
                     required=False,
                     default="linux",
-                    help="Test config to run ('linux', 'android', 'all-vulkan'")
+                    help="Test config to run ('github', 'linux', 'android'")
 args = parser.parse_args()
 os.environ["TAICHI_C_API_INSTALL_DIR"] = args.libcapi
+os.environ["TI_LIB_DIR"] = f"{args.libcapi}/runtime"
 
 def get_project_root_dir():
     curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -75,7 +76,9 @@ def execute_test_command(test_command, arguments, config):
     output_image_dir = test_command + "_result.bmp"
     arguments.extend(["-o", output_image_dir])
 
-    result = subprocess.run([test_command, *arguments], stderr=subprocess.STDOUT, timeout=30)
+    cmd = [test_command, *arguments]
+    print(*cmd)
+    result = subprocess.run(cmd, stderr=subprocess.STDOUT, timeout=30)
     result.check_returncode()
 
     # TODO: copy back output image (android)

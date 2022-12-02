@@ -151,9 +151,10 @@ struct App5_sph : public App {
     k_initialize_[2] = N_;
 
     k_initialize_particle_[0] = pos_;
-    k_initialize_particle_[1] = spawn_box_;
-    k_initialize_particle_[2] = N_;
-    k_initialize_particle_[3] = gravity_;
+    k_initialize_particle_[1] = vel_;
+    k_initialize_particle_[2] = spawn_box_;
+    k_initialize_particle_[3] = N_;
+    k_initialize_particle_[4] = gravity_;
 
     k_update_density_[0] = pos_;
     k_update_density_[1] = den_;

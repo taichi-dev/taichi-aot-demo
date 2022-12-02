@@ -27,12 +27,12 @@ jobs:
 
     - name: Setup Ninja
       uses: ashutoshvarma/setup-ninja@v1.1
-      
+
     - name: Setup Python
       uses: actions/setup-python@v2.3.3
       with:
         python-version: '3.10'
-        
+
     - name: Install Vulkan SDK
       uses: humbletim/install-vulkan-sdk@v1.1.1
       with:
@@ -53,7 +53,6 @@ jobs:
         echo "TAICHI_C_API_INSTALL_DIR=$TAICHI_C_API_INSTALL_DIR" >> $GITHUB_ENV
         echo "TI_LIB_DIR=$TAICHI_C_API_INSTALL_DIR/runtime" >> $GITHUB_ENV
         cat $GITHUB_ENV
-        
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -GNinja

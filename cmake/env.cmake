@@ -84,9 +84,9 @@ function(install_shared_libraries DEMO_OUTPUT_DIRECTORY)
         set(taichi_c_api_SRC ${taichi_c_api})
     endif()
 
-    if (ANDROID)
-        file(COPY ${taichi_c_api_SRC} DESTINATION "${PROJECT_SOURCE_DIR}/framework/android/app/src/main/jniLibs/arm64-v8a/")
-    endif()
+    message("-- Taichi C-API Runtime at ${taichi_c_api_SRC}")
+
+    file(COPY ${taichi_c_api_SRC} DESTINATION ${DEMO_OUTPUT_DIRECTORY})
 
     # MoltenVK dylib should be copied to the output directory.
     ###########################################
