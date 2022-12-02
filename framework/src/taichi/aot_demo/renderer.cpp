@@ -14,17 +14,13 @@ namespace aot_demo {
 std::vector<uint32_t> vert2spv(const std::string& vert);
 std::vector<uint32_t> frag2spv(const std::string& frag);
 
-inline void check_vulkan_result_(VkResult result) {
-  if (result < VK_SUCCESS) {
-    uint32_t result2 = (uint32_t)result;
-    std::printf("  vulkan failed: %d\n", result2);
-    throw std::runtime_error("vulkan failed");
-  }
-}
-
 #define check_vulkan_result(x) \
-  std::printf("File \"%s\", line %d, in %s:\n", __FILE__, __LINE__, __func__); \
-  check_vulkan_result_(x);
+  if (result < VK_SUCCESS) { \
+    uint32_t result2 = (uint32_t)result; \
+    std::printf("File \"%s\", line %d, in %s:\n", __FILE__, __LINE__, __func__); \
+    std::printf("  vulkan failed: %d\n", result2); \
+    throw std::runtime_error("vulkan failed"); \
+  }
 
 inline void check_taichi_error() {
   TiError error = ti_get_last_error(0, nullptr);
