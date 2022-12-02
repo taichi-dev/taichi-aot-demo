@@ -15,7 +15,7 @@ std::vector<uint32_t> vert2spv(const std::string& vert);
 std::vector<uint32_t> frag2spv(const std::string& frag);
 
 #define check_vulkan_result(x) \
-  if (result < VK_SUCCESS) { \
+  if (x < VK_SUCCESS) { \
     uint32_t x2 = (uint32_t)x; \
     std::printf("File \"%s\", line %d, in %s:\n", __FILE__, __LINE__, __func__); \
     std::printf("  vulkan failed: %d\n", x2); \
