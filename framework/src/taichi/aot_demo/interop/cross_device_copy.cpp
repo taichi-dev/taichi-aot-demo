@@ -61,7 +61,7 @@ void InteropHelper<T>::copy_from_cpu(GraphicsRuntime& runtime,
     VkBuffer staging_buffer;
     VkDeviceMemory staging_buffer_memory;
     VkDeviceSize buffer_size = cpu_interop_info.size;
-    createBuffer(vk_device, physical_device, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging_buffer, staging_buffer_memory);
+    createBuffer(vk_device, physical_device, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging_buffer, staging_buffer_memory);
     
     // Copy CPU data to staging buffer
     void* data;
