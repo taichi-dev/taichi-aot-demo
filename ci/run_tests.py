@@ -89,7 +89,7 @@ def execute_test_command(test_command, arguments, config):
 def compare_bmp_images(image1_dir, image2_dir, threshold = 0.1):
     # FIXME: (penguinliong) Remove this workaround. For some reason RMSE tests
     # randomly fail on CI machines.
-    if config == "image":
+    if config == "github":
         return
 
     image1 = np.array(Image.open(image1_dir))
