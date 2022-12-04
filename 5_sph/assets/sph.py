@@ -95,7 +95,7 @@ def initialize(boundary_box: ti.any_arr(field_dim=1), spawn_box: ti.any_arr(fiel
     N[2] = 20;
 
 @ti.kernel
-def initialize_particle(pos: ti.any_arr(field_dim=1), spawn_box: ti.any_arr(field_dim=1), N: ti.any_arr(field_dim=1), gravity: ti.any_arr(field_dim=0)):
+def initialize_particle(pos: ti.any_arr(field_dim=1), vel: ti.any_arr(field_dim=1), spawn_box: ti.any_arr(field_dim=1), N: ti.any_arr(field_dim=1), gravity: ti.any_arr(field_dim=0)):
     gravity[None] = ti.Vector([0.0, -9.8, 0.0])
     for i in range(particle_num):
         pos[i] = (
@@ -105,6 +105,7 @@ def initialize_particle(pos: ti.any_arr(field_dim=1), spawn_box: ti.any_arr(fiel
             * particle_diameter
             + spawn_box[0]
         )
+        vel[i] = [0.0, 0.0, 0.0]
         # print(i, pos[i], spawn_box[0], N[0], N[1], N[2])
 
 
@@ -208,7 +209,7 @@ if __name__ == "__main__":
     mod = ti.aot.Module(arch)
     
     mod.add_kernel(initialize,          template_args={'boundary_box':boundary_box, 'spawn_box':spawn_box, 'N':N})
-    mod.add_kernel(initialize_particle, template_args={'pos':pos, 'spawn_box':spawn_box, 'N':N, 'gravity':gravity})
+    mod.add_kernel(initialize_particle, template_args={'pos':pos, 'vel':vel, 'spawn_box':spawn_box, 'N':N, 'gravity':gravity})
     mod.add_kernel(update_density,      template_args={'pos':pos, 'den':den, 'pre':pre})
     mod.add_kernel(update_force,        template_args={'pos':pos, 'vel':vel, 'den':den, 'pre':pre, 'acc':acc, 'gravity':gravity})
     mod.add_kernel(advance,             template_args={'pos':pos, 'vel':vel, 'acc':acc})

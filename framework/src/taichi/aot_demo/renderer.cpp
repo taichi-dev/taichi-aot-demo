@@ -1,6 +1,7 @@
 // A minimalist renderer.
 // @PENGUINLIONG
 #include <cassert>
+#include <cstdio>
 #include <array>
 #include <stdexcept>
 #include <iostream>
@@ -14,11 +15,14 @@ namespace aot_demo {
 std::vector<uint32_t> vert2spv(const std::string& vert);
 std::vector<uint32_t> frag2spv(const std::string& frag);
 
-inline void check_vulkan_result(VkResult result) {
-  if (result < VK_SUCCESS) {
-    throw std::runtime_error("vulkan failed");
+#define check_vulkan_result(x) \
+  if (x < VK_SUCCESS) { \
+    uint32_t x2 = (uint32_t)x; \
+    std::printf("File \"%s\", line %d, in %s:\n", __FILE__, __LINE__, __func__); \
+    std::printf("  vulkan failed: %d\n", x2); \
+    std::fflush(stdout); \
+    throw std::runtime_error("vulkan failed"); \
   }
-}
 
 inline void check_taichi_error() {
   TiError error = ti_get_last_error(0, nullptr);
@@ -228,6 +232,7 @@ try_another_physical_device:
 
   VkDevice device = VK_NULL_HANDLE;
   res = vkCreateDevice(physical_device, &dci, nullptr, &device);
+  check_vulkan_result(res);
 
   VkQueue queue = VK_NULL_HANDLE;
   vkGetDeviceQueue(device, queue_family_index, 0, &queue);
@@ -246,7 +251,8 @@ try_another_physical_device:
   aci.pVulkanFunctions = &vf2;
 
   VmaAllocator vma_allocator = VK_NULL_HANDLE;
-  vmaCreateAllocator(&aci, &vma_allocator);
+  res = vmaCreateAllocator(&aci, &vma_allocator);
+  check_vulkan_result(res);
 
   // TODO: (penguinliong) Export from Taichi?
   VkSamplerCreateInfo sci {};
@@ -319,6 +325,7 @@ try_another_physical_device:
 
   VkSemaphore render_present_semaphore = VK_NULL_HANDLE;
   res = vkCreateSemaphore(device, &sci2, nullptr, &render_present_semaphore);
+  check_vulkan_result(res);
 
   VkFenceCreateInfo fci {};
   fci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;

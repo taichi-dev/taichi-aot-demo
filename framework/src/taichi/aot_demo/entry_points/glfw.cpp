@@ -81,7 +81,9 @@ GLFWwindow* create_glfw_window(const AppConfig& app_cfg, const ti::aot_demo::Ren
 }
 
 int main(int argc, const char** argv) {
-#ifdef TI_LIB_DIR
+// FIXME: (penguinliong) @jim19930609 Maybe setting this var in scripts can be
+// a better option.
+#if !defined(_WIN32) && defined(TI_LIB_DIR)
   // This is for CUDA/CPU AOT only
   // TI_LIB_DIR set by cmake
   std::string ti_lib_dir = (TI_LIB_DIR);
