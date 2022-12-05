@@ -94,6 +94,7 @@ jobs:
         git clone --depth=1 https://github.com/taichi-dev/taichi_c_api_null_impl
         pushd taichi_c_api_null_impl
         mkdir build && cd build
+        ./scripts/generate_c_api_null_impl.sh
         cmake .. -DCMAKE_INSTALL_PREFIX=install
         cmake --build . -t install
         popd
