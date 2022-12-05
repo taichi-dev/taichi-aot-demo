@@ -89,6 +89,8 @@ jobs:
 
     - name: Install C-API Null Implementation
       run: |
+        git clone --depth=1 https://github.com/taichi-dev/taichi
+        export TAICHI_REPO_DIR=$(pwd)/taichi
         git clone --depth=1 https://github.com/taichi-dev/taichi_c_api_null_impl
         pushd taichi_c_api_null_impl
         mkdir build && cd build
