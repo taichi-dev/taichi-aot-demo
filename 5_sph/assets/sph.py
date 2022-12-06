@@ -22,18 +22,14 @@ elif args.arch == "vulkan":
 else:
     assert False
 
-ti.init(arch=arch, offline_cache=False)
+ti.init(arch=arch, offline_cache=False, default_fp=ti.f32)
 
 screen_res = (1000, 1000)
-
-boundary_box_np = np.array([[0, 0, 0], [1, 1, 1]]).astype(np.float32)
-spawn_box_np = np.array([[0.3, 0.3, 0.3], [0.7, 0.7, 0.7]]).astype(np.float32)
 
 particle_radius = 0.01
 particle_diameter = particle_radius * 2
 h = 4.0 * particle_radius
-N_np = ((spawn_box_np[1] - spawn_box_np[0]) / particle_diameter + 1).astype(np.int32)
-particle_num = N_np[0] * N_np[1] * N_np[2]
+particle_num = 8000
 
 rest_density = 1000.0
 mass = rest_density * particle_diameter * particle_diameter * particle_diameter * 0.8
@@ -190,11 +186,8 @@ def copy_data_from_ndarray_to_field(src: ti.template(), dst: ti.any_arr()):
 if __name__ == "__main__":
     # Initialize arrays
     N = ti.ndarray(ti.i32, shape=3) # Potential bug: modify ti.f32 to ti.i32 leads to [all components of N are zeros].
-    N.from_numpy(N_np)
     boundary_box = ti.Vector.ndarray(3, ti.f32, shape=2)
-    boundary_box.from_numpy(boundary_box_np)
     spawn_box = ti.Vector.ndarray(3, ti.f32, shape=2)
-    spawn_box.from_numpy(spawn_box_np)
 
     pos = ti.Vector.ndarray(3, ti.f32, shape=particle_num)
     vel = ti.Vector.ndarray(3, ti.f32, shape=particle_num)
