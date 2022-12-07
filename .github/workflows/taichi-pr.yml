@@ -45,7 +45,7 @@ jobs:
           });
           console.log("pull =", pull);
           let taichi_pull_number_match = String(pull.data.body).match("https://github.com/taichi-dev/taichi/pull/(\\d+)");
-          if (taichi_pull_number_match == null || taichi_pull_number_match.length < 2) {
+          if (taichi_pull_number_match == null || taichi_pull_number_match.length != 2) {
             return 1;
           }
           let taichi_pull_number = taichi_pull_number_match[1];
@@ -58,7 +58,7 @@ jobs:
           });
           console.log("taichi_pull =", taichi_pull);
           let taichi_back_ref_pull_number_match = String(taichi_pull.data.body).match("https://github.com/taichi-dev/" + context.repo.repo + "/pull/(\\d+)");
-          if (taichi_back_ref_pull_number_match == null || taichi_pull_number_match.length < 2 || taichi_pull_number_match[1] != pull_number) {
+          if (taichi_back_ref_pull_number_match == null || taichi_back_ref_pull_number_match.length != 2 || taichi_back_ref_pull_number_match[1] != pull_number) {
             return 2;
           }
           if (taichi_pull.data.mergeable) {
