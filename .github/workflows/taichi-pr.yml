@@ -37,6 +37,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           let fs = require('fs');
+          let fetch = require('node-fetch');
           let pull_number = Number(fs.readFileSync('./pr_number'));
           let pull = await github.rest.pulls.get({
             owner: context.repo.owner,
