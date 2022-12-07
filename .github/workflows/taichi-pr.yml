@@ -42,7 +42,7 @@ jobs:
             repo: context.repo.repo,
             pull_number: pull_number,
           });
-          let taichi_pull_number = String.match("https://github.com/taichi-dev/taichi/pull/(\\d+)")[1];
+          let taichi_pull_number = String(pull.body).match("https://github.com/taichi-dev/taichi/pull/(\\d+)")[1];
           console.log("taichi_issue_number =", taichi_issue_number);
           let taichi_pull = await github.rest.pulls.get({
             owner: context.repo.owner,
