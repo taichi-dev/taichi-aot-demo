@@ -1,0 +1,62 @@
+name: Taichi Pull Request
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Debug
+
+jobs:
+  build-ubuntu:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Setup Python
+      uses: actions/setup-python@v2.3.3
+      with:
+        python-version: '3.10'
+
+    - name: Please ensure you created a pull request in `taichi-dev/taichi`.
+      env:
+        PR_NUMBER: ${{ github.event.number }}
+      run: |
+        echo $PR_NUMBER > ./pr_number
+        echo PR_NUMBER=$PR_NUMBER
+
+    - name: Check Taichi pull request mergeability
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          let fs = require('fs');
+          let pull_number = Number(fs.readFileSync('./pr_number'));
+          let pull = await github.rest.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: pull_number,
+          });
+          let taichi_pull_number = pull.body.match("https://github.com/taichi-dev/taichi/pull/(\\d+)")[1];
+          console.log("taichi_issue_number =", taichi_issue_number);
+          let taichi_pull = await github.rest.pulls.get({
+            owner: context.repo.owner,
+            repo: 'taichi',
+            pull_number: taichi_pull_number,
+          });
+          if (taichi_pr.mergeable) {
+            return 1;
+          } else {
+            return 0;
+          }
+
+    - name: Approve
+      run: |
+        if [ ${{steps.set-result.outputs.result}} -ne 0 ]; then
+          echo 213
+        fi
