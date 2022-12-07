@@ -47,8 +47,8 @@ jobs:
           if (taichi_pull_number_match == null || taichi_pull_number_match.length < 2) {
             console.log("-- Did you paste the URL to a Taichi PR in your description?");
             console.log("-- Checkout https://github.com/taichi-dev/taichi-aot-demo/pull/97 as an example.");
-            console.error("-> This PR is not approved.");
-            return 0;
+            console.log("-> This PR is not approved.");
+            return -1;
           }
           let taichi_pull_number = taichi_pull_number_match[1];
 
@@ -62,7 +62,13 @@ jobs:
           if (taichi_pr.mergeable) {
             console.log("-- The referenced Taichi PR is not mergeable.");
             console.log("-- Please ensure the Taichi PR passes all checks and is approved by a reviewer.");
-            console.error("-> This PR is not approved.");
+            console.log("-> This PR is not approved.");
+            return -1;
           } else {
             console.log("-> This PR is approved. Thank you for your contribution!");
+            return 0;
           }
+
+    - name: Approve
+      run: |
+        exit ${{steps.set-result.outputs.result}}
