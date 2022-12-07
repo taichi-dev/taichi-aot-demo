@@ -46,7 +46,7 @@ jobs:
           console.log("pull =", pull);
           let taichi_pull_number_match = String(pull.body).match("https://github.com/taichi-dev/taichi/pull/(\\d+)");
           if (taichi_pull_number_match == null || taichi_pull_number_match.length < 2) {
-            return -101;
+            return 1;
           }
           let taichi_pull_number = taichi_pull_number_match[1];
 
@@ -58,7 +58,7 @@ jobs:
           });
           console.log("taichi_pull =", taichi_pull);
           if (taichi_pr.mergeable) {
-            return -102;
+            return 2;
           } else {
             return 0;
           }
@@ -67,17 +67,17 @@ jobs:
       run: |
         export APPROVAL_ERROR=${{steps.check-taichi-pr-mergeable.outputs.result}}
         if [ $APPROVAL_ERROR -eq 0 ]; then
-          echo -> This PR is approved. Thank you for your contribution!
+          echo "-> This PR is approved. Thank you for your contribution!"
 
-        elif [ $APPROVAL_ERROR -eq -101 ]; then
-          echo -- Did you paste the URL to a Taichi PR in your description?
-          echo -- Checkout https://github.com/taichi-dev/taichi-aot-demo/pull/97 as an example.
-          echo -> This PR is not approved.
+        elif [ $APPROVAL_ERROR -eq 1 ]; then
+          echo "-- Did you paste the URL to a Taichi PR in your description?"
+          echo "-- Checkout https://github.com/taichi-dev/taichi-aot-demo/pull/97 as an example."
+          echo "-> This PR is not approved."
 
-        elif [ $APPROVAL_ERROR -eq -102 ]; then
-          echo -- The referenced Taichi PR is not mergeable.
-          echo -- Please ensure the Taichi PR passes all checks and is approved by a reviewer.
-          echo -> This PR is not approved.
+        elif [ $APPROVAL_ERROR -eq 2 ]; then
+          echo "-- The referenced Taichi PR is not mergeable."
+          echo "-- Please ensure the Taichi PR passes all checks and is approved by a reviewer."
+          echo "-> This PR is not approved."
 
         fi
 
