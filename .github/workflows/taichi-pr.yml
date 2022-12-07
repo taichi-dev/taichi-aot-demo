@@ -61,6 +61,9 @@ jobs:
           if (taichi_back_ref_pull_number_match == null || taichi_back_ref_pull_number_match.length != 2 || taichi_back_ref_pull_number_match[1] != pull_number) {
             return 2;
           }
+
+          let taichi_pull_statuses = taichi_pull.data._links.statuses;
+          console.log("taichi_pull_statuses =", taichi_pull_statuses);
           if (taichi_pull.data.mergeable) {
             return 3;
           } else {
