@@ -1,0 +1,64 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Debug
+
+jobs:
+  build-ubuntu:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Show uname
+      run: uname -a
+
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Setup Ninja
+      uses: ashutoshvarma/setup-ninja@v1.1
+
+    - name: Setup Python
+      uses: actions/setup-python@v2.3.3
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        sudo add-apt-repository ppa:kisak/kisak-mesa
+        sudo apt-get update
+        sudo apt-get install -y libxrandr-dev libxi-dev libxinerama-dev libsdl2-dev libxcursor-dev mesa-vulkan-drivers
+        #
+        wget -qO - http://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+        sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list http://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
+        sudo apt update
+        sudo apt install vulkan-sdk
+        #
+        pip3 install -r ./ci/requirements.txt
+        pip3 install -i https://pypi.taichi.graphics/simple/ taichi-nightly
+        #
+        mkdir tmp
+        pip3 download --no-deps -i https://pypi.taichi.graphics/simple/ taichi-nightly -d tmp
+        export TAICHI_WHEEL_NAME=$(ls tmp/taichi_nightly*.whl)
+        unzip $TAICHI_WHEEL_NAME -d tmp
+        export TAICHI_C_API_INSTALL_DIR=$(pwd)/$(find tmp -name c_api -type d -print | head -1)
+        echo "TAICHI_C_API_INSTALL_DIR=$TAICHI_C_API_INSTALL_DIR" >> $GITHUB_ENV
+        echo "TI_LIB_DIR=$TAICHI_C_API_INSTALL_DIR/runtime" >> $GITHUB_ENV
+        cat $GITHUB_ENV
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -GNinja
+
+    - name: Build and Test
+      run: |
+        python3 ./ci/run_tests.py -c github -l $TAICHI_C_API_INSTALL_DIR
