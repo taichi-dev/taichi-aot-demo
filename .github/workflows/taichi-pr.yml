@@ -43,7 +43,13 @@ jobs:
             pull_number: pull_number,
           });
           console.log("pull =", pull);
-          let taichi_pull_number = String(pull.body).match("https://github.com/taichi-dev/taichi/pull/(\\d+)")[1];
+          let taichi_pull_number_match = String(pull.body).match("https://github.com/taichi-dev/taichi/pull/(\\d+)");
+          if (taichi_pull_number_match.length < 2) {
+            console.log("Did you paste the URL to a Taichi PR in your description? Checkout https://github.com/taichi-dev/taichi-aot-demo/pull/97 as an example.");
+            return 0;
+          }
+          let taichi_pull_number = taichi_pull_number_match[1];
+
           console.log("taichi_issue_number =", taichi_issue_number);
           let taichi_pull = await github.rest.pulls.get({
             owner: context.repo.owner,
