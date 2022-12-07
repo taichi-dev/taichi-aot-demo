@@ -31,6 +31,7 @@ jobs:
         echo PR_NUMBER=$PR_NUMBER
 
     - name: Check Taichi pull request mergeability
+      id: check-taichi-pr-mergeable
       uses: actions/github-script@v6
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -70,5 +71,4 @@ jobs:
           }
 
     - name: Approve
-      run: |
-        exit ${{steps.set-result.outputs.result}}
+      run: exit ${{steps.check-taichi-pr-mergeable.outputs.result}}
