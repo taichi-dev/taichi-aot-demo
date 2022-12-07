@@ -44,7 +44,7 @@ jobs:
           });
           console.log("pull =", pull);
           let taichi_pull_number_match = String(pull.body).match("https://github.com/taichi-dev/taichi/pull/(\\d+)");
-          if (taichi_pull_number_match.length < 2) {
+          if (taichi_pull_number_match == null || taichi_pull_number_match.length < 2) {
             console.log("Did you paste the URL to a Taichi PR in your description? Checkout https://github.com/taichi-dev/taichi-aot-demo/pull/97 as an example.");
             return 0;
           }
