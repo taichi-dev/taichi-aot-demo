@@ -65,7 +65,7 @@ jobs:
 
     - name: Approve
       run: |
-        export APPROVAL_ERROR = ${{steps.check-taichi-pr-mergeable.outputs.result}}
+        export APPROVAL_ERROR=${{steps.check-taichi-pr-mergeable.outputs.result}}
         if [ $APPROVAL_ERROR -eq 0 ]; then
           echo -> This PR is approved. Thank you for your contribution!
 
