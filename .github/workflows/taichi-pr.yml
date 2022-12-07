@@ -45,7 +45,9 @@ jobs:
           console.log("pull =", pull);
           let taichi_pull_number_match = String(pull.body).match("https://github.com/taichi-dev/taichi/pull/(\\d+)");
           if (taichi_pull_number_match == null || taichi_pull_number_match.length < 2) {
-            console.log("Did you paste the URL to a Taichi PR in your description? Checkout https://github.com/taichi-dev/taichi-aot-demo/pull/97 as an example.");
+            console.log("-- Did you paste the URL to a Taichi PR in your description?");
+            console.log("-- Checkout https://github.com/taichi-dev/taichi-aot-demo/pull/97 as an example.");
+            console.error("-> This PR is not approved.");
             return 0;
           }
           let taichi_pull_number = taichi_pull_number_match[1];
@@ -58,13 +60,9 @@ jobs:
           });
           console.log("taichi_pull =", taichi_pull);
           if (taichi_pr.mergeable) {
-            return 1;
+            console.log("-- The referenced Taichi PR is not mergeable.");
+            console.log("-- Please ensure the Taichi PR passes all checks and is approved by a reviewer.");
+            console.error("-> This PR is not approved.");
           } else {
-            return 0;
+            console.log("-> This PR is approved. Thank you for your contribution!");
           }
-
-    - name: Approve
-      run: |
-        if [ ${{steps.set-result.outputs.result}} -ne 0 ]; then
-          echo 213
-        fi
