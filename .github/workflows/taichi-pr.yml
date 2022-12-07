@@ -42,6 +42,7 @@ jobs:
             repo: context.repo.repo,
             pull_number: pull_number,
           });
+          console.log("pull =", pull);
           let taichi_pull_number = String(pull.body).match("https://github.com/taichi-dev/taichi/pull/(\\d+)")[1];
           console.log("taichi_issue_number =", taichi_issue_number);
           let taichi_pull = await github.rest.pulls.get({
@@ -49,6 +50,7 @@ jobs:
             repo: 'taichi',
             pull_number: taichi_pull_number,
           });
+          console.log("taichi_pull =", taichi_pull);
           if (taichi_pr.mergeable) {
             return 1;
           } else {
