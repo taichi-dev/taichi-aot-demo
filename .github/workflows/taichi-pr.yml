@@ -46,10 +46,7 @@ jobs:
           console.log("pull =", pull);
           let taichi_pull_number_match = String(pull.body).match("https://github.com/taichi-dev/taichi/pull/(\\d+)");
           if (taichi_pull_number_match == null || taichi_pull_number_match.length < 2) {
-            console.log("-- Did you paste the URL to a Taichi PR in your description?");
-            console.log("-- Checkout https://github.com/taichi-dev/taichi-aot-demo/pull/97 as an example.");
-            console.log("-> This PR is not approved.");
-            return -1;
+            return -101;
           }
           let taichi_pull_number = taichi_pull_number_match[1];
 
@@ -61,14 +58,27 @@ jobs:
           });
           console.log("taichi_pull =", taichi_pull);
           if (taichi_pr.mergeable) {
-            console.log("-- The referenced Taichi PR is not mergeable.");
-            console.log("-- Please ensure the Taichi PR passes all checks and is approved by a reviewer.");
-            console.log("-> This PR is not approved.");
-            return -1;
+            return -102;
           } else {
-            console.log("-> This PR is approved. Thank you for your contribution!");
             return 0;
           }
 
     - name: Approve
-      run: exit ${{steps.check-taichi-pr-mergeable.outputs.result}}
+      run: |
+        export APPROVAL_ERROR = ${{steps.check-taichi-pr-mergeable.outputs.result}}
+        if [ $APPROVAL_ERROR -eq 0 ]; then
+          echo -> This PR is approved. Thank you for your contribution!
+
+        elif [ $APPROVAL_ERROR -eq -101 ]; then
+          echo -- Did you paste the URL to a Taichi PR in your description?
+          echo -- Checkout https://github.com/taichi-dev/taichi-aot-demo/pull/97 as an example.
+          echo -> This PR is not approved.
+
+        elif [ $APPROVAL_ERROR -eq -102 ]; then
+          echo -- The referenced Taichi PR is not mergeable.
+          echo -- Please ensure the Taichi PR passes all checks and is approved by a reviewer.
+          echo -> This PR is not approved.
+
+        fi
+
+        exit $APPROVAL_ERROR
