@@ -50,7 +50,7 @@ jobs:
           }
           let taichi_pull_number = taichi_pull_number_match[1];
 
-          console.log("taichi_issue_number =", taichi_issue_number);
+          console.log("taichi_pull_number =", taichi_pull_number);
           let taichi_pull = await github.rest.pulls.get({
             owner: context.repo.owner,
             repo: 'taichi',
