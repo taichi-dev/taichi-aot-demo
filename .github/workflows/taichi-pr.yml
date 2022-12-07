@@ -37,7 +37,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           let fs = require('fs');
-          let fetch = require('node-fetch');
+          let https = require('https');
           let pull_number = Number(fs.readFileSync('./pr_number'));
           let pull = await github.rest.pulls.get({
             owner: context.repo.owner,
@@ -63,17 +63,11 @@ jobs:
             return 2;
           }
 
-          let taichi_pull_statuses = await (await fetch(taichi_pull.data.statuses_url)).json();
-          console.log("taichi_pull_statuses =", taichi_pull_statuses);
-          for (let i = 0; i < taichi_pull_statuses.length; ++i) {
-            let state = taichi_pull_statuses[i].state;
-            if (state == "pending" || state == "success") {
-              continue;
-            } else {
-              return 3;
-            }
+          if (taichi_pull.data.mergable_state == "blocked") {
+            return 0;
+          } else {
+            return 3;
           }
-          return 3;
 
     - name: Approve
       run: |
