@@ -11,7 +11,7 @@ env:
   BUILD_TYPE: Debug
 
 jobs:
-  build-ubuntu:
+  check-taichi-pull-request:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -57,8 +57,12 @@ jobs:
             pull_number: taichi_pull_number,
           });
           console.log("taichi_pull =", taichi_pull);
-          if (taichi_pull.data.mergeable) {
+          let taichi_back_ref_pull_number_match = String(taichi_pull.data.body).match("https://github.com/taichi-dev/" + context.repo.repo + "/pull/(\\d+)");
+          if (taichi_back_ref_pull_number_match == null || taichi_pull_number_match.length < 2 || taichi_pull_number_match[1] != pull_number) {
             return 2;
+          }
+          if (taichi_pull.data.mergeable) {
+            return 3;
           } else {
             return 0;
           }
@@ -75,6 +79,11 @@ jobs:
           echo "-> This PR is not approved."
 
         elif [ $APPROVAL_ERROR -eq 2 ]; then
+          echo "-- The referenced Taichi PR doesn't reference back to this PR."
+          echo "-- Please ensure the Taichi PR has a link pointing back to this PR in its description."
+          echo "-> This PR is not approved."
+
+        elif [ $APPROVAL_ERROR -eq 3 ]; then
           echo "-- The referenced Taichi PR is not mergeable."
           echo "-- Please ensure the Taichi PR passes all checks and is approved by a reviewer."
           echo "-> This PR is not approved."
