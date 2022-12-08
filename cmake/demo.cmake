@@ -46,7 +46,9 @@ function(add_android_app_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
     #   2. Build the app and import the native library.
     # In CMake we only do the first step. See `build-android-apps` for the
     # second.
-    set(ENTRY_PATH ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/android.cpp)
+    set(ENTRY_PATH
+        ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/android.cpp
+        ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/android_impl.c)
     add_library(${TAICHI_AOT_DEMO_TARGET} SHARED ${ENTRY_PATH} ${DEMO_PATH})
 
     set_target_properties(${TAICHI_AOT_DEMO_TARGET} PROPERTIES
