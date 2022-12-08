@@ -151,5 +151,3 @@ void android_main(struct android_app* state) {
     }
   }
 }
-
-#include <android_native_app_glue.c>
