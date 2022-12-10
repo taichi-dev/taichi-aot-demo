@@ -61,7 +61,24 @@ jobs:
             return 2;
           }
 
-          if ((taichi_pull.data.merged == true) || (taichi_pull.data.mergeable_state == 'blocked') || (taichi_pull.data.mergeable_state == 'clean')) {
+          if (taichi_pull.data.mergeable_state == 'blocked') {
+            console.log("merging is blocked, checking whether the taichi checks are passing...");
+            let statuses_sha1 = String(taichi_pull.data.statuses_url).match("https://api.github.com/repos/\\w+/\\w+/statuses/(\\w+)")[1];
+            let statuses = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}/statuses?per_page=100', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: statuses_sha1,
+            });
+            for (let i = 0; i < statuses.length; ++i) {
+              let status = statuses[i];
+              if (status['state'] == 'success') {
+                console.log("check '" + status['context'] + "' successfully passed");
+              } else {
+                console.log("check '" + status['context'] + "' didn't pass!");
+                return 3;
+              }
+            }
+          } else if ((taichi_pull.data.merged == true) || (taichi_pull.data.mergeable_state == 'clean')) {
             return 0;
           } else {
             return 3;
