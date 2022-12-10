@@ -71,7 +71,7 @@ jobs:
             for (let i = 0; i < check_runs.data.check_runs.length; ++i) {
               let check = check_runs.data.check_runs[i];
               console.log("check_runs[", i, "] =");
-              if (status.conclusion == 'success' || check.conclusion == 'neutral') {
+              if (check.conclusion == 'success' || check.conclusion == 'neutral') {
                 console.log("check '" + check.name + "' passed");
               } else {
                 console.log("check '" + check.name + "' didn't pass!");
