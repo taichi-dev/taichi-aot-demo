@@ -65,10 +65,11 @@ jobs:
             console.log("merging is blocked, checking whether the taichi checks are passing...");
             let statuses_sha1 = String(taichi_pull.data.statuses_url).match("https://api.github.com/repos/taichi-dev/taichi/statuses/(.+)")[1];
             let statuses = await github.request('GET /repos/{owner}/{repo}/commits/{ref}/statuses?per_page=100', {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner: 'taichi-dev',
+              repo: 'taichi',
               ref: statuses_sha1,
             });
+            console.log("statuses =", statuses);
             for (let i = 0; i < statuses.length; ++i) {
               let status = statuses[i];
               if (status['state'] == 'success') {
