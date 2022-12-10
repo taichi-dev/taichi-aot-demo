@@ -1,8 +1,6 @@
 name: Taichi Pull Request
 
 on:
-  push:
-    branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
 
