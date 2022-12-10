@@ -63,9 +63,7 @@ jobs:
 
           if (taichi_pull.data.mergeable_state == 'blocked') {
             console.log("merging is blocked, checking whether the taichi checks are passing...");
-            console.log(String(taichi_pull.data.statuses_url));
-            console.log(String(taichi_pull.data.statuses_url).match("https://api.github.com/repos/" + context.repo.owner + "/" + context.repo.repo + "/statuses/(.+)"));
-            let statuses_sha1 = String(taichi_pull.data.statuses_url).match("https://api.github.com/repos/" + context.repo.owner + "/" + context.repo.repo + "/statuses/(.+)")[1];
+            let statuses_sha1 = String(taichi_pull.data.statuses_url).match("https://api.github.com/repos/taichi-dev/taichi/statuses/(.+)")[1];
             let statuses = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}/statuses?per_page=100', {
               owner: context.repo.owner,
               repo: context.repo.repo,
