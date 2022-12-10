@@ -62,7 +62,8 @@ jobs:
               owner: 'taichi-dev',
               repo: 'taichi',
               ref: taichi_pull.data.head.sha,
-            })['data'].check_runs;
+            })['data'];
+            console.log(check_runs);
             for (let i = 0; i < check_runs.length; ++i) {
               let check = check_runs[i];
               console.log("check_runs[", i, "] =", check);
