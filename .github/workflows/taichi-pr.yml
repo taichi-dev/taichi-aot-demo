@@ -69,10 +69,10 @@ jobs:
               ref: taichi_pull.data.head.sha,
             });
             console.log("check_runs =", check_runs);
-            for (let i = 0; i < check_runs.data.length; ++i) {
-              let status = check_runs.data[i];
-              if (status['state'] == 'success') {
-                console.log("check '" + status['context'] + "' successfully passed");
+            for (let i = 0; i < check_runs.data.check_runs.length; ++i) {
+              let status = check_runs.data.check_runs[i];
+              if (status['conclusion'] == 'success' || status['conclusion'] == 'neutral') {
+                console.log("check '" + status['context'] + "' passed");
               } else {
                 console.log("check '" + status['context'] + "' didn't pass!");
                 return 3;
