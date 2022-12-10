@@ -63,7 +63,6 @@ jobs:
               repo: 'taichi',
               ref: taichi_pull.data.head.sha,
             });
-            console.log("333", check_runs.data["check_runs"]);
             for (let i = 0; i < check_runs.data["check_runs"].length; ++i) {
               let check = check_runs.data["check_runs"][i];
               console.log("check_runs[", i, "] =", check);
