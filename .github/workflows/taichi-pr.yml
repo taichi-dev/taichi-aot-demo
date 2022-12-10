@@ -67,14 +67,14 @@ jobs:
               owner: 'taichi-dev',
               repo: 'taichi',
               ref: taichi_pull.data.head.sha,
-            });
-            console.log("check_runs =", check_runs);
+            }).data;
             for (let i = 0; i < check_runs.data.check_runs.length; ++i) {
-              let status = check_runs.data.check_runs[i];
-              if (status['conclusion'] == 'success' || status['conclusion'] == 'neutral') {
-                console.log("check '" + status['context'] + "' passed");
+              let check = check_runs.data.check_runs[i];
+              console.log("check_runs[", i, "] =");
+              if (status.conclusion == 'success' || check.conclusion == 'neutral') {
+                console.log("check '" + check.name + "' passed");
               } else {
-                console.log("check '" + status['context'] + "' didn't pass!");
+                console.log("check '" + check.name + "' didn't pass!");
                 return 3;
               }
             }
