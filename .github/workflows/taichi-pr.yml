@@ -63,7 +63,7 @@ jobs:
             return 2;
           }
 
-          if ((taichi_pull.data.merged == true) || (taichi_pull.data.mergeable_state == 'blocked')) {
+          if ((taichi_pull.data.merged == true) || (taichi_pull.data.mergeable_state == 'blocked') || (taichi_pull.data.mergeable_state == 'clean')) {
             return 0;
           } else {
             return 3;
@@ -87,7 +87,7 @@ jobs:
 
         elif [ $APPROVAL_ERROR -eq 3 ]; then
           echo "-- The referenced Taichi PR is not mergeable."
-          echo "-- Please ensure the Taichi PR passes all checks and is approved by a reviewer."
+          echo "-- Please ensure the Taichi PR passes all checks."
           echo "-> This PR is not approved."
 
         fi
