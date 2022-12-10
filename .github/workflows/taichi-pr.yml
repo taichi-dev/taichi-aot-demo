@@ -70,8 +70,8 @@ jobs:
               ref: statuses_sha1,
             });
             console.log("statuses =", statuses);
-            for (let i = 0; i < statuses.length; ++i) {
-              let status = statuses[i];
+            for (let i = 0; i < statuses.data.length; ++i) {
+              let status = statuses.data[i];
               if (status['state'] == 'success') {
                 console.log("check '" + status['context'] + "' successfully passed");
               } else {
