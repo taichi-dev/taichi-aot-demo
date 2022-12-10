@@ -63,7 +63,7 @@ jobs:
             return 2;
           }
 
-          if (taichi_pull.data.mergeable_state == 'blocked') {
+          if ((taichi_pull.data.merged == true) || (taichi_pull.data.mergeable_state == 'blocked')) {
             return 0;
           } else {
             return 3;
