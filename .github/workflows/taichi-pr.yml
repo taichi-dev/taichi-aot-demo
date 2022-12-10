@@ -63,15 +63,14 @@ jobs:
 
           if (taichi_pull.data.mergeable_state == 'blocked') {
             console.log("merging is blocked, checking whether the taichi checks are passing...");
-            let statuses_sha1 = String(taichi_pull.data.statuses_url).match("https://api.github.com/repos/taichi-dev/taichi/statuses/(.+)")[1];
-            let statuses = await github.request('GET /repos/{owner}/{repo}/commits/{ref}/statuses?per_page=100', {
+            let check_runs = await github.request('GET /repos/{owner}/{repo}/commits/{ref}/check-runs?per_page=100', {
               owner: 'taichi-dev',
               repo: 'taichi',
-              ref: statuses_sha1,
+              ref: taichi_pull.data.head.sha,
             });
-            console.log("statuses =", statuses);
-            for (let i = 0; i < statuses.data.length; ++i) {
-              let status = statuses.data[i];
+            console.log("check_runs =", check_runs);
+            for (let i = 0; i < check_runs.data.length; ++i) {
+              let status = check_runs.data[i];
               if (status['state'] == 'success') {
                 console.log("check '" + status['context'] + "' successfully passed");
               } else {
