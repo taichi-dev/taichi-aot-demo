@@ -23,7 +23,7 @@ void load_data(taichi::lang::gfx::GfxRuntime* vulkan_runtime,
                taichi::lang::DeviceAllocation& alloc, const void* data,
                size_t size) {
   void* device_arr_ptr;
-  assert(vulkan_runtime->get_ti_device()->map(alloc, device_arr_ptr) == taichi::lang::RhiResult::success);
+  assert(vulkan_runtime->get_ti_device()->map(alloc, &device_arr_ptr) == taichi::lang::RhiResult::success);
   std::memcpy(device_arr_ptr, data, size);
   vulkan_runtime->get_ti_device()->unmap(alloc);
 }
@@ -436,7 +436,7 @@ class FemApp {
         /*depth_clear=*/true);
 
     RenderConstants* constants;
-    assert(device_->map(render_constants_, (void *&)constants) == taichi::lang::RhiResult::success);
+    assert(device_->map(render_constants_, (void **)&constants) == taichi::lang::RhiResult::success);
     constants->proj = glm::perspective(
         glm::radians(55.0f), float(width_) / float(height_), 0.1f, 10.0f);
     constants->proj[1][1] *= -1.0f;
@@ -589,7 +589,7 @@ class FemApp {
       }
 
       void* device_arr_ptr;
-      assert(device_->map(*staging_buf_, device_arr_ptr) == taichi::lang::RhiResult::success);
+      assert(device_->map(*staging_buf_, &device_arr_ptr) == taichi::lang::RhiResult::success);
       std::memcpy(device_arr_ptr, data, size);
       device_->unmap(*staging_buf_);
       device_->memcpy_internal(devalloc_.get_ptr(), staging_buf_->get_ptr(), size);
