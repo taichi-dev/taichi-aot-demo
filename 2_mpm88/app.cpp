@@ -113,11 +113,10 @@ struct App2_mpm88 : public App
         arch_ = arch;
 
         GraphicsRuntime &g_runtime = F_->runtime();
-        if (arch_ == TI_ARCH_VULKAN)
+        if (arch_ == TI_ARCH_VULKAN || arch_ == TI_ARCH_OPENGL)
         {
             // Reuse the vulkan runtime from renderer framework
             runtime_ = ti::Runtime(arch_, F_->runtime(), false);
-            ;
         }
         else
         {
