@@ -5,7 +5,7 @@
 #endif
 
 #ifdef TI_WITH_OPENGL
-#include <glad/gl.h>
+#include <taichi/aot_demo/gl.h>
 #endif
 
 #include <vulkan/vulkan.h>
