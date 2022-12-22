@@ -8,15 +8,23 @@ parser.add_argument("--arch", type=str)
 parser.add_argument("--cgraph", action='store_true', default=False)
 args = parser.parse_args()
 
+
 def get_save_dir(name, arch):
     curr_dir = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(curr_dir, f"{name}_{arch}")
+
+
 def get_archive_path():
     curr_dir = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(curr_dir, f"../../framework/android/app/src/main/assets/E2_mpm88.tcm")
 
+
 def compile_mpm88(arch, platform=None):
-    ti.init(arch, vk_api_version="1.0")
+
+    if arch == ti.vulkan:
+        ti.init(arch, vk_api_version="1.0")
+
+    ti.init(arch)
 
     if ti.lang.impl.current_cfg().arch != arch:
         return
@@ -114,44 +122,43 @@ def compile_mpm88(arch, platform=None):
             v[i] = [0, -1]
             J[i] = 1
 
-
     N_ITER = 50
 
     sym_x = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
-                            'x',
-                            ti.f32,
-                            field_dim=1,
-                            element_shape=(2, ))
+                         'x',
+                         ti.f32,
+                         field_dim=1,
+                         element_shape=(2, ))
     sym_v = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
-                            'v',
-                            ti.f32,
-                            field_dim=1,
-                            element_shape=(2, ))
+                         'v',
+                         ti.f32,
+                         field_dim=1,
+                         element_shape=(2, ))
     sym_C = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
-                            'C',
-                            ti.f32,
-                            field_dim=1,
-                            element_shape=(2, 2))
+                         'C',
+                         ti.f32,
+                         field_dim=1,
+                         element_shape=(2, 2))
     sym_J = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
-                            'J',
-                            ti.f32,
-                            field_dim=1,
-                            element_shape=())
+                         'J',
+                         ti.f32,
+                         field_dim=1,
+                         element_shape=())
     sym_grid_v = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
-                                'grid_v',
-                                ti.f32,
-                                field_dim=2,
-                                element_shape=(2, ))
+                              'grid_v',
+                              ti.f32,
+                              field_dim=2,
+                              element_shape=(2, ))
     sym_grid_m = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
-                                'grid_m',
-                                ti.f32,
-                                field_dim=2,
-                                element_shape=())
+                              'grid_m',
+                              ti.f32,
+                              field_dim=2,
+                              element_shape=())
     sym_pos = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
-                            'pos',
-                            ti.f32,
-                            field_dim=1,
-                            element_shape=(3, ))
+                           'pos',
+                           ti.f32,
+                           field_dim=1,
+                           element_shape=(3, ))
 
     g_init_builder = ti.graph.GraphBuilder()
     g_init_builder.dispatch(init_particles, sym_x, sym_v, sym_J)
@@ -161,10 +168,10 @@ def compile_mpm88(arch, platform=None):
 
     substep.dispatch(substep_reset_grid, sym_grid_v, sym_grid_m)
     substep.dispatch(substep_p2g, sym_x, sym_v, sym_C, sym_J, sym_grid_v,
-                        sym_grid_m)
+                     sym_grid_m)
     substep.dispatch(substep_update_grid_v, sym_grid_v, sym_grid_m)
     substep.dispatch(substep_g2p, sym_x, sym_v, sym_C, sym_J, sym_grid_v,
-                        sym_pos)
+                     sym_pos)
 
     for i in range(N_ITER):
         g_update_builder.append(substep)
@@ -196,11 +203,14 @@ def compile_mpm88(arch, platform=None):
         os.makedirs(save_dir, exist_ok=True)
         mod.save(save_dir, '')
 
+
 if __name__ == "__main__":
     if args.arch == "vulkan":
         compile_mpm88(arch=ti.vulkan)
     elif args.arch == "cuda":
         compile_mpm88(arch=ti.cuda)
+    elif args.arch == "opengl":
+        compile_mpm88(arch=ti.opengl)
     elif args.arch == "x64":
         compile_mpm88(arch=ti.x64)
     elif args.arch == "android-vulkan":
