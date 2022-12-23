@@ -10,7 +10,6 @@
 #include "glm/glm.hpp"
 
 #define TI_WITH_VULKAN 1
-#define TI_NO_VULKAN_INCLUDES 1
 
 #if TI_AOT_DEMO_ANDROID_APP
 #define VK_USE_PLATFORM_ANDROID_KHR 1
