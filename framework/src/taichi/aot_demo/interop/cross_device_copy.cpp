@@ -1,14 +1,15 @@
-#include "taichi/aot_demo/interop/cross_device_copy.hpp"
-#include "taichi/aot_demo/interop/common_utils.hpp"
-#include "taichi/aot_demo/renderer.hpp"
+#include <iostream>
 
 #ifdef TI_WITH_CUDA
 #include <cuda.h>
 #endif
 
-#include <iostream>
 #include <vulkan/vulkan.h>
-#include "taichi/taichi.h"
+
+#include "taichi/aot_demo/interop/cross_device_copy.hpp"
+#include "taichi/aot_demo/interop/common_utils.hpp"
+#include "taichi/aot_demo/renderer.hpp"
+
 
 namespace ti {
 namespace aot_demo {
