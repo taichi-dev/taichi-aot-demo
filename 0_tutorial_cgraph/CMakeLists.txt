@@ -32,4 +32,4 @@ if (NOT ANDROID)
   add_backward(${TAICHI_TUTORIAL_DEMO_NAME})
 endif()
 
-execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/assets/tutorial.py" --arch vulkan --aot)
+#execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/assets/tutorial.py" --arch vulkan --aot)
