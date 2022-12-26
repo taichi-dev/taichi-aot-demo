@@ -28,12 +28,14 @@ if(TI_WITH_CUDA)
     find_package(CUDAToolkit REQUIRED)
     list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES cuda)
     list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${CUDAToolkit_INCLUDE_DIRS})
-    endif()
-    
-    if(TI_WITH_OPENGL)
-    find_package(OpenGL REQUIRED)
-    list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES OpenGL::GL)
-    list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${OPENGL_INCLUDE_DIR})
+endif()
+
+if(TI_WITH_OPENGL)
+    add_library(glad STATIC ${PROJECT_SOURCE_DIR}/external/glad/src/gl.c)
+    target_include_directories(glad PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include)
+
+    list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES glad)
+    list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/external/glad/include)
 endif()
 
 # Compile for renderer framework

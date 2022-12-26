@@ -71,12 +71,64 @@ void InteropHelper<T>::copy_from_cpu(GraphicsRuntime& runtime,
 #endif // TI_WITH_CPU
 }
 
-/*---------------------*/
-/* CUDA Implementation */
-/*---------------------*/
-#ifdef TI_WITH_CUDA
-int get_device_mem_handle(VkDeviceMemory &mem, VkDevice device) {
+struct DeviceMemoryHandle {
+#ifdef _WIN32
+  HANDLE handle;
+
+  DeviceMemoryHandle(HANDLE handle) : handle(handle) {}
+  ~DeviceMemoryHandle() {
+    if (handle != INVALID_HANDLE_VALUE) {
+      CloseHandle(handle);
+      handle = INVALID_HANDLE_VALUE;
+    }
+  }
+  DeviceMemoryHandle(DeviceMemoryHandle&& b) : handle(std::exchange(b.handle, INVALID_HANDLE_VALUE)) {}
+  DeviceMemoryHandle& operator=(DeviceMemoryHandle&& b) {
+    handle = std::exchange(b.handle, INVALID_HANDLE_VALUE);
+    return *this;
+  }
+#else
   int fd;
+
+  DeviceMemoryHandle(int fd) : fd(fd) {}
+  ~DeviceMemoryHandle() {
+    if (fd != -1) {
+      close(fd);
+      fd = -1;
+    }
+  }
+  DeviceMemoryHandle(DeviceMemoryHandle&& b) : handle(std::exchange(b.fd, -1)) {}
+  DeviceMemoryHandle& operator=(DeviceMemoryHandle&& b) {
+    fd = std::exchange(b.fd, -1);
+    return *this;
+  }
+#endif // _WIN32
+
+  DeviceMemoryHandle(const DeviceMemoryHandle&) = delete;
+  DeviceMemoryHandle& operator=(const DeviceMemoryHandle&) = delete;
+};
+DeviceMemoryHandle get_device_mem_handle(VkDeviceMemory mem, VkDevice device) {
+#ifdef _WIN32
+  HANDLE handle = INVALID_HANDLE_VALUE;
+
+  VkMemoryGetWin32HandleInfoKHR memory_get_win32_handle_info{};
+  memory_get_win32_handle_info.sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+  memory_get_win32_handle_info.pNext = nullptr;
+  memory_get_win32_handle_info.memory = mem;
+  memory_get_win32_handle_info.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+
+  auto fpGetMemoryWin32HandleKHR =
+    (PFN_vkGetMemoryWin32HandleKHR)vkGetDeviceProcAddr(device, "vkGetMemoryWin32HandleKHR");
+  
+  if (fpGetMemoryWin32HandleKHR == nullptr) {
+    throw std::runtime_error("fpGetMemoryWin32HandleKHR is nullptr");
+  }
+  VkResult res = fpGetMemoryWin32HandleKHR(device, &memory_get_win32_handle_info, &handle);
+  assert(res == VK_SUCCESS);
+
+  return DeviceMemoryHandle{handle};
+#else
+  int fd = -1;
 
   VkMemoryGetFdInfoKHR memory_get_fd_info = {};
   memory_get_fd_info.sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR;
@@ -93,10 +145,16 @@ int get_device_mem_handle(VkDeviceMemory &mem, VkDevice device) {
   }
   fpGetMemoryFdKHR(device, &memory_get_fd_info, &fd);
 
-  return fd;
+  return DeviceMemoryHandle{fd};
+#endif // _WIN32
 }
 
-CUexternalMemory import_vk_memory_object_from_handle(int fd,
+/*---------------------*/
+/* CUDA Implementation */
+/*---------------------*/
+#ifdef TI_WITH_CUDA
+
+CUexternalMemory import_cuda_memory_object_from_handle(const DeviceMemoryHandle& handle,
                                                      unsigned long long size,
                                                      bool is_dedicated) {
   CUexternalMemory ext_mem = nullptr;
@@ -105,7 +163,11 @@ CUexternalMemory import_vk_memory_object_from_handle(int fd,
   memset(&desc, 0, sizeof(desc));
 
   desc.type = CU_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD;
-  desc.handle.fd = fd;
+#ifdef _WIN32
+  desc.handle.win32.handle = handle.handle;
+#else
+  desc.handle.fd = handle.fd;
+#endif
   desc.size = size;
   if (is_dedicated) {
     desc.flags |= CUDA_EXTERNAL_MEMORY_DEDICATED;
@@ -149,12 +211,12 @@ void InteropHelper<T>::copy_from_cuda(GraphicsRuntime& runtime,
     VkDevice vk_device = runtime.renderer_->device_;
     VkDeviceMemory vertex_buffer_mem = vulkan_interop_info.memory;
 
-    int alloc_offset = vulkan_interop_info.offset;
-    int alloc_size   = vulkan_interop_info.size;
-    int mem_size = alloc_offset + alloc_size;
+    size_t alloc_offset = vulkan_interop_info.offset;
+    size_t alloc_size   = vulkan_interop_info.size;
+    size_t mem_size = alloc_offset + alloc_size;
     auto handle = get_device_mem_handle(vertex_buffer_mem, vk_device);
     CUexternalMemory externalMem =
-          import_vk_memory_object_from_handle(handle, mem_size, false);
+          import_cuda_memory_object_from_handle(handle, mem_size, false);
     CUdeviceptr dst_cuda_ptr = reinterpret_cast<CUdeviceptr>(map_buffer_onto_external_memory(externalMem, alloc_offset, vulkan_interop_info.size));
     CUdeviceptr src_cuda_ptr = reinterpret_cast<CUdeviceptr>(cuda_interop_info.ptr);
 
@@ -164,6 +226,37 @@ void InteropHelper<T>::copy_from_cuda(GraphicsRuntime& runtime,
 #endif // TI_WITH_CUDA
 }
 
+#ifdef TI_WITH_OPENGL
+struct OpenglMemoryObject {
+  GLuint memory_obj;
+  GLuint buffer;
+};
+OpenglMemoryObject import_opengl_memory_object_from_handle(
+    const DeviceMemoryHandle& handle,
+    size_t offset,
+    size_t size,
+    bool is_dedicated)
+{
+  GLuint memory_obj{};
+  GLuint buffer{};
+
+  glCreateBuffers(1, &buffer);
+  glCreateMemoryObjectsEXT(1, &memory_obj);
+#ifdef WIN32
+  glImportMemoryWin32HandleEXT(memory_obj, size, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, handle.handle);
+#else
+  glImportMemoryFdEXT(memory_obj, size, GL_HANDLE_TYPE_OPAQUE_FD_EXT, handle.fd);
+  // NOTE: fd got consumed so it's now invalid.
+#endif
+  glNamedBufferStorageMemEXT(buffer, size, memory_obj, offset);
+
+  OpenglMemoryObject out{};
+  out.memory_obj = memory_obj;
+  out.buffer = buffer;
+  return out;
+}
+#endif // TI_WITH_OPENGL
+
 template <class T>
 void InteropHelper<T>::copy_from_opengl(GraphicsRuntime &runtime,
                                         ti::NdArray<T> &vulkan_ndarray,
@@ -171,36 +264,42 @@ void InteropHelper<T>::copy_from_opengl(GraphicsRuntime &runtime,
                                         ti::NdArray<T> &opengl_ndarray)
 {
 #ifdef TI_WITH_OPENGL
+  static bool initialized = false;
+  if (!initialized) {
+    TiOpenglRuntimeInteropInfo orii{};
+    ti_export_opengl_runtime(opengl_runtime, &orii);
+    assert(orii.get_proc_addr != nullptr);
+    int opengl_version = gladLoadGL((GLADloadfunc)orii.get_proc_addr);
+    assert(opengl_version != 0);
+    initialized = true;
+  }
+
   // Get Interop Info
-  TiVulkanMemoryInteropInfo vulkan_interop_info;
+  TiVulkanMemoryInteropInfo vulkan_interop_info{};
   ti_export_vulkan_memory(runtime.runtime(),
                           vulkan_ndarray.memory().memory(),
                           &vulkan_interop_info);
 
-  TiOpenglMemoryInteropInfo opengl_interop_info;
-  ti_export_opengl_memory(runtime.runtime(),
+  TiOpenglMemoryInteropInfo opengl_interop_info{};
+  ti_export_opengl_memory(opengl_runtime.runtime(),
                           opengl_ndarray.memory().memory(), &opengl_interop_info);
 
-  // Create staging buffer
-  VkDevice device = runtime.renderer_->device();
-  VkPhysicalDevice physical_device = runtime.renderer_->physical_device_;
-  VkBuffer staging_buffer;
-  VkDeviceMemory staging_buffer_memory;
-  VkDeviceSize buffer_size = opengl_interop_info.size;
-  createBuffer(device, physical_device, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging_buffer, staging_buffer_memory);
+  VkDevice vk_device = runtime.renderer_->device_;
+  VkDeviceMemory vertex_buffer_mem = vulkan_interop_info.memory;
 
-  void *src_data = glMapBuffer(opengl_interop_info.buffer, GL_READ_WRITE);
-  void *dst_data;
-  vkMapMemory(device, staging_buffer_memory, 0, buffer_size, 0, &dst_data);
-  memcpy(dst_data, src_data, buffer_size);
-  vkUnmapMemory(device, staging_buffer_memory);
-  glUnmapBuffer(opengl_interop_info.buffer);
+  size_t alloc_offset = vulkan_interop_info.offset;
+  size_t alloc_size   = vulkan_interop_info.size;
+  size_t mem_size = alloc_offset + alloc_size;
+  auto handle = get_device_mem_handle(vertex_buffer_mem, vk_device);
+  OpenglMemoryObject memory_obj = import_opengl_memory_object_from_handle(handle, alloc_offset, alloc_size, false);
+  GLenum err = glGetError();
+  if (err != GL_NO_ERROR) {
+    throw std::runtime_error("opengl failed");
+  }
+  glCopyBufferSubData(opengl_interop_info.buffer, memory_obj.buffer, 0, 0, alloc_size);
 
-  // Copy data from staging buffer to vertex buffer
-  VkCommandPool cmd_pool = runtime.renderer_->command_pool_;
-  VkQueue graphics_queue = runtime.renderer_->queue_;
-  copyBuffer(device, cmd_pool, graphics_queue, staging_buffer, vulkan_interop_info.buffer, buffer_size);
+  glFlush();
+  glFinish();
 #else
   throw std::runtime_error("Unable to perform copy_from_opengl<T>() with TI_WITH_OPENGL=OFF");
 #endif // TI_WITH_OPENGL

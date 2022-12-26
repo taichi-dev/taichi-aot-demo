@@ -5,8 +5,6 @@
 #include "gft/util.hpp"
 
 static_assert(TI_AOT_DEMO_WITH_GLFW, "glfw must be provided");
-#include "GLFW/glfw3.h"
-#include <vulkan/vulkan.h>
 
 struct Config {
   TiArch arch = TI_ARCH_VULKAN;

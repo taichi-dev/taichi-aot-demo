@@ -40,6 +40,7 @@ ti::NdArray<float> GraphicsRuntime::allocate_vertex_buffer(
   mai.size = vertex_component_count * vertex_count * sizeof(float);
   mai.host_read = host_access;
   mai.host_write = host_access;
+  mai.export_sharing = TI_TRUE;
   mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_VERTEX_BIT;
   ti::Memory memory = allocate_memory(mai);
 
@@ -60,6 +61,7 @@ ti::NdArray<uint32_t> GraphicsRuntime::allocate_index_buffer(
   TiMemoryAllocateInfo mai {};
   mai.size = index_count * index_component_count * sizeof(uint32_t);
   mai.host_write = host_access;
+  mai.export_sharing = TI_TRUE;
   mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_INDEX_BIT;
   ti::Memory memory = allocate_memory(mai);
 
