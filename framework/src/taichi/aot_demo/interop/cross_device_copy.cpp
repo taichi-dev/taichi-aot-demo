@@ -292,14 +292,24 @@ void InteropHelper<T>::copy_from_opengl(GraphicsRuntime &runtime,
   size_t mem_size = alloc_offset + alloc_size;
   auto handle = get_device_mem_handle(vertex_buffer_mem, vk_device);
   OpenglMemoryObject memory_obj = import_opengl_memory_object_from_handle(handle, alloc_offset, alloc_size, false);
-  GLenum err = glGetError();
-  if (err != GL_NO_ERROR) {
+
+  if (glGetError() != GL_NO_ERROR) {
     throw std::runtime_error("opengl failed");
   }
-  glCopyBufferSubData(opengl_interop_info.buffer, memory_obj.buffer, 0, 0, alloc_size);
+  glBindBuffer(GL_COPY_READ_BUFFER, opengl_interop_info.buffer);
+  glBindBuffer(GL_COPY_WRITE_BUFFER, memory_obj.buffer);
+  glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, alloc_size);
+  glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+  glBindBuffer(GL_COPY_READ_BUFFER, 0);
 
   glFlush();
+  if (glGetError() != GL_NO_ERROR) {
+    throw std::runtime_error("opengl failed");
+  }
   glFinish();
+  if (glGetError() != GL_NO_ERROR) {
+    throw std::runtime_error("opengl failed");
+  }
 #else
   throw std::runtime_error("Unable to perform copy_from_opengl<T>() with TI_WITH_OPENGL=OFF");
 #endif // TI_WITH_OPENGL
