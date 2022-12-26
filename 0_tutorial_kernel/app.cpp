@@ -2,6 +2,7 @@
 #include <iostream>
 #include <numeric>
 #include <vulkan/vulkan.h>
+#undef TI_WITH_OPENGL
 #include <taichi/cpp/taichi.hpp>
 
 namespace {

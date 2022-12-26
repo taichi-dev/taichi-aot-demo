@@ -1,15 +1,3 @@
-#include <iostream>
-
-#ifdef TI_WITH_CUDA
-#include <cuda.h>
-#endif
-
-#ifdef TI_WITH_OPENGL
-#include <taichi/aot_demo/gl.h>
-#endif
-
-#include <vulkan/vulkan.h>
-
 #include "taichi/aot_demo/interop/cross_device_copy.hpp"
 #include "taichi/aot_demo/interop/common_utils.hpp"
 #include "taichi/aot_demo/renderer.hpp"
@@ -194,25 +182,25 @@ void InteropHelper<T>::copy_from_opengl(GraphicsRuntime &runtime,
                           opengl_ndarray.memory().memory(), &opengl_interop_info);
 
   // Create staging buffer
-  VkDevice vk_device = runtime.renderer_->device;
+  VkDevice device = runtime.renderer_->device();
   VkPhysicalDevice physical_device = runtime.renderer_->physical_device_;
   VkBuffer staging_buffer;
   VkDeviceMemory staging_buffer_memory;
   VkDeviceSize buffer_size = opengl_interop_info.size;
-  createBuffer(vk_device, physical_device, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+  createBuffer(device, physical_device, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging_buffer, staging_buffer_memory);
 
   void *src_data = glMapBuffer(opengl_interop_info.buffer, GL_READ_WRITE);
   void *dst_data;
   vkMapMemory(device, staging_buffer_memory, 0, buffer_size, 0, &dst_data);
   memcpy(dst_data, src_data, buffer_size);
-  vkUnmapMemory(devcie, staging_buffer_memory);
+  vkUnmapMemory(device, staging_buffer_memory);
   glUnmapBuffer(opengl_interop_info.buffer);
 
   // Copy data from staging buffer to vertex buffer
   VkCommandPool cmd_pool = runtime.renderer_->command_pool_;
-  vkQueue graphics_queue = runtime.renderer_->queue_;
-  copyBuffer(vk_device, cmd_pool, graphics_queue, staging_buffer, vulkan_interop_info.buffer, buffer_size);
+  VkQueue graphics_queue = runtime.renderer_->queue_;
+  copyBuffer(device, cmd_pool, graphics_queue, staging_buffer, vulkan_interop_info.buffer, buffer_size);
 #else
   throw std::runtime_error("Unable to perform copy_from_opengl<T>() with TI_WITH_OPENGL=OFF");
 #endif // TI_WITH_OPENGL

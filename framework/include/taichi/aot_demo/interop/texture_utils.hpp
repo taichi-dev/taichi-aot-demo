@@ -1,7 +1,5 @@
 #pragma once
-#include "taichi/cpp/taichi.hpp"
-#include "taichi/taichi.h"
-
+#include "taichi/aot_demo/common.hpp"
 #include "taichi/aot_demo/graphics_runtime.hpp"
 
 namespace ti {

@@ -41,9 +41,6 @@ function(configure_environment)
 
     if(TI_WITH_OPENGL)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_OPENGL")
-
-        # find runtime.bc files
-        add_definitions(-DTI_LIB_DIR="${TAICHI_C_API_INSTALL_DIR}/runtime")
     endif()
 
     set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)

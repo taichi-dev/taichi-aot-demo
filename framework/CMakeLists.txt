@@ -28,6 +28,12 @@ if(TI_WITH_CUDA)
     find_package(CUDAToolkit REQUIRED)
     list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES cuda)
     list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${CUDAToolkit_INCLUDE_DIRS})
+    endif()
+    
+    if(TI_WITH_OPENGL)
+    find_package(OpenGL REQUIRED)
+    list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES OpenGL::GL)
+    list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${OPENGL_INCLUDE_DIR})
 endif()
 
 # Compile for renderer framework
