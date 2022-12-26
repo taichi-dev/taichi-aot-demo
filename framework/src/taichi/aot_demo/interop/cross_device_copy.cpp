@@ -78,7 +78,9 @@ struct DeviceMemoryHandle {
   DeviceMemoryHandle(HANDLE handle) : handle(handle) {}
   ~DeviceMemoryHandle() {
     if (handle != INVALID_HANDLE_VALUE) {
-      CloseHandle(handle);
+      // TODO: (penguinliong) Should we release these handles?
+      // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkGetMemoryWin32HandleKHR.html
+      //CloseHandle(handle);
       handle = INVALID_HANDLE_VALUE;
     }
   }
@@ -93,7 +95,7 @@ struct DeviceMemoryHandle {
   DeviceMemoryHandle(int fd) : fd(fd) {}
   ~DeviceMemoryHandle() {
     if (fd != -1) {
-      close(fd);
+      //close(fd);
       fd = -1;
     }
   }
@@ -230,12 +232,19 @@ void InteropHelper<T>::copy_from_cuda(GraphicsRuntime& runtime,
 struct OpenglMemoryObject {
   GLuint memory_obj;
   GLuint buffer;
+
+  OpenglMemoryObject(GLuint memory_obj, GLuint buffer) : memory_obj(memory_obj), buffer(buffer) {}
+  OpenglMemoryObject(const OpenglMemoryObject &) = delete;
+  OpenglMemoryObject(OpenglMemoryObject &&b) : memory_obj(std::exchange(b.memory_obj, 0)), buffer(std::exchange(b.buffer, 0)) {}
+  ~OpenglMemoryObject() {
+    glDeleteMemoryObjectsEXT(1, &memory_obj);
+    glDeleteBuffers(1, &buffer);
+  }
 };
 OpenglMemoryObject import_opengl_memory_object_from_handle(
     const DeviceMemoryHandle& handle,
     size_t offset,
-    size_t size,
-    bool is_dedicated)
+    size_t size)
 {
   GLuint memory_obj{};
   GLuint buffer{};
@@ -250,10 +259,7 @@ OpenglMemoryObject import_opengl_memory_object_from_handle(
 #endif
   glNamedBufferStorageMemEXT(buffer, size, memory_obj, offset);
 
-  OpenglMemoryObject out{};
-  out.memory_obj = memory_obj;
-  out.buffer = buffer;
-  return out;
+  return OpenglMemoryObject{memory_obj, buffer};
 }
 #endif // TI_WITH_OPENGL
 
@@ -291,16 +297,31 @@ void InteropHelper<T>::copy_from_opengl(GraphicsRuntime &runtime,
   size_t alloc_size   = vulkan_interop_info.size;
   size_t mem_size = alloc_offset + alloc_size;
   auto handle = get_device_mem_handle(vertex_buffer_mem, vk_device);
-  OpenglMemoryObject memory_obj = import_opengl_memory_object_from_handle(handle, alloc_offset, alloc_size, false);
-
+  OpenglMemoryObject memory_obj = import_opengl_memory_object_from_handle(handle, alloc_offset, alloc_size);
   if (glGetError() != GL_NO_ERROR) {
     throw std::runtime_error("opengl failed");
   }
+
   glBindBuffer(GL_COPY_READ_BUFFER, opengl_interop_info.buffer);
+  if (glGetError() != GL_NO_ERROR) {
+    throw std::runtime_error("opengl failed");
+  }
   glBindBuffer(GL_COPY_WRITE_BUFFER, memory_obj.buffer);
-  glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, alloc_size);
+  if (glGetError() != GL_NO_ERROR) {
+    throw std::runtime_error("opengl failed");
+  }
+  glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, opengl_interop_info.size);
+  if (glGetError() != GL_NO_ERROR) {
+    throw std::runtime_error("opengl failed");
+  }
   glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+  if (glGetError() != GL_NO_ERROR) {
+    throw std::runtime_error("opengl failed");
+  }
   glBindBuffer(GL_COPY_READ_BUFFER, 0);
+  if (glGetError() != GL_NO_ERROR) {
+    throw std::runtime_error("opengl failed");
+  }
 
   glFlush();
   if (glGetError() != GL_NO_ERROR) {
