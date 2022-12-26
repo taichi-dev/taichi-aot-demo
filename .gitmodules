@@ -19,6 +19,3 @@
 [submodule "external/Vulkan-Headers"]
 	path = external/Vulkan-Headers
 	url = https://github.com/KhronosGroup/Vulkan-Headers
-[submodule "external/glad"]
-	path = external/glad
-	url = https://github.com/Dav1dde/glad.git
