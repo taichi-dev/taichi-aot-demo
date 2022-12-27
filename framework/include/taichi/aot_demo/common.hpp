@@ -18,6 +18,10 @@
 #include "glad/gl.h"
 #endif // TI_WITH_OPENGL
 
+#if TI_AOT_DEMO_ANDROID_APP
+#define VK_USE_PLATFORM_ANDROID_KHR 1
+#endif // TI_AOT_DEMO_ANDROID_APP
+
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif // _WIN32
@@ -25,10 +29,6 @@
 #include "taichi/cpp/taichi.hpp"
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS
 #include <vk_mem_alloc.h>
-
-#if TI_AOT_DEMO_ANDROID_APP
-#define VK_USE_PLATFORM_ANDROID_KHR 1
-#endif // TI_AOT_DEMO_ANDROID_APP
 
 #if TI_AOT_DEMO_WITH_GLFW
 #include "GLFW/glfw3.h"
