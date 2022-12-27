@@ -172,19 +172,6 @@ def compile_mpm88(arch, platform=None):
     g_init = g_init_builder.compile()
     g_update = g_update_builder.compile()
 
-    # GGUI only supports vec3 vertex so we need an extra `pos` here
-    # This is not necessary if you're not going to render it using GGUI.
-    # Let's keep this hack here so that the shaders serialized by this
-    # script can be loaded and rendered in the provided script in taichi-aot-demo.
-    pos = ti.Vector.ndarray(3, ti.f32, n_particles)
-    x = ti.Vector.ndarray(2, ti.f32, shape=(n_particles))
-    v = ti.Vector.ndarray(2, ti.f32, shape=(n_particles))
-
-    C = ti.Matrix.ndarray(2, 2, ti.f32, shape=(n_particles))
-    J = ti.ndarray(ti.f32, shape=(n_particles))
-    grid_v = ti.Vector.ndarray(2, ti.f32, shape=(n_grid, n_grid))
-    grid_m = ti.ndarray(ti.f32, shape=(n_grid, n_grid))
-
     mod = ti.aot.Module(caps=['spirv_has_non_semantic_info'])
     mod.add_graph('init', g_init)
     mod.add_graph('update', g_update)
