@@ -99,7 +99,7 @@ struct DeviceMemoryHandle {
       fd = -1;
     }
   }
-  DeviceMemoryHandle(DeviceMemoryHandle&& b) : handle(std::exchange(b.fd, -1)) {}
+  DeviceMemoryHandle(DeviceMemoryHandle&& b) : fd(std::exchange(b.fd, -1)) {}
   DeviceMemoryHandle& operator=(DeviceMemoryHandle&& b) {
     fd = std::exchange(b.fd, -1);
     return *this;
