@@ -80,7 +80,7 @@ struct DeviceMemoryHandle {
     if (handle != INVALID_HANDLE_VALUE) {
       // TODO: (penguinliong) Should we release these handles?
       // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkGetMemoryWin32HandleKHR.html
-      //CloseHandle(handle);
+      //CloseHandle(handle);  
       handle = INVALID_HANDLE_VALUE;
     }
   }
