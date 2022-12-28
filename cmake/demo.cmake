@@ -94,23 +94,23 @@ function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
     set(DUMMY_TARGET ${NAME}_${ARCH}_DYMMY_TARGET)
     add_custom_target(${DUMMY_TARGET} ALL)
     if(NOT PYTHON_SCRIPT_PATH STREQUAL "")
-        #add_custom_command(
-        #    TARGET ${DUMMY_TARGET}
-        #    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_SCRIPT_PATH}
-        #    ARGS --arch=${ARCH}
-        #    VERBATIM)
+        add_custom_command(
+            TARGET ${DUMMY_TARGET}
+            COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_SCRIPT_PATH}
+            ARGS --arch=${ARCH}
+            VERBATIM)
     endif()
 
     # Copy binary assets to android asset directory.
     set(DUMMY_TARGET2 ${NAME}_${ARCH}_DYMMY_TARGET2)
     add_custom_target(${DUMMY_TARGET2} ALL)
     if(ANDROID)
-#        add_custom_command(
-#            TARGET ${DUMMY_TARGET2}
-#            COMMAND ${CMAKE_COMMAND}
-#            ARGS -E copy_directory
-#                ${CMAKE_CURRENT_SOURCE_DIR}/assets
-#                ${PROJECT_SOURCE_DIR}/framework/android/app/src/main/assets/${NAME}/assets
-#            VERBATIM)
+        add_custom_command(
+            TARGET ${DUMMY_TARGET2}
+            COMMAND ${CMAKE_COMMAND}
+            ARGS -E copy_directory
+                ${CMAKE_CURRENT_SOURCE_DIR}/assets
+                ${PROJECT_SOURCE_DIR}/framework/android/app/src/main/assets/${NAME}/assets
+            VERBATIM)
     endif()
 endfunction()
