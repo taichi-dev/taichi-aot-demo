@@ -27,6 +27,7 @@
 #endif // _WIN32
 #include <vulkan/vulkan.h>
 #include "taichi/cpp/taichi.hpp"
+#include "taichi/taichi.h"
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS
 #include <vk_mem_alloc.h>
 
