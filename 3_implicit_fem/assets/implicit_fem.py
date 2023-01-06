@@ -9,7 +9,7 @@ parser.add_argument('--dim', type=int, default=3)
 parser.add_argument('--jit', default=False, action='store_true')
 parser.add_argument("--arch", default="vulkan", type=str)
 args = parser.parse_args()
-    
+
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
 # TODO: asserts cuda or vulkan backend
@@ -315,7 +315,7 @@ def run_aot():
     else:
         save_dir = os.path.join(curr_dir, "implicit_fem")
         os.makedirs(save_dir, exist_ok=True)
-        mod.save(save_dir, '')
+        mod.save(save_dir)
     print('AOT done')
 
 

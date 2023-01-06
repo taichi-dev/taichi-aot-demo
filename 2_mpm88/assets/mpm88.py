@@ -181,7 +181,7 @@ def compile_mpm88(arch, platform=None):
     else:
         save_dir = get_save_dir("mpm88", args.arch)
         os.makedirs(save_dir, exist_ok=True)
-        mod.save(save_dir, '')
+        mod.save(save_dir)
 
 if __name__ == "__main__":
     if args.arch == "vulkan":
