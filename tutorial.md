@@ -50,7 +50,7 @@ A compile taichi kernel consists of all compiled artifacts when compiling a `ti.
 mod = ti.aot.Module(ti.vulkan)
 mod.add_kernel(init, template_args={'x': x})
 mod.add_kernel(add_base, template_args={'x': x})
-mod.save(target_dir, '')
+mod.save(target_dir)
 ```
 
 `ti.types.ndarray` is a bit more complicated since it requires both `dtype` and `ndim` as its type information. To compile Taichi kernels with `ti.types.ndarray` arguments, you'll have to supply that information either directly in the type annotation, or provide an example input via `template_args`.

@@ -60,5 +60,5 @@ mod.add_graph('fractal', graph)
 
 save_dir = os.path.join(curr_dir, "fractal")
 os.makedirs(save_dir, exist_ok=True)
-mod.save(save_dir, "fractal")
+mod.save(save_dir)
 print('AOT done')
