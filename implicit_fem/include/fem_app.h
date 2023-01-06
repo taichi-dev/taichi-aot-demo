@@ -319,6 +319,17 @@ class FemApp {
 
     render_constants_ = device_->allocate_memory(
         {sizeof(RenderConstants), true, false, false, AllocUsage::Uniform});
+
+    render_constants_set_ = device_->create_resource_set_unique();
+    render_constants_set_->buffer(0, render_constants_.get_ptr(0));
+
+    raster_box_ = device_->create_raster_resources_unique();
+    raster_box_->vertex_buffer(devalloc_box_verts_.get_ptr(0));
+    raster_box_->index_buffer(devalloc_box_indices_.get_ptr(0), 32);
+
+    raster_mesh_ = device_->create_raster_resources_unique();
+    raster_mesh_->vertex_buffer(x_->devalloc().get_ptr(0));
+    raster_mesh_->index_buffer(indices_->devalloc().get_ptr(0), 32);
   }
 
   void run_render_loop(float g_x = 0, float g_y = -9.8, float g_z = 0) {
@@ -451,24 +462,16 @@ class FemApp {
 
     // Draw box
     {
-      auto resource_binder = render_box_pipeline_->resource_binder();
-      resource_binder->buffer(0, 0, render_constants_.get_ptr(0));
-      resource_binder->vertex_buffer(devalloc_box_verts_.get_ptr(0));
-      resource_binder->index_buffer(devalloc_box_indices_.get_ptr(0), 32);
-
       cmd_list->bind_pipeline(render_box_pipeline_.get());
-      cmd_list->bind_resources(resource_binder);
+      cmd_list->bind_shader_resources(render_constants_set_.get());
+      cmd_list->bind_raster_resources(raster_box_.get());
       cmd_list->draw_indexed(cornell_box_indicies_.size());
     }
     // Draw mesh
     {
-      auto resource_binder = render_mesh_pipeline_->resource_binder();
-      resource_binder->buffer(0, 0, render_constants_.get_ptr(0));
-      resource_binder->vertex_buffer(x_->devalloc().get_ptr(0));
-      resource_binder->index_buffer(indices_->devalloc().get_ptr(0), 32);
-
       cmd_list->bind_pipeline(render_mesh_pipeline_.get());
-      cmd_list->bind_resources(resource_binder);
+      cmd_list->bind_shader_resources(render_constants_set_.get());
+      cmd_list->bind_raster_resources(raster_mesh_.get());
       cmd_list->draw_indexed(N_FACES * 3);
     }
 
@@ -639,4 +642,8 @@ class FemApp {
   taichi::lang::DeviceAllocation devalloc_box_indices_;
   taichi::lang::DeviceAllocation depth_allocation_;
   taichi::lang::DeviceAllocation render_constants_;
+
+  std::unique_ptr<taichi::lang::ShaderResourceSet> render_constants_set_{nullptr};
+  std::unique_ptr<taichi::lang::RasterResources> raster_box_{nullptr};
+  std::unique_ptr<taichi::lang::RasterResources> raster_mesh_{nullptr};
 };
