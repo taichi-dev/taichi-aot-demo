@@ -95,13 +95,13 @@ def save_kernels(arch):
     m.add_kernel(activate, template_args={})
     m.add_kernel(paint, template_args={})
     m.add_kernel(img_to_ndarray, template_args={'arr': arr})
-    
+
     m.add_field("x", x)
     m.add_field("img", img)
 
     save_dir = get_save_dir("taichi_sparse", args.arch)
     os.makedirs(save_dir, exist_ok=True)
-    m.save(save_dir, '')
+    m.save(save_dir)
 
 if __name__ == '__main__':
     save_kernels(arch=arch)

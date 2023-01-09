@@ -99,7 +99,7 @@ def aot():
     m.add_kernel(compute_force, (pos, vel, force))
 
     dir_name = 'nbody_aot'
-    m.save(dir_name, '')
+    m.save(dir_name)
     #with open(os.path.join(dir_name, 'metadata.json')) as json_file:
     #    json.load(json_file)
 
