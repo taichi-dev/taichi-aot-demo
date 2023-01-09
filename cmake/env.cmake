@@ -18,9 +18,9 @@ function(configure_environment)
         # CMake find root is overriden by Android toolchain.
         NO_CMAKE_FIND_ROOT_PATH)
     if (NOT EXISTS ${taichi_c_api})
-        message(FATAL_ERROR "Couldn't find C-API library; ensure your Taichi is built with `TI_WITH_CAPI=ON`")
+        message(FATAL_ERROR "Couldn't find C-API library; ensure your Taichi is built with `TI_WITH_C_API=ON`")
     endif()
-    
+
     ################################
     # Configure Compilation Flags  #
     ################################
@@ -34,7 +34,7 @@ function(configure_environment)
 
     if(TI_WITH_CUDA)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA -DTI_NO_CUDA_INCLUDES")
-        
+
         # find runtime.bc files
         add_definitions(-DTI_LIB_DIR="${TAICHI_C_API_INSTALL_DIR}/runtime")
     endif()
@@ -56,9 +56,9 @@ endfunction()
 
 function(configure_third_party)
     find_package(Vulkan REQUIRED)
-    
+
     add_subdirectory(external)
-    
+
     # Compile for GraphiT
     add_library(GraphiT OBJECT
         "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp"

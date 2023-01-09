@@ -80,9 +80,9 @@ W_gradient = W_spiky_gradient
 
 @ti.kernel
 def initialize(boundary_box: ti.any_arr(field_dim=1), spawn_box: ti.any_arr(field_dim=1), N: ti.any_arr(field_dim=1)):
-    boundary_box[0] = [0.0, 0.0, 0.0] 
+    boundary_box[0] = [0.0, 0.0, 0.0]
     boundary_box[1] = [1.0, 1.0, 1.0]
-    
+
     spawn_box[0] = [0.3, 0.3, 0.3]
     spawn_box[1] = [0.7, 0.7, 0.7]
 
@@ -200,7 +200,7 @@ if __name__ == "__main__":
 
     # Serialize!
     mod = ti.aot.Module(arch)
-    
+
     mod.add_kernel(initialize,          template_args={'boundary_box':boundary_box, 'spawn_box':spawn_box, 'N':N})
     mod.add_kernel(initialize_particle, template_args={'pos':pos, 'vel':vel, 'spawn_box':spawn_box, 'N':N, 'gravity':gravity})
     mod.add_kernel(update_density,      template_args={'pos':pos, 'den':den, 'pre':pre})
@@ -210,4 +210,4 @@ if __name__ == "__main__":
 
     save_dir = get_save_dir("sph", args.arch)
     os.makedirs(save_dir, exist_ok=True)
-    mod.save(save_dir, '')
+    mod.save(save_dir)

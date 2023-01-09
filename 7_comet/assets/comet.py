@@ -122,22 +122,22 @@ def initialize():
 
 def save_kernels(arch):
     mod = ti.aot.Module(arch)
-    
+
     # Initialize
     g_init_builder = ti.graph.GraphBuilder()
     g_init_builder.dispatch(initialize)
-    
+
     # Update Per Iter
     g_update_builder = ti.graph.GraphBuilder()
     g_update_builder.dispatch(generate)
-    
+
     substep_builder = g_update_builder.create_sequential()
     substep_builder.dispatch(substep)
     for i in range(steps):
         g_update_builder.append(substep_builder)
     g_update_builder.dispatch(render)
     g_update_builder.dispatch(img_to_ndarray, sym_arr)
-    
+
     # Compile to Graph
     g_init = g_init_builder.compile()
     g_update = g_update_builder.compile()
@@ -154,7 +154,7 @@ def save_kernels(arch):
 
     save_dir = get_save_dir("comet", args.arch)
     os.makedirs(save_dir, exist_ok=True)
-    mod.save(save_dir, '')
+    mod.save(save_dir)
 
 if __name__ == '__main__':
     save_kernels(arch=arch)
