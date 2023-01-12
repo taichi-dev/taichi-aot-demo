@@ -81,7 +81,7 @@ function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
     if(NOT TI_WITH_CUDA AND ARCH STREQUAL "cuda")
         return()
     endif()
-    
+
     if(NOT TI_WITH_CPU AND ARCH STREQUAL "x64")
         return()
     endif()
@@ -91,7 +91,7 @@ function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
     endif()
 
     # Generate AOT files
-    set(DUMMY_TARGET ${NAME}_${ARCH}_DYMMY_TARGET)
+    set(DUMMY_TARGET ${NAME}_${ARCH}_DUMMY_TARGET)
     add_custom_target(${DUMMY_TARGET} ALL)
     if(NOT PYTHON_SCRIPT_PATH STREQUAL "")
         add_custom_command(
@@ -102,11 +102,12 @@ function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
     endif()
 
     # Copy binary assets to android asset directory.
-    set(DUMMY_TARGET2 ${NAME}_${ARCH}_DYMMY_TARGET2)
+    set(DUMMY_TARGET2 ${NAME}_${ARCH}_DUMMY_TARGET2)
     add_custom_target(${DUMMY_TARGET2} ALL)
     if(ANDROID)
         add_custom_command(
             TARGET ${DUMMY_TARGET2}
+            DEPENDS ${DUMMY_TARGET}
             COMMAND ${CMAKE_COMMAND}
             ARGS -E copy_directory
                 ${CMAKE_CURRENT_SOURCE_DIR}/assets
