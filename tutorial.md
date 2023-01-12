@@ -62,7 +62,7 @@ Now let's compile the kernels into an AOT module.
 
 A compiled taichi kernel consists of all compiled artifacts when compiling a `ti.kernel` with the types of its parameters. Take kernel `add_base` as an example, argument `base`'s type is `ti.f32`. Its type information is used to compile the kernel and thus encoded in the compiled artifact, while it can be called with any floating point number at runtime.
 
-```
+```python
 mod = ti.aot.Module(ti.vulkan)
 mod.add_kernel(init, template_args={'x': x})
 mod.add_kernel(add_base, template_args={'x': x})
@@ -73,7 +73,7 @@ mod.save(target_dir, '')
 
 Now that we're done with Kernel compilation, let's take a look at the generated artifacts and its layout:
 
-```
+```plaintext
 // FUTURE WORK: This is just a zip. Replace tcb with readable JSON
 // Structure of compiled artifacts
 .
@@ -95,7 +95,7 @@ For now TiRT is shipped along with `taichi-nightly` Python wheels. Be aware that
 
 TODO: We'll figure out a proper way to release it once the versioning issue is improved.
 
-```
+```bash
 # Install python taichi: 
 pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly
 # Get the runtime library:
@@ -109,7 +109,7 @@ Currently, only TiRT for Linux systems is included in the nightly distributions.
 
 Integrate `TiRT` to your CMakeLists.txt:
 
-```
+```cmake
 # Find built taichi C-API library in `TAICHI_C_API_INSTALL_DIR`.
 find_library(taichi_c_api taichi_c_api HINTS ${TAICHI_C_API_INSTALL_DIR}/lib NO_CMAKE_FIND_ROOT_PATH)
 if (NOT EXISTS ${taichi_c_api})
@@ -138,7 +138,7 @@ Calling Taichi in C++ as easy as what you'd imagine:
 
 A complete C++ application with embedded Taichi is shown below:
 
-```
+```cpp
 #include <taichi/cpp/taichi.hpp>
 
 struct App0_tutorial {
