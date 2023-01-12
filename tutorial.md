@@ -1,4 +1,4 @@
-# Tutorial: Use Taichi in C++ application
+# Tutorial: Run Taichi programs in C++ application
 
 Taichi makes it easy to write high-performance programs with efficient parallelism, but in many applications we cannot simply deploy the Python scripts. Taichi offers a runtime library (TiRT) with a C interface so that your Taichi kernels can be launched in any native application. In this tutorial, we'll walkthrough the steps to deploy a Taichi program in a C++ application.
 
@@ -10,8 +10,6 @@ In Python, when you call a function decorated with `@ti.kernel`, Taichi immediat
 
 1. Compile Taichi kernels from Python and save the artifacts.
 2. Load AOT modules with TiRT and launch them in your applications.
-
-TODO: add a picture of overall workflow instead of this numbered list.
 
 Although this tutorial only demonstrates integrating Taichi in a C++ application, thanks to the versatility of the C interface, TiRT can communicate with many programming languages including C/C++, Swift, Rust, C# (via P/Invoke) and Java (via JNI).
 
