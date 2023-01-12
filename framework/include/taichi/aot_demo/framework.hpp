@@ -5,6 +5,12 @@
 #include "taichi/aot_demo/graphics_runtime.hpp"
 #include "taichi/aot_demo/asset_manager.hpp"
 
+namespace ti {
+namespace aot_demo {
+    class Framework;
+}
+}
+
 struct AppConfig {
   const char* app_name = "taichi";
   uint32_t framebuffer_width = 64;
@@ -13,10 +19,15 @@ struct AppConfig {
 
 // What you need to implement:
 struct App {
+  std::shared_ptr<ti::aot_demo::Framework> F_;
   virtual ~App() {}
+  
+  void set_framework(const std::shared_ptr<ti::aot_demo::Framework>& F) {
+    F_ = F;
+  }
 
   virtual AppConfig cfg() const = 0;
-  virtual void initialize() = 0;
+  virtual void initialize(TiArch arch) = 0;
   virtual bool update() = 0;
   virtual void render() = 0;
 };
@@ -44,7 +55,7 @@ class Framework {
 
 public:
   Framework() {}
-  Framework(const AppConfig& app_cfg, TiArch arch, bool debug);
+  Framework(const AppConfig& app_cfg, bool debug);
   Framework(const Framework&) = delete;
   Framework(Framework&& b) :
     renderer_(std::move(b.renderer_)),
@@ -100,8 +111,6 @@ public:
     return *renderer_;
   }
 };
-
-extern Framework F;
 
 } // namespace renderer
 } // namespce ti

@@ -22,18 +22,14 @@ elif args.arch == "vulkan":
 else:
     assert False
 
-ti.init(arch=arch, offline_cache=False)
+ti.init(arch=arch, offline_cache=False, default_fp=ti.f32)
 
 screen_res = (1000, 1000)
-
-boundary_box_np = np.array([[0, 0, 0], [1, 1, 1]])
-spawn_box_np = np.array([[0.3, 0.3, 0.3], [0.7, 0.7, 0.7]])
 
 particle_radius = 0.01
 particle_diameter = particle_radius * 2
 h = 4.0 * particle_radius
-N_np = ((spawn_box_np[1] - spawn_box_np[0]) / particle_diameter + 1).astype(np.int32)
-particle_num = N_np[0] * N_np[1] * N_np[2]
+particle_num = 8000
 
 rest_density = 1000.0
 mass = rest_density * particle_diameter * particle_diameter * particle_diameter * 0.8
@@ -84,9 +80,9 @@ W_gradient = W_spiky_gradient
 
 @ti.kernel
 def initialize(boundary_box: ti.any_arr(field_dim=1), spawn_box: ti.any_arr(field_dim=1), N: ti.any_arr(field_dim=1)):
-    boundary_box[0] = [0.0, 0.0, 0.0] 
+    boundary_box[0] = [0.0, 0.0, 0.0]
     boundary_box[1] = [1.0, 1.0, 1.0]
-    
+
     spawn_box[0] = [0.3, 0.3, 0.3]
     spawn_box[1] = [0.7, 0.7, 0.7]
 
@@ -95,7 +91,7 @@ def initialize(boundary_box: ti.any_arr(field_dim=1), spawn_box: ti.any_arr(fiel
     N[2] = 20;
 
 @ti.kernel
-def initialize_particle(pos: ti.any_arr(field_dim=1), spawn_box: ti.any_arr(field_dim=1), N: ti.any_arr(field_dim=1), gravity: ti.any_arr(field_dim=0)):
+def initialize_particle(pos: ti.any_arr(field_dim=1), vel: ti.any_arr(field_dim=1), spawn_box: ti.any_arr(field_dim=1), N: ti.any_arr(field_dim=1), gravity: ti.any_arr(field_dim=0)):
     gravity[None] = ti.Vector([0.0, -9.8, 0.0])
     for i in range(particle_num):
         pos[i] = (
@@ -105,6 +101,7 @@ def initialize_particle(pos: ti.any_arr(field_dim=1), spawn_box: ti.any_arr(fiel
             * particle_diameter
             + spawn_box[0]
         )
+        vel[i] = [0.0, 0.0, 0.0]
         # print(i, pos[i], spawn_box[0], N[0], N[1], N[2])
 
 
@@ -189,11 +186,8 @@ def copy_data_from_ndarray_to_field(src: ti.template(), dst: ti.any_arr()):
 if __name__ == "__main__":
     # Initialize arrays
     N = ti.ndarray(ti.i32, shape=3) # Potential bug: modify ti.f32 to ti.i32 leads to [all components of N are zeros].
-    N.from_numpy(N_np)
     boundary_box = ti.Vector.ndarray(3, ti.f32, shape=2)
-    boundary_box.from_numpy(boundary_box_np)
     spawn_box = ti.Vector.ndarray(3, ti.f32, shape=2)
-    spawn_box.from_numpy(spawn_box_np)
 
     pos = ti.Vector.ndarray(3, ti.f32, shape=particle_num)
     vel = ti.Vector.ndarray(3, ti.f32, shape=particle_num)
@@ -206,9 +200,9 @@ if __name__ == "__main__":
 
     # Serialize!
     mod = ti.aot.Module(arch)
-    
+
     mod.add_kernel(initialize,          template_args={'boundary_box':boundary_box, 'spawn_box':spawn_box, 'N':N})
-    mod.add_kernel(initialize_particle, template_args={'pos':pos, 'spawn_box':spawn_box, 'N':N, 'gravity':gravity})
+    mod.add_kernel(initialize_particle, template_args={'pos':pos, 'vel':vel, 'spawn_box':spawn_box, 'N':N, 'gravity':gravity})
     mod.add_kernel(update_density,      template_args={'pos':pos, 'den':den, 'pre':pre})
     mod.add_kernel(update_force,        template_args={'pos':pos, 'vel':vel, 'den':den, 'pre':pre, 'acc':acc, 'gravity':gravity})
     mod.add_kernel(advance,             template_args={'pos':pos, 'vel':vel, 'acc':acc})
@@ -216,4 +210,4 @@ if __name__ == "__main__":
 
     save_dir = get_save_dir("sph", args.arch)
     os.makedirs(save_dir, exist_ok=True)
-    mod.save(save_dir, '')
+    mod.save(save_dir)

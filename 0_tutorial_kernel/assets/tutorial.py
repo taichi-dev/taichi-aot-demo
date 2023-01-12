@@ -41,7 +41,7 @@ def compile_demo(arch, aot):
 
         save_dir = os.path.join(curr_dir, "tutorial")
         os.makedirs(save_dir, exist_ok=True)
-        mod.save(save_dir, '')
+        mod.save(save_dir)
         print(f'Save compiled artifact to {save_dir}')
     else:
         print('Running the kernels in Python')

@@ -1,10 +1,9 @@
+#include <vulkan/vulkan.h>
+
 #include "taichi/aot_demo/interop/texture_utils.hpp"
 #include "taichi/aot_demo/interop/common_utils.hpp"
 #include "taichi/aot_demo/interop/cross_device_copy.hpp"
 #include "taichi/aot_demo/renderer.hpp"
-
-#include <vulkan/vulkan.h>
-#include "taichi/taichi.h"
 
 namespace ti {
 namespace aot_demo {

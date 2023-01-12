@@ -9,27 +9,6 @@
 
 using namespace ti::aot_demo;
 
-static TiArch get_target_arch() {
-  TiArch arch = TI_ARCH_VULKAN;
-#ifdef TI_LIB_DIR
-  // TI_LIB_DIR set by cmake
-  std::string ti_lib_dir = (TI_LIB_DIR);
-  setenv("TI_LIB_DIR", ti_lib_dir.c_str(), 1/*overwrite*/);
-#endif
-
-  if(const char* arch_ptr = std::getenv("TI_AOT_ARCH")) {
-    std::string arch_str = arch_ptr;
-    if(arch_str == "vulkan") arch = TI_ARCH_VULKAN;
-    else if(arch_str == "x64") arch = TI_ARCH_X64;
-    else if(arch_str == "cuda") arch = TI_ARCH_CUDA;
-    else {
-        std::cout << "Unrecognized TI_AOT_ARCH: " << arch_str << std::endl;
-    }
-  }
-  
-  return arch;
-}
-
 static std::string get_aot_file_dir(TiArch arch) {
     switch(arch) {
         case TI_ARCH_VULKAN: {
@@ -51,8 +30,8 @@ struct App6_taichi_sparse : public App {
   static const uint32_t img_w = 680;
   static const uint32_t img_h = 680;
 
-  ti::AotModule module_;
   ti::Runtime runtime_;
+  ti::AotModule module_;
   TiArch arch_;
     
   ti::Kernel k_fill_img_;
@@ -67,10 +46,6 @@ struct App6_taichi_sparse : public App {
   ti::Texture tex_;
   std::unique_ptr<GraphicsTask> draw_texture;
 
-  App6_taichi_sparse(TiArch arch) {
-    arch_ = arch;
-  }
-
   virtual AppConfig cfg() const override final {
     AppConfig out {};
     out.app_name = "6_taichi_sparse";
@@ -79,9 +54,16 @@ struct App6_taichi_sparse : public App {
     return out;
   }
 
-  virtual void initialize() override final {
+  virtual void initialize(TiArch arch) override final{
+
+    if(arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
+        std::cout << "6_taichi_sparse only supports cuda, x64 backends" << std::endl;
+        exit(0);
+    }
+    arch_ = arch;
+    
     // 1. Create runtime
-    GraphicsRuntime& g_runtime = F.runtime();
+    GraphicsRuntime& g_runtime = F_->runtime();
     runtime_ = ti::Runtime(arch_);
     
     // 2. Load AOT module
@@ -110,14 +92,14 @@ struct App6_taichi_sparse : public App {
     
     runtime_.wait();
 
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.set_framebuffer_size(img_w, img_h);
 
     std::cout << "initialized!" << std::endl;
   }
   virtual bool update() override final {
     // 8. Run compute kernels
-    auto& g_runtime = F.runtime();
+    auto& g_runtime = F_->runtime();
     val += 0.05f;
     k_activate_[0] = val;
 
@@ -128,11 +110,11 @@ struct App6_taichi_sparse : public App {
     
     runtime_.wait();
     
-    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
+    std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;
   }
   virtual void render() override final {
-    auto& g_runtime = F.runtime();
+    auto& g_runtime = F_->runtime();
     
     // 9. Update to texture
     if(arch_ == TI_ARCH_CUDA) {
@@ -145,17 +127,11 @@ struct App6_taichi_sparse : public App {
     g_runtime.wait();
     runtime_.wait();
     
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.enqueue_graphics_task(*draw_texture);
   }
 };
 
 std::unique_ptr<App> create_app() {
-  auto arch = get_target_arch();
-  if(arch == TI_ARCH_VULKAN) {
-    std::cout << "Taichi Sparse does not support Vulkan backend" << std::endl;
-    exit(0);
-  } 
-
-  return std::make_unique<App6_taichi_sparse>(arch);
+  return std::make_unique<App6_taichi_sparse>();
 }

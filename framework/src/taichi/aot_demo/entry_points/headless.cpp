@@ -4,8 +4,10 @@
 #include "gft/args.hpp"
 #include "gft/util.hpp"
 
+#include <iostream>
+
 struct Config {
-  std::string output_prefix = "";
+  std::string output_path = "";
   uint32_t frame_count = 2;
   TiArch arch = TI_ARCH_VULKAN;
   bool debug = false;
@@ -16,7 +18,7 @@ void initialize(const char* app_name, int argc, const char** argv) {
   std::string arch_lit = "vulkan";
 
   args::init_arg_parse(app_name, "One of the Taichi AOT demos.");
-  args::reg_arg<args::StringParser>("-o", "--output-prefix", CFG.output_prefix,
+  args::reg_arg<args::StringParser>("-o", "--output-path", CFG.output_path,
     "Prefix of the output BMP files.");
   args::reg_arg<args::UintParser>("-f", "--frames", CFG.frame_count,
     "Number of frames to run, or 0 to run forever.");
@@ -29,6 +31,10 @@ void initialize(const char* app_name, int argc, const char** argv) {
 
   if (arch_lit == "vulkan") {
     CFG.arch = TI_ARCH_VULKAN;
+  } else if(arch_lit == "x64") {
+    CFG.arch = TI_ARCH_X64;
+  } else if(arch_lit == "cuda") {
+    CFG.arch = TI_ARCH_CUDA;
   } else {
     throw std::runtime_error("unsupported arch");
   }
@@ -41,7 +47,10 @@ std::unique_ptr<ti::aot_demo::AssetManager> create_asset_manager() {
 void save_framebuffer_to_bmp(const ti::NdArray<uint8_t>& framebuffer, uint32_t i) {
   std::string index = std::to_string(i);
   std::string zero_padding(4 - index.size(), '0');
-  std::string path = CFG.output_prefix + zero_padding + std::to_string(i) + ".bmp";
+  std::string path = zero_padding + std::to_string(i) + ".bmp";
+  if(CFG.output_path != "") {
+    path = CFG.output_path;
+  }
   liong::util::save_bmp((const uint32_t*)framebuffer.map(),
     framebuffer.shape().dims[0],
     framebuffer.shape().dims[1],
@@ -50,17 +59,27 @@ void save_framebuffer_to_bmp(const ti::NdArray<uint8_t>& framebuffer, uint32_t i
 }
 
 int main(int argc, const char** argv) {
+// FIXME: (penguinliong) @jim19930609 Maybe setting this var in scripts can be
+// a better option.
+#if !defined(_WIN32) && defined(TI_LIB_DIR)
+  // This is for CUDA/CPU AOT only
+  // TI_LIB_DIR set by cmake
+  std::string ti_lib_dir = (TI_LIB_DIR);
+  setenv("TI_LIB_DIR", ti_lib_dir.c_str(), 1/*overwrite*/);
+#endif
+
   std::unique_ptr<App> app = create_app();
   const AppConfig& app_cfg = app->cfg();
 
   initialize(app_cfg.app_name, argc, argv);
 
-  ti::aot_demo::F = ti::aot_demo::Framework(app_cfg, CFG.arch, CFG.debug);
-  ti::aot_demo::Framework& F = ti::aot_demo::F;
-  ti::aot_demo::GraphicsRuntime& runtime = F.runtime();
-  ti::aot_demo::Renderer& renderer = F.renderer();
+  auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, CFG.debug);
+  app->set_framework(F);
+  
+  ti::aot_demo::GraphicsRuntime& runtime = F->runtime();
+  ti::aot_demo::Renderer& renderer = F->renderer();
 
-  app->initialize();
+  app->initialize(CFG.arch);
 
   uint32_t width = renderer.width();
   uint32_t height = renderer.height();
@@ -69,7 +88,7 @@ int main(int argc, const char** argv) {
 
   for (uint32_t i = 0; i < CFG.frame_count; ++i) {
     if (!app->update()) {
-      F.next_frame();
+      F->next_frame();
       break;
     }
 
@@ -78,10 +97,9 @@ int main(int argc, const char** argv) {
     renderer.end_render();
 
     renderer.present_to_ndarray(framebuffer);
-    F.next_frame();
+    F->next_frame();
 
     save_framebuffer_to_bmp(framebuffer, i);
   }
-
   return 0;
 }

@@ -3,6 +3,10 @@ function(configure_environment)
     # Configure TAICHI_C_API_INSTALL_DIR  #
     #######################################
     if (NOT EXISTS ${TAICHI_C_API_INSTALL_DIR})
+        set(${TAICHI_C_API_INSTALL_DIR} $ENV{TAICHI_C_API_INSTALL_DIR})
+    endif()
+    message("-- TAICHI_C_API_INSTALL_DIR=${TAICHI_C_API_INSTALL_DIR}")
+    if (NOT EXISTS ${TAICHI_C_API_INSTALL_DIR})
         message(FATAL_ERROR "Environment variable TAICHI_C_API_INSTALL_DIR is not specified")
     endif()
     get_filename_component(TAICHI_C_API_INSTALL_DIR ${TAICHI_C_API_INSTALL_DIR} ABSOLUTE CACHE)
@@ -14,9 +18,9 @@ function(configure_environment)
         # CMake find root is overriden by Android toolchain.
         NO_CMAKE_FIND_ROOT_PATH)
     if (NOT EXISTS ${taichi_c_api})
-        message(FATAL_ERROR "Couldn't find C-API library; ensure your Taichi is built with `TI_WITH_CAPI=ON`")
+        message(FATAL_ERROR "Couldn't find C-API library; ensure your Taichi is built with `TI_WITH_C_API=ON`")
     endif()
-    
+
     ################################
     # Configure Compilation Flags  #
     ################################
@@ -30,7 +34,7 @@ function(configure_environment)
 
     if(TI_WITH_CUDA)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_CUDA -DTI_NO_CUDA_INCLUDES")
-        
+
         # find runtime.bc files
         add_definitions(-DTI_LIB_DIR="${TAICHI_C_API_INSTALL_DIR}/runtime")
     endif()
@@ -52,9 +56,9 @@ endfunction()
 
 function(configure_third_party)
     find_package(Vulkan REQUIRED)
-    
+
     add_subdirectory(external)
-    
+
     # Compile for GraphiT
     add_library(GraphiT OBJECT
         "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp"
@@ -70,7 +74,7 @@ function(configure_third_party)
 endfunction()
 
 
-function(install_shared_libraries DEMO_OUTPUT_DIRECTORY DUMMY_TARGET)        
+function(install_shared_libraries DEMO_OUTPUT_DIRECTORY)
     ###############################################
     # Copy Taichi C-API dylib to output directory #
     ###############################################
@@ -80,12 +84,13 @@ function(install_shared_libraries DEMO_OUTPUT_DIRECTORY DUMMY_TARGET)
         set(taichi_c_api_SRC ${taichi_c_api})
     endif()
 
-    add_custom_command(
-        OUTPUT ${DEMO_OUTPUT_DIRECTORY}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND}
-        ARGS -E copy ${taichi_c_api_SRC} ${DEMO_OUTPUT_DIRECTORY}
-        VERBATIM)
+    message("-- Taichi C-API Runtime at ${taichi_c_api_SRC}")
+
+    file(COPY ${taichi_c_api_SRC} DESTINATION ${DEMO_OUTPUT_DIRECTORY})
+
+    if (ANDROID)
+        file(COPY ${taichi_c_api_SRC} DESTINATION "${PROJECT_SOURCE_DIR}/framework/android/app/src/main/jniLibs/arm64-v8a/")
+    endif()
 
     # MoltenVK dylib should be copied to the output directory.
     ###########################################
@@ -100,9 +105,5 @@ function(install_shared_libraries DEMO_OUTPUT_DIRECTORY DUMMY_TARGET)
             ARGS -E copy ${MoltenVK} ${DEMO_OUTPUT_DIRECTORY}
             VERBATIM)
     endif()
-
-    add_custom_target(${DUMMY_TARGET} ALL
-        DEPENDS ${DEMO_OUTPUT_DIRECTORY}
-    )
 
 endfunction()

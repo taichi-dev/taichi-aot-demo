@@ -365,7 +365,7 @@ def run_aot():
                    template_args={
                        'beta_scalar': beta_scalar,
                    })
-    mod.save(dir_name, '')
+    mod.save(dir_name)
     print('AOT done')
 
 

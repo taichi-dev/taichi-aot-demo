@@ -63,7 +63,7 @@ def block1_deactivate_all():
 def activate(t: ti.f32):
     for i, j in ti.ndrange(n, n):
         p = ti.Vector([i, j]) / n
-        p = ti.Matrix.rotation2d(ti.sin(t)) @ (p - 0.5) + 0.5
+        p = ti.math.rotation2d(ti.sin(t)) @ (p - 0.5) + 0.5
 
         if taichi_logo(p) == 0:
             x[i, j] = 1
@@ -95,13 +95,13 @@ def save_kernels(arch):
     m.add_kernel(activate, template_args={})
     m.add_kernel(paint, template_args={})
     m.add_kernel(img_to_ndarray, template_args={'arr': arr})
-    
+
     m.add_field("x", x)
     m.add_field("img", img)
 
     save_dir = get_save_dir("taichi_sparse", args.arch)
     os.makedirs(save_dir, exist_ok=True)
-    m.save(save_dir, '')
+    m.save(save_dir)
 
 if __name__ == '__main__':
     save_kernels(arch=arch)

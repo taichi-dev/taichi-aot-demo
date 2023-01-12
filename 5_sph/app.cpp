@@ -8,27 +8,6 @@
 
 using namespace ti::aot_demo;
 
-static TiArch get_target_arch() {
-  TiArch arch = TI_ARCH_VULKAN;
-#ifdef TI_LIB_DIR
-  // TI_LIB_DIR set by cmake
-  std::string ti_lib_dir = (TI_LIB_DIR);
-  setenv("TI_LIB_DIR", ti_lib_dir.c_str(), 1/*overwrite*/);
-#endif
-
-  if(const char* arch_ptr = std::getenv("TI_AOT_ARCH")) {
-    std::string arch_str = arch_ptr;
-    if(arch_str == "vulkan") arch = TI_ARCH_VULKAN;
-    else if(arch_str == "x64") arch = TI_ARCH_X64;
-    else if(arch_str == "cuda") arch = TI_ARCH_CUDA;
-    else {
-        std::cout << "Unrecognized TI_AOT_ARCH: " << arch_str << std::endl;
-    }
-  }
-  
-  return arch;
-}
-
 static std::string get_aot_file_dir(TiArch arch) {
     switch(arch) {
         case TI_ARCH_VULKAN: {
@@ -75,8 +54,8 @@ struct App5_sph : public App {
   static const uint32_t NR_PARTICLES = 8000;
   static const uint32_t SUBSTEPS = 5;
 
-  ti::AotModule module_;
   ti::Runtime runtime_;
+  ti::AotModule module_;
   TiArch arch_;
 
   ti::Kernel k_initialize_;
@@ -99,10 +78,6 @@ struct App5_sph : public App {
   ti::NdArray<float> render_pos_;
   std::unique_ptr<GraphicsTask> draw_points;
 
-  App5_sph(TiArch arch) {
-    arch_ = arch;
-  }
-
   virtual AppConfig cfg() const override final {
     AppConfig out {};
     out.app_name = "5_sph";
@@ -111,10 +86,23 @@ struct App5_sph : public App {
     return out;
   }
 
-  virtual void initialize() override final {
+  virtual void initialize(TiArch arch) override final{
+
+    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
+        std::cout << "5_sph only supports cuda, x64, vulkan backends" << std::endl;
+        exit(0);
+    }
+    arch_ = arch;
+    
     // 1. Create runtime
-    GraphicsRuntime& g_runtime = F.runtime();
-    runtime_ = ti::Runtime(arch_);
+    GraphicsRuntime& g_runtime = F_->runtime();
+
+    if(arch_ == TI_ARCH_VULKAN) {
+        // Reuse the vulkan runtime from renderer framework
+        runtime_ = ti::Runtime(arch_, F_->runtime(), false);;
+    } else {
+        runtime_ = ti::Runtime(arch_);
+    }
     
     // 2. Load AOT module
     auto aot_file_path = get_aot_file_dir(arch_);
@@ -145,7 +133,7 @@ struct App5_sph : public App {
     render_pos_ = g_runtime.allocate_vertex_buffer(shape_1d[0], vec3_shape[0], false/*host_access*/);
     
     // 5. Handle image presentation
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     glm::mat4 model2world = glm::mat4(1.0f);
     model2world = glm::scale(model2world, glm::vec3(5.0f));
     glm::mat4 world2view = glm::lookAt(glm::vec3(10, 10, 10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
@@ -163,9 +151,10 @@ struct App5_sph : public App {
     k_initialize_[2] = N_;
 
     k_initialize_particle_[0] = pos_;
-    k_initialize_particle_[1] = spawn_box_;
-    k_initialize_particle_[2] = N_;
-    k_initialize_particle_[3] = gravity_;
+    k_initialize_particle_[1] = vel_;
+    k_initialize_particle_[2] = spawn_box_;
+    k_initialize_particle_[3] = N_;
+    k_initialize_particle_[4] = gravity_;
 
     k_update_density_[0] = pos_;
     k_update_density_[1] = den_;
@@ -206,19 +195,18 @@ struct App5_sph : public App {
     runtime_.wait();
 
     // 9. Update vertex buffer
-    auto& g_runtime = F.runtime();
+    auto& g_runtime = F_->runtime();
     copy_to_vulkan_ndarray<float>(render_pos_, g_runtime, pos_, runtime_, arch_);
 
-    std::cout << "stepped! (fps=" << F.fps() << ")" << std::endl;
+    std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;
   }
   virtual void render() override final {
-    Renderer& renderer = F.renderer();
+    Renderer& renderer = F_->renderer();
     renderer.enqueue_graphics_task(*draw_points);
   }
 };
 
 std::unique_ptr<App> create_app() {
-  auto arch = get_target_arch();
-  return std::make_unique<App5_sph>(arch);
+  return std::make_unique<App5_sph>();
 }

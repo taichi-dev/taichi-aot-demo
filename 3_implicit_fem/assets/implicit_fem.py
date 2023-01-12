@@ -9,12 +9,16 @@ parser.add_argument('--dim', type=int, default=3)
 parser.add_argument('--jit', default=False, action='store_true')
 parser.add_argument("--arch", default="vulkan", type=str)
 args = parser.parse_args()
-    
+
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
 # TODO: asserts cuda or vulkan backend
 if args.arch == "vulkan":
     arch = ti.vulkan
+    platform = None
+elif args.arch == "android-vulkan":
+    arch = ti.vulkan
+    platform = "android"
 else:
     assert False
 ti.init(arch=arch, vk_api_version="1.0")
@@ -22,6 +26,9 @@ ti.init(arch=arch, vk_api_version="1.0")
 def get_path(*segs):
     return os.path.join(curr_dir, *segs)
 
+def get_archive_path():
+    curr_dir = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(curr_dir, f"../../framework/android/app/src/main/assets/E3_implicit_fem.tcm")
 
 c2e_np = np.fromfile(get_path('c2e.bin'), dtype=np.int32).reshape(-1, 6)
 vertices_np = np.fromfile(get_path('vertices.bin'), dtype=np.int32).reshape(-1, 4)
@@ -302,10 +309,13 @@ def run_aot():
     mod = ti.aot.Module(ti.vulkan)
     mod.add_graph('init', g_init)
     mod.add_graph('substep', g_substep)
-    
-    save_dir = os.path.join(curr_dir, "implicit_fem")
-    os.makedirs(save_dir, exist_ok=True)
-    mod.save(save_dir, '')
+
+    if platform == "android":
+        mod.archive(get_archive_path())
+    else:
+        save_dir = os.path.join(curr_dir, "implicit_fem")
+        os.makedirs(save_dir, exist_ok=True)
+        mod.save(save_dir)
     print('AOT done')
 
 

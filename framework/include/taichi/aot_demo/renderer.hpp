@@ -6,6 +6,10 @@
 #include "GLFW/glfw3.h"
 #endif // TI_AOT_DEMO_WITH_GLFW
 
+#if TI_AOT_DEMO_ANDROID_APP
+#include <android/native_window.h>
+#endif // TI_AOT_DEMO_ANDROID_APP
+
 namespace ti {
 namespace aot_demo {
 
@@ -13,14 +17,15 @@ class GraphicsTask;
 
 class Renderer {
   friend class GraphicsTask;
-  
+
   template<class T>
   friend class InteropHelper;
-  
+
   template<class T>
   friend class TextureHelper;
 
   VkInstance instance_;
+  VkDebugUtilsMessengerEXT debug_utils_messenger_;
   VkPhysicalDevice physical_device_;
   VkDevice device_;
   uint32_t queue_family_index_;
@@ -61,6 +66,8 @@ class Renderer {
   bool in_frame_;
   VkCommandBuffer frame_command_buffer_;
 
+  void set_swapchain();
+
   std::map<TiMemory, TiVulkanMemoryInteropInfo> ti_memory_interops_;
   const TiVulkanMemoryInteropInfo& export_ti_memory(TiMemory memory);
 
@@ -78,6 +85,10 @@ public:
 #if TI_AOT_DEMO_WITH_GLFW
   void set_surface_window(GLFWwindow* window);
 #endif // TI_AOT_DEMO_WITH_GLFW
+#if TI_AOT_DEMO_ANDROID_APP
+  void set_surface_window(ANativeWindow* state);
+#endif // TI_AOT_DEMO_ANDROID_APP
+
   // FIXME: (penguinliong) This one is somehow deprecaeted so please simply don't use it.
   void set_framebuffer_size(uint32_t width, uint32_t height);
 

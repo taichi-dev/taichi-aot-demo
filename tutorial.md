@@ -46,7 +46,7 @@ def add_base(x: ti.types.ndarray(field_dim=1), base: ti.f32):
 You can also create an ND-array and launch the kernels in the same script to ensure they do everything you expect.
 
 ```python
-x = ti.ndarray(ti.f32, shape=(8192)) 
+x = ti.ndarray(ti.f32, shape=(8192))
 init(x)
 
 N_ITER = 50
@@ -66,7 +66,7 @@ A compiled taichi kernel consists of all compiled artifacts when compiling a `ti
 mod = ti.aot.Module(ti.vulkan)
 mod.add_kernel(init, template_args={'x': x})
 mod.add_kernel(add_base, template_args={'x': x})
-mod.save(target_dir, '')
+mod.save(target_dir)
 ```
 
 `ti.types.ndarray` is a bit more complicated since it requires both `dtype` and `ndim` as its type information. To compile Taichi kernels with `ti.types.ndarray` arguments, you'll have to supply that information either directly in the type annotation, or provide an example input via `template_args`.
@@ -102,7 +102,7 @@ pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly
 pip download --no-deps -i https://pypi.taichi.graphics/simple/ taichi-nightly
 # For example
 unzip taichi_nightly-1.3.0.post20221102-cp38-cp38-manylinux_2_27_x86_64.whl
-export TAICHI_C_API_INSTALL_DIR=$PWD/taichi_nightly-1.3.0.post20221102.data/data/c_api/lib
+export TAICHI_C_API_INSTALL_DIR=$PWD/taichi_nightly-1.3.0.post20221102.data/data/c_api/
 ```
 
 Currently, only TiRT for Linux systems is included in the nightly distributions. If you need one for Android / Windows, please see the FAQ below to build it from source.
