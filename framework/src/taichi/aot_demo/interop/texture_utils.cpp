@@ -108,6 +108,22 @@ void TextureHelper<T>::copy_from_cuda_ndarray(GraphicsRuntime& g_runtime,
     TextureHelper<T>::interchange_vulkan_ndarray_texture(g_runtime, vulkan_texture, g_runtime, vulkan_ndarray, false /*texture_to_ndarray*/);
 } 
 
+template <class T>
+void TextureHelper<T>::copy_from_opengl_ndarray(GraphicsRuntime &g_runtime,
+                                                ti::Texture &vulkan_texture,
+                                                ti::Runtime &opengl_runtime,
+                                                ti::NdArray<T> &opengl_ndarray) {
+
+    // 1, Create Vulkan staging buffer
+    ti::NdArray<T> vulkan_ndarray = clone_ndarray(g_runtime, opengl_ndarray);
+
+    // 2. Copy device ndarray to vulkan ndarray
+    InteropHelper<T>::copy_from_opengl(g_runtime, vulkan_ndarray, opengl_runtime, opengl_ndarray);
+
+    // 3. Copy vulkan ndarray to vulkan texture
+    TextureHelper<T>::interchange_vulkan_ndarray_texture(g_runtime, vulkan_texture, g_runtime, vulkan_ndarray, false /* texture_to_ndarray*/);
+}
+
 template class TextureHelper<double>;
 template class TextureHelper<float>;
 template class TextureHelper<uint32_t>;

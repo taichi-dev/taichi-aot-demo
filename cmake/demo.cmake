@@ -86,6 +86,10 @@ function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
         return()
     endif()
 
+    if(NOT TI_WITH_OPENGL AND ARCH STREQUAL "opengl")
+        return()
+    endif()
+
     if (NOT ANDROID AND ARCH MATCHES "android")
         return()
     endif()

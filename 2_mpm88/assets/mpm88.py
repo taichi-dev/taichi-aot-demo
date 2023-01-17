@@ -190,6 +190,8 @@ if __name__ == "__main__":
         compile_mpm88(arch=ti.cuda)
     elif args.arch == "x64":
         compile_mpm88(arch=ti.x64)
+    elif args.arch == "opengl":
+        compile_mpm88(arch=ti.opengl)
     elif args.arch == "android-vulkan":
         compile_mpm88(arch=ti.vulkan, platform="android")
     else:

@@ -1,14 +1,5 @@
 #pragma once
-#include "common.hpp"
-#include <vk_mem_alloc.h>
-
-#if TI_AOT_DEMO_WITH_GLFW
-#include "GLFW/glfw3.h"
-#endif // TI_AOT_DEMO_WITH_GLFW
-
-#if TI_AOT_DEMO_ANDROID_APP
-#include <android/native_window.h>
-#endif // TI_AOT_DEMO_ANDROID_APP
+#include "taichi/aot_demo/common.hpp"
 
 namespace ti {
 namespace aot_demo {

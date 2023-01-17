@@ -5,8 +5,6 @@
 #include "gft/util.hpp"
 
 static_assert(TI_AOT_DEMO_WITH_GLFW, "glfw must be provided");
-#include "GLFW/glfw3.h"
-#include <vulkan/vulkan.h>
 
 struct Config {
   TiArch arch = TI_ARCH_VULKAN;
@@ -31,6 +29,8 @@ void initialize(const char* app_name, int argc, const char** argv) {
     CFG.arch = TI_ARCH_X64;
   } else if(arch_lit == "cuda") {
     CFG.arch = TI_ARCH_CUDA;
+  } else if(arch_lit == "opengl") {
+    CFG.arch = TI_ARCH_OPENGL;
   } else {
     throw std::runtime_error("unsupported arch");
   }

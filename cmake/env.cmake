@@ -22,6 +22,21 @@ function(configure_environment)
     endif()
 
     ################################
+    # Configure Python Executable  #
+    ################################
+    if(NOT ${PYTHON_EXECUTABLE})
+        find_package(PythonInterp REQUIRED)
+        if(NOT ${PYTHONINTERP_FOUND})
+            message(FATAL_ERROR "Unable to find python executable")
+        endif()
+        set(PYTHON_EXECUTABLE ${PYTHON_EXECUTABLE} PARENT_SCOPE)
+    endif()
+
+endfunction()
+
+function(configure_cxx_flags)
+
+    ################################
     # Configure Compilation Flags  #
     ################################
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_VULKAN")
@@ -38,21 +53,14 @@ function(configure_environment)
         # find runtime.bc files
         add_definitions(-DTI_LIB_DIR="${TAICHI_C_API_INSTALL_DIR}/runtime")
     endif()
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)
 
-    ################################
-    # Configure Python Executable  #
-    ################################
-    if(NOT ${PYTHON_EXECUTABLE})
-        find_package(PythonInterp REQUIRED)
-        if(NOT ${PYTHONINTERP_FOUND})
-            message(FATAL_ERROR "Unable to find python executable")
-        endif()
-        set(PYTHON_EXECUTABLE ${PYTHON_EXECUTABLE} PARENT_SCOPE)
+    if(TI_WITH_OPENGL)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTI_WITH_OPENGL")
     endif()
 
-endfunction()
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)
 
+endfunction()
 
 function(configure_third_party)
     find_package(Vulkan REQUIRED)
@@ -66,6 +74,12 @@ function(configure_third_party)
         "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/args.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/util.cpp")
     target_include_directories(GraphiT PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
+
+    add_library(glad OBJECT
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/src/gl.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/src/egl.c"
+    )
+    target_include_directories(glad PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include")
 
     # Compile for Backward-cpp
     if(NOT ANDROID)

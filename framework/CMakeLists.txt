@@ -30,6 +30,11 @@ if(TI_WITH_CUDA)
     list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${CUDAToolkit_INCLUDE_DIRS})
 endif()
 
+if(TI_WITH_OPENGL)
+    list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES glad)
+    list(APPEND TaichiAotDemoFramework_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/external/glad/include)
+endif()
+
 # Compile for renderer framework
 add_library(${RENDER_FRAMEWORK_TARGET} ${TaichiAotDemoFramework_SOURCES})
 

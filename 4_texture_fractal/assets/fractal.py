@@ -11,6 +11,8 @@ curr_dir = os.path.dirname(os.path.realpath(__file__))
 
 if args.arch == "vulkan":
     arch = ti.vulkan
+elif args.arch == "opengl":
+    arch = ti.opengl
 else:
     assert False
 ti.init(arch=arch)

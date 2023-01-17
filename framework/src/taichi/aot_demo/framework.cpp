@@ -41,6 +41,9 @@ ti::NdArray<float> GraphicsRuntime::allocate_vertex_buffer(
   mai.host_read = host_access;
   mai.host_write = host_access;
   mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_VERTEX_BIT;
+#ifndef ANDROID
+  mai.export_sharing = TI_TRUE;
+#endif // ANDROID
   ti::Memory memory = allocate_memory(mai);
 
   TiNdArray ndarray {};
@@ -61,6 +64,9 @@ ti::NdArray<uint32_t> GraphicsRuntime::allocate_index_buffer(
   mai.size = index_count * index_component_count * sizeof(uint32_t);
   mai.host_write = host_access;
   mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_INDEX_BIT;
+#ifndef ANDROID
+  mai.export_sharing = TI_TRUE;
+#endif // ANDROID
   ti::Memory memory = allocate_memory(mai);
 
   TiNdArray ndarray {};

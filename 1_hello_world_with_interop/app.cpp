@@ -25,9 +25,8 @@ struct App1_hello_world_with_interop : public App {
     return out;
   }
   virtual void initialize(TiArch arch) override final{
-
-    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
-        std::cout << "1_hello_world_with_interop only supports cuda, x64, vulkan backends" << std::endl;
+    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA && arch != TI_ARCH_OPENGL) {
+        std::cout << "1_hello_world_with_interop only supports cuda, x64, vulkan, opengl backends" << std::endl;
         exit(0);
     }
     arch_ = arch;
@@ -77,6 +76,8 @@ struct App1_hello_world_with_interop : public App {
         InteropHelper<float>::copy_from_cuda(F_->runtime(), render_points, runtime, points);
     } else if(arch_ == TI_ARCH_VULKAN) {
         InteropHelper<float>::copy_from_vulkan(F_->runtime(), render_points, runtime, points);
+    } else if(arch_ == TI_ARCH_OPENGL) {
+        InteropHelper<float>::copy_from_opengl(F_->runtime(), render_points, runtime, points);
     }
 
     std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
