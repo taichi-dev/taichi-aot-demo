@@ -1,6 +1,5 @@
 #pragma once
-#include "taichi/cpp/taichi.hpp"
-#include "taichi/taichi.h"
+#include "taichi/aot_demo/common.hpp"
 
 #include "taichi/aot_demo/graphics_runtime.hpp"
 
@@ -26,6 +25,11 @@ public:
                                        ti::Texture& vulkan_texture, 
                                        ti::Runtime& cuda_runtime,
                                        ti::NdArray<T>& cuda_ndarray); 
+
+    static void copy_from_opengl_ndarray(GraphicsRuntime &g_runtime,
+                                        ti::Texture &vulkan_texture,
+                                        ti::Runtime &opengl_runtime,
+                                        ti::NdArray<T> &opengl_texture);
 };
 
 }

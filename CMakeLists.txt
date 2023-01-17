@@ -7,6 +7,7 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 option(TI_WITH_CPU "Compile with CPU backend" OFF)
 option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
+option(TI_WITH_OPENGL "Compile with OPENGL backend" OFF)
 
 # 1. Configure Environments and Third-party Libraries
 include("cmake/env.cmake")
@@ -25,6 +26,7 @@ add_subdirectory("0_tutorial_cgraph")
 add_subdirectory("0_tutorial_kernel")
 # Note: Tutorial readers dont have to bother with anything below this line
 
+configure_cxx_flags()
 
 ##############################################################
 # The following codes aim at compiling for AOT Demos, which  #

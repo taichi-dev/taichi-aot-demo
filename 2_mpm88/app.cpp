@@ -18,6 +18,9 @@ static std::string get_aot_file_dir(TiArch arch) {
         case TI_ARCH_CUDA: {
             return "2_mpm88/assets/mpm88_cuda";
         }
+        case TI_ARCH_OPENGL: {
+            return "2_mpm88/assets/mpm88_opengl";
+        }
         default: {
             throw std::runtime_error("Unrecognized arch");
         }
@@ -41,6 +44,10 @@ static void copy_to_vulkan_ndarray(ti::NdArray<T>& dst,
         }
         case TI_ARCH_CUDA: {
             InteropHelper<T>::copy_from_cuda(dst_runtime, dst, src_runtime, src);
+            break;
+        }
+        case TI_ARCH_OPENGL: {
+            InteropHelper<T>::copy_from_opengl(dst_runtime, dst, src_runtime, src);
             break;
         }
         default: {
@@ -82,8 +89,8 @@ struct App2_mpm88 : public App {
 
 
   virtual void initialize(TiArch arch) override final{
-    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
-        std::cout << "1_hello_world_with_interop only supports cuda, x64, vulkan backends" << std::endl;
+    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA && arch != TI_ARCH_OPENGL) {
+        std::cout << "1_hello_world_with_interop only supports cuda, x64, vulkan, opengl backends" << std::endl;
         exit(0);
     }
     arch_ = arch;
