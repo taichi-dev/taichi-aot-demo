@@ -11,13 +11,6 @@ function(add_entrance ENTRY_PATH DEMO_PATH DEMO_OUTPUT_DIRECTORY TAICHI_AOT_DEMO
         RUNTIME_OUTPUT_DIRECTORY_RELEASE ${DEMO_OUTPUT_DIRECTORY})
     target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC
         ${RENDER_FRAMEWORK_TARGET})
-    target_include_directories(${TAICHI_AOT_DEMO_TARGET} PUBLIC
-        ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
-
-    # If you are building for Android, you need to link to system libraries.
-    if (ANDROID)
-        target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC android log)
-    endif()
 endfunction()
 
 
@@ -56,8 +49,7 @@ function(add_android_app_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
 
     target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC android log ${RENDER_FRAMEWORK_TARGET})
     target_include_directories(${TAICHI_AOT_DEMO_TARGET} PUBLIC
-        ${ANDROID_NDK}/sources/android/native_app_glue
-        ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
+        ${ANDROID_NDK}/sources/android/native_app_glue)
     target_compile_definitions(${TAICHI_AOT_DEMO_TARGET} PUBLIC TI_AOT_DEMO_WITH_ANDROID_APP=1)
 endfunction()
 

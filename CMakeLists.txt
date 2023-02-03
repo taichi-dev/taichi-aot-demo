@@ -2,17 +2,17 @@ cmake_minimum_required(VERSION 3.13)
 
 project(TaichiAotDemo LANGUAGES C CXX)
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
+set(TI_WITH_VULKAN ON) # Vulkan is always on.
 option(TI_WITH_CPU "Compile with CPU backend" OFF)
 option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
 option(TI_WITH_OPENGL "Compile with OPENGL backend" OFF)
 
 # 1. Configure Environments and Third-party Libraries
 include("cmake/env.cmake")
-
-set(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR})
 
 configure_environment()
 configure_third_party()
@@ -26,15 +26,13 @@ add_subdirectory("0_tutorial_cgraph")
 add_subdirectory("0_tutorial_kernel")
 # Note: Tutorial readers dont have to bother with anything below this line
 
-configure_cxx_flags()
-
 ##############################################################
 # The following codes aim at compiling for AOT Demos, which  #
 # demonstrates how to integrate Taichi C-API into a          #
 # customized renderer framework                              #
 ##############################################################
 # 3. Compile for renderer framework
-add_subdirectory(framework) # defined TaichiAotDemoFramework_INCLUDE_DIRECTORIES, RENDER_FRAMEWORK_TARGET 
+add_subdirectory(framework) # defined RENDER_FRAMEWORK_TARGET 
 
 # 4. Compile for each demo
 include("cmake/demo.cmake")
