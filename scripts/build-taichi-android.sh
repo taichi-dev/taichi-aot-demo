@@ -17,8 +17,8 @@ else
     echo "ANDROID_NDK_ROOT is set to ${ANDROID_NDK_ROOT}"
 fi
 
-rm -rf build-taichi-android-aarch64
-mkdir build-taichi-android-aarch64
+#rm -rf build-taichi-android-aarch64
+#mkdir build-taichi-android-aarch64
 pushd build-taichi-android-aarch64
 cmake $TAICHI_REPO_DIR \
     -DCMAKE_BUILD_TYPE=Release \
