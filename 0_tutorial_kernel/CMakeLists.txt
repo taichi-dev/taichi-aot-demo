@@ -1,6 +1,7 @@
 set(TAICHI_TUTORIAL_DEMO_NAME "E0_tutorial_kernel")
 message("-- Building ${TAICHI_TUTORIAL_DEMO_NAME}")
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(taichi REQUIRED)
 
 list(APPEND TAICHI_TUTORIAL_DEMO_SRC
