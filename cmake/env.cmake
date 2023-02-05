@@ -26,18 +26,12 @@ function(install_shared_libraries DEMO_OUTPUT_DIRECTORY)
     ###############################################
     # Copy Taichi C-API dylib to output directory #
     ###############################################
-    if (WIN32)
-        file(GLOB taichi_c_api_SRC "${TAICHI_C_API_INSTALL_DIR}/bin/*")
-    else()
-        set(taichi_c_api_SRC ${taichi_c_api})
-    endif()
+    message("-- Taichi Runtime distributed libraries: ${Taichi_Runtime_REDIST_LIBRARY}")
 
-    message("-- Taichi C-API Runtime at ${taichi_c_api_SRC}")
-
-    file(COPY ${taichi_c_api_SRC} DESTINATION ${DEMO_OUTPUT_DIRECTORY})
+    file(COPY ${Taichi_REDIST_LIBRARIES} DESTINATION ${DEMO_OUTPUT_DIRECTORY})
 
     if (ANDROID)
-        file(COPY ${taichi_c_api_SRC} DESTINATION "${PROJECT_SOURCE_DIR}/framework/android/app/src/main/jniLibs/arm64-v8a/")
+        file(COPY ${Taichi_REDIST_LIBRARIES} DESTINATION "${PROJECT_SOURCE_DIR}/framework/android/app/src/main/jniLibs/arm64-v8a/")
     endif()
 
     # MoltenVK dylib should be copied to the output directory.

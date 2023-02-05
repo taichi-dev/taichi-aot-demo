@@ -1,7 +1,7 @@
 set(TAICHI_TUTORIAL_DEMO_NAME "E0_tutorial_cgraph")
 message("-- Building ${TAICHI_TUTORIAL_DEMO_NAME}")
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 find_package(Taichi REQUIRED)
 
 list(APPEND TAICHI_TUTORIAL_DEMO_SRC

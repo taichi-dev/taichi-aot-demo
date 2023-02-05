@@ -6,7 +6,7 @@ file(GLOB TaichiAotDemoFramework_SOURCES
      ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/draws/*.cpp
      )
 
-find_package(taichi REQUIRED)
+find_package(Taichi REQUIRED)
 find_package(Vulkan REQUIRED)
 
 # Compile for renderer framework
@@ -28,7 +28,7 @@ target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC
 )
 target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC
     Vulkan::Vulkan
-    taichi::runtime
+    Taichi::Runtime
     glm
     VulkanMemoryAllocator
     glslang
