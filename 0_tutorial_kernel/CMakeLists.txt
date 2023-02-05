@@ -2,7 +2,7 @@ set(TAICHI_TUTORIAL_DEMO_NAME "E0_tutorial_kernel")
 message("-- Building ${TAICHI_TUTORIAL_DEMO_NAME}")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-find_package(taichi REQUIRED)
+find_package(Taichi REQUIRED)
 
 list(APPEND TAICHI_TUTORIAL_DEMO_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/app.cpp
@@ -14,7 +14,7 @@ if (NOT ANDROID)
 endif()
 
 add_executable(${TAICHI_TUTORIAL_DEMO_NAME} ${TAICHI_TUTORIAL_DEMO_SRC})
-target_link_libraries(${TAICHI_TUTORIAL_DEMO_NAME} PUBLIC taichi::runtime)
+target_link_libraries(${TAICHI_TUTORIAL_DEMO_NAME} PUBLIC Taichi::Runtime)
 set_target_properties(${TAICHI_TUTORIAL_DEMO_NAME} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tutorial
   RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tutorial
