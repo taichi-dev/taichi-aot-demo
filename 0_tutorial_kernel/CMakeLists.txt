@@ -21,7 +21,7 @@ set_target_properties(${TAICHI_TUTORIAL_DEMO_NAME} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tutorial)
 
 if (ANDROID)
-  target_link_libraries(${TAICHI_TUTORIAL_DEMO_NAME} android log)
+  target_link_libraries(${TAICHI_TUTORIAL_DEMO_NAME} PRIVATE android log)
 else()
   add_backward(${TAICHI_TUTORIAL_DEMO_NAME})
 endif()
