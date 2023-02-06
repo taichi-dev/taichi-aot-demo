@@ -19,3 +19,4 @@ imgui.ini
 6_taichi_sparse/assets/taichi_sparse_*/**
 7_comet/assets/comet_*/**
 output/*
+*cache*

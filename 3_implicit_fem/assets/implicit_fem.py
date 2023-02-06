@@ -21,7 +21,7 @@ elif args.arch == "android-vulkan":
     platform = "android"
 else:
     assert False
-ti.init(arch=arch, vk_api_version="1.0")
+ti.init(arch=arch)
 
 def get_path(*segs):
     return os.path.join(curr_dir, *segs)

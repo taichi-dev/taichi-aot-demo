@@ -16,7 +16,7 @@ def get_archive_path():
     return os.path.join(curr_dir, f"../../framework/android/app/src/main/assets/E2_mpm88.tcm")
 
 def compile_mpm88(arch, platform=None):
-    ti.init(arch, vk_api_version="1.0")
+    ti.init(arch)
 
     if ti.lang.impl.current_cfg().arch != arch:
         return
@@ -44,7 +44,6 @@ def compile_mpm88(arch, platform=None):
                     C: ti.any_arr(field_dim=1), J: ti.any_arr(field_dim=1),
                     grid_v: ti.any_arr(field_dim=2),
                     grid_m: ti.any_arr(field_dim=2)):
-        print('Hello', x.shape[0])
         for p in x:
             dx = 1 / grid_v.shape[0]
             p_vol = (dx * 0.5)**2
@@ -172,7 +171,7 @@ def compile_mpm88(arch, platform=None):
     g_init = g_init_builder.compile()
     g_update = g_update_builder.compile()
 
-    mod = ti.aot.Module(caps=['spirv_has_non_semantic_info'])
+    mod = ti.aot.Module()
     mod.add_graph('init', g_init)
     mod.add_graph('update', g_update)
 
