@@ -16,14 +16,14 @@ endfunction()
 
 # Internal
 function(add_headless_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
-    set(ENTRY_PATH ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/headless.cpp)
+    set(ENTRY_PATH ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/entry_points/headless.cpp)
     add_entrance(${ENTRY_PATH} ${DEMO_PATH} ${HEADLESS_DEMO_OUTPUT_DIRECTORY} ${TAICHI_AOT_DEMO_TARGET})
 endfunction()
 
 
 # Internal
 function(add_glfw_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
-    set(ENTRY_PATH ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/glfw.cpp)
+    set(ENTRY_PATH ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/entry_points/glfw.cpp)
     add_entrance(${ENTRY_PATH} ${DEMO_PATH} ${GLFW_DEMO_OUTPUT_DIRECTORY} ${TAICHI_AOT_DEMO_TARGET})
 
     target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC glfw)
@@ -40,8 +40,8 @@ function(add_android_app_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
     # In CMake we only do the first step. See `build-android-apps` for the
     # second.
     set(ENTRY_PATH
-        ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/android.cpp
-        ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/android_impl.c)
+        ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/entry_points/android.cpp
+        ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/entry_points/android_impl.c)
     add_library(${TAICHI_AOT_DEMO_TARGET} SHARED ${ENTRY_PATH} ${DEMO_PATH})
 
     set_target_properties(${TAICHI_AOT_DEMO_TARGET} PROPERTIES
