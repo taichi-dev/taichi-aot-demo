@@ -29,7 +29,6 @@ function(add_glfw_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
     target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC glfw)
     target_include_directories(${TAICHI_AOT_DEMO_TARGET} PUBLIC
         ${PROJECT_SOURCE_DIR}/external/glfw/include)
-    target_compile_definitions(${TAICHI_AOT_DEMO_TARGET} PUBLIC TI_AOT_DEMO_WITH_GLFW=1)
 endfunction()
 
 #Internal
@@ -50,7 +49,6 @@ function(add_android_app_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
     target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC android log ${RENDER_FRAMEWORK_TARGET})
     target_include_directories(${TAICHI_AOT_DEMO_TARGET} PUBLIC
         ${ANDROID_NDK}/sources/android/native_app_glue)
-    target_compile_definitions(${TAICHI_AOT_DEMO_TARGET} PUBLIC TI_AOT_DEMO_WITH_ANDROID_APP=1)
 endfunction()
 
 
