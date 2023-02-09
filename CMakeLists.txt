@@ -6,10 +6,30 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
-set(TI_WITH_VULKAN ON) # Vulkan is always on.
+# Entry points.
+option(TI_AOT_DEMO_HEADLESS "Generate HEADLESS entry point" OFF)
+option(TI_AOT_DEMO_GLFW "Generate GLFW windowed entry point" OFF)
+option(TI_AOT_DEMO_ANDROID_APP "Generate Android APP entry point" OFF)
+
+# Rendering framework.
+set(TI_FRAMEWORK_BACKEND "vulkan" CACHE STRING "Rendering framework to use (`vulkan` or `metal`, case sensitive)")
+
+# Taichi runtime backends.
+option(TI_WITH_VULKAN "Compile with VULKAN backend" OFF)
 option(TI_WITH_CPU "Compile with CPU backend" OFF)
 option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
 option(TI_WITH_OPENGL "Compile with OPENGL backend" OFF)
+option(TI_WITH_METAL "Compile with METAL backend" OFF)
+
+if(NOT TI_WITH_VULKAN AND TI_FRAMEWORK_BACKEND STREQUAL "vulkan")
+    set(TI_WITH_VULKAN ON)
+    message("-- Forced TI_WITH_VULKAN=ON because TI_FRAMEWORK_BACKEND=vulkan")
+endif()
+
+if(NOT TI_WITH_METAL AND TI_FRAMEWORK_BACKEND STREQUAL "metal")
+    set(TI_WITH_METAL ON)
+    message("-- Forced TI_WITH_METAL=ON because TI_FRAMEWORK_BACKEND=metal")
+endif()
 
 # 1. Configure Environments and Third-party Libraries
 include("cmake/env.cmake")
@@ -52,6 +72,12 @@ add_subdirectory(6_taichi_sparse)
 add_subdirectory(7_comet)
 
 # 5. Install runtime libraries
-install_shared_libraries(${GLFW_DEMO_OUTPUT_DIRECTORY})
-install_shared_libraries(${HEADLESS_DEMO_OUTPUT_DIRECTORY})
-install_shared_libraries(${ANDROID_APP_DEMO_OUTPUT_DIRECTORY})
+if(TI_AOT_DEMO_HEADLESS)
+    install_shared_libraries(${HEADLESS_DEMO_OUTPUT_DIRECTORY})
+endif()
+if(TI_AOT_DEMO_GLFW)
+    install_shared_libraries(${GLFW_DEMO_OUTPUT_DIRECTORY})
+endif()
+if(TI_AOT_DEMO_ANDROID_APP)
+    install_shared_libraries(${ANDROID_APP_DEMO_OUTPUT_DIRECTORY})
+endif()

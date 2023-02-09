@@ -1,44 +1,56 @@
 set(RENDER_FRAMEWORK_TARGET render_framework)
 
-file(GLOB TaichiAotDemoFramework_SOURCES 
-     ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/interop/*.cpp
-     ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/*.cpp
-     ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/draws/*.cpp
-     )
 
-find_package(Taichi REQUIRED)
-find_package(Vulkan REQUIRED)
-
-# Compile for renderer framework
-add_library(${RENDER_FRAMEWORK_TARGET}
-    ${TaichiAotDemoFramework_SOURCES}
-    "${PROJECT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp"
-    "${PROJECT_SOURCE_DIR}/external/graphi-t/include/gft/util.hpp"
-    "${PROJECT_SOURCE_DIR}/external/graphi-t/src/gft/args.cpp"
-    "${PROJECT_SOURCE_DIR}/external/graphi-t/src/gft/util.cpp"
-    )
-
+# Framework sources.
+file(GLOB FRAMEWORK_SOURCES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/interop/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/draw/*.cpp)
+add_library(${RENDER_FRAMEWORK_TARGET} STATIC
+    ${FRAMEWORK_SOURCES})
 target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/external/Vulkan-Headers/include
-    ${PROJECT_SOURCE_DIR}/external/VulkanMemoryAllocator/include
-    ${PROJECT_SOURCE_DIR}/external/glslang/glslang/Include
-    ${PROJECT_SOURCE_DIR}/external/glm
-    ${PROJECT_SOURCE_DIR}/external/graphi-t/include
-)
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC
-    Vulkan::Vulkan
     Taichi::Runtime
-    glm
-    VulkanMemoryAllocator
-    glslang
-    SPIRV
-)
+    glm::glm_static
+    GraphiT)
 
+
+# Configure entry points.
+if(TI_AOT_DEMO_HEADLESS)
+    if (NOT ANDROID AND NOT IOS)
+        add_subdirectory(${PROJECT_SOURCE_DIR}/external/backward-cpp backward-cpp)
+    endif()
+endif()
+
+if(TI_AOT_DEMO_GLFW)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/external/glfw glfw)
+endif()
+
+if(TI_AOT_DEMO_ANDROID_APP)
+    find_library(android android)
+    find_library(log log)
+endif()
+
+
+# Configure Taichi backends.
 if(TI_WITH_VULKAN)
     target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC
         TI_WITH_VULKAN=1
         )
+
+    add_subdirectory(${PROJECT_SOURCE_DIR}/external/VulkanMemoryAllocator VulkanMemoryAllocator)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/external/glslang glslang)
+    find_package(Vulkan REQUIRED)
+    target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC
+        Vulkan::Vulkan
+        VulkanMemoryAllocator
+        glslang
+        SPIRV)
+    target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC
+        ${PROJECT_SOURCE_DIR}/external/Vulkan-Headers/include
+        ${PROJECT_SOURCE_DIR}/external/VulkanMemoryAllocator/include
+        ${PROJECT_SOURCE_DIR}/external/glslang/glslang/Include)
 endif()
 
 if(TI_WITH_CPU)
@@ -74,19 +86,6 @@ if(TI_WITH_OPENGL)
     target_include_directories(glad PUBLIC ${PROJECT_SOURCE_DIR}/external/glad/include)
 
     target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC glad)
-endif()
-
-if(ANDROID)
-    find_library(android android)
-    find_library(log log)
-    target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC android log)
-    target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC TI_AOT_DEMO_ANDROID_APP=1)
-endif()
-
-if(NOT ANDROID)
-    target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC glfw)
-    target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC ${PROJECT_SOURCE_DIR}/external/glfw/include)
-    target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC TI_AOT_DEMO_WITH_GLFW=1)
 endif()
 
 # Propagate to parent scope

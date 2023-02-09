@@ -59,30 +59,36 @@ function(add_demo NAME DEMO_PATH)
     set(GLFW_AOT_DEMO_TARGET E${NAME}_glfw)
     set(ANDROID_APP_AOT_DEMO_TARGET E${NAME}_android)
 
-    add_headless_demo(${NAME} ${DEMO_PATH} ${HEADLESS_AOT_DEMO_TARGET})
-    if(NOT ANDROID)
+    if(TI_AOT_DEMO_HEADLESS)
+        add_headless_demo(${NAME} ${DEMO_PATH} ${HEADLESS_AOT_DEMO_TARGET})
+    endif()
+    if(TI_AOT_DEMO_GLFW)
         add_glfw_demo(${NAME} ${DEMO_PATH} ${GLFW_AOT_DEMO_TARGET})
     endif()
-    if (ANDROID)
+    if(TI_AOT_DEMO_ANDROID_APP)
         add_android_app_demo(${NAME} ${DEMO_PATH} ${ANDROID_APP_AOT_DEMO_TARGET})
     endif()
 endfunction()
 
 
 function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
-    if(NOT TI_WITH_CUDA AND ARCH STREQUAL "cuda")
+    if(NOT TI_WITH_VULKAN AND ARCH MATCHES "vulkan")
         return()
     endif()
 
-    if(NOT TI_WITH_CPU AND ARCH STREQUAL "x64")
+    if(NOT TI_WITH_CUDA AND ARCH MATCHES "cuda")
         return()
     endif()
 
-    if(NOT TI_WITH_OPENGL AND ARCH STREQUAL "opengl")
+    if(NOT TI_WITH_CPU AND ARCH MATCHES "x64")
         return()
     endif()
 
-    if (NOT ANDROID AND ARCH MATCHES "android")
+    if(NOT TI_WITH_OPENGL AND ARCH MATCHES "opengl")
+        return()
+    endif()
+
+    if(NOT TI_AOT_DEMO_ANDROID_APP AND ARCH MATCHES "android")
         return()
     endif()
 
@@ -97,17 +103,19 @@ function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
             VERBATIM)
     endif()
 
-    # Copy binary assets to android asset directory.
-    set(DUMMY_TARGET2 ${NAME}_${ARCH}_DUMMY_TARGET2)
-    add_custom_target(${DUMMY_TARGET2} ALL)
-    if(ANDROID)
-        add_custom_command(
-            TARGET ${DUMMY_TARGET2}
-            DEPENDS ${DUMMY_TARGET}
-            COMMAND ${CMAKE_COMMAND}
-            ARGS -E copy_directory
-                ${CMAKE_CURRENT_SOURCE_DIR}/assets
-                ${PROJECT_SOURCE_DIR}/framework/android/app/src/main/assets/${NAME}/assets
-            VERBATIM)
+    if(TI_AOT_DEMO_ANDROID_APP)
+        # Copy binary assets to android asset directory.
+        set(DUMMY_TARGET2 ${NAME}_${ARCH}_DUMMY_TARGET2)
+        add_custom_target(${DUMMY_TARGET2} ALL)
+        if(ANDROID)
+            add_custom_command(
+                TARGET ${DUMMY_TARGET2}
+                DEPENDS ${DUMMY_TARGET}
+                COMMAND ${CMAKE_COMMAND}
+                ARGS -E copy_directory
+                    ${CMAKE_CURRENT_SOURCE_DIR}/assets
+                    ${PROJECT_SOURCE_DIR}/framework/android/app/src/main/assets/${NAME}/assets
+                VERBATIM)
+        endif()
     endif()
 endfunction()
