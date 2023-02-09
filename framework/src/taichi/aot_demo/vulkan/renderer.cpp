@@ -534,7 +534,7 @@ void Renderer::set_surface_window(GLFWwindow* window) {
 }
 #endif // TI_AOT_DEMO_WITH_GLFW
 
-#if TI_AOT_DEMO_ANDROID_APP
+#if TI_AOT_DEMO_WITH_ANDROID_APP
 void Renderer::set_surface_window(ANativeWindow* window) {
   VkResult res = VK_SUCCESS;
 
@@ -549,7 +549,7 @@ void Renderer::set_surface_window(ANativeWindow* window) {
   surface_ = surface;
   set_swapchain();
 }
-#endif // TI_AOT_DEMO_ANDROID_APP
+#endif // TI_AOT_DEMO_WITH_ANDROID_APP
 
 void Renderer::set_framebuffer_size(uint32_t width, uint32_t height) {
   VkResult res = VK_SUCCESS;

@@ -76,9 +76,9 @@ public:
 #if TI_AOT_DEMO_WITH_GLFW
   void set_surface_window(GLFWwindow* window);
 #endif // TI_AOT_DEMO_WITH_GLFW
-#if TI_AOT_DEMO_ANDROID_APP
+#if TI_AOT_DEMO_WITH_ANDROID_APP
   void set_surface_window(ANativeWindow* state);
-#endif // TI_AOT_DEMO_ANDROID_APP
+#endif // TI_AOT_DEMO_WITH_ANDROID_APP
 
   // FIXME: (penguinliong) This one is somehow deprecaeted so please simply don't use it.
   void set_framebuffer_size(uint32_t width, uint32_t height);

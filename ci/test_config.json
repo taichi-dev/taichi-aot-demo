@@ -3,7 +3,7 @@
 "github": {
     "cmake_args" : [
         "-DTI_FRAMEWORK_BACKEND=vulkan",
-        "-DTI_AOT_DEMO_HEADLESS=ON",
+        "-DTI_AOT_DEMO_WITH_HEADLESS=ON",
         "-DTI_WITH_VULKAN=ON",
         "-DTI_WITH_CPU=ON"
     ],
@@ -25,7 +25,7 @@
 "linux": {
     "cmake_args" : [
         "-DTI_FRAMEWORK_BACKEND=vulkan",
-        "-DTI_AOT_DEMO_HEADLESS=ON",
+        "-DTI_AOT_DEMO_WITH_HEADLESS=ON",
         "-DTI_WITH_VULKAN=ON",
         "-DTI_WITH_CUDA=ON",
         "-DTI_WITH_CPU=ON"
@@ -55,7 +55,7 @@
 "android": {
     "cmake_args" : [
         "-DTI_FRAMEWORK_BACKEND=vulkan",
-        "-DTI_AOT_DEMO_HEADLESS=ON",
+        "-DTI_AOT_DEMO_WITH_HEADLESS=ON",
         "-DTI_WITH_VULKAN=ON"
     ],
     "tests": [

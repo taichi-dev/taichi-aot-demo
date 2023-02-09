@@ -9,7 +9,7 @@ TAICHI_C_API_INSTALL_DIR="${PWD}/../build-taichi-android-aarch64/install/c_api" 
     -DANDROID_PLATFORM=android-29 \
     -DANDROID_ABI="arm64-v8a" \
     -DTI_FRAMEWORK_BACKEND=vulkan \
-    -DTI_AOT_DEMO_ANDROID_APP=ON \
+    -DTI_AOT_DEMO_WITH_ANDROID_APP=ON \
     -DTI_WITH_VULKAN=ON \
     -G "Ninja"
 if [ $? -ne 0 ]; then

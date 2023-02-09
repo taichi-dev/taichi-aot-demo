@@ -17,17 +17,17 @@ target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC
 
 
 # Configure entry points.
-if(TI_AOT_DEMO_HEADLESS)
+if(TI_AOT_DEMO_WITH_HEADLESS)
     if (NOT ANDROID AND NOT IOS)
         add_subdirectory(${PROJECT_SOURCE_DIR}/external/backward-cpp backward-cpp)
     endif()
 endif()
 
-if(TI_AOT_DEMO_GLFW)
+if(TI_AOT_DEMO_WITH_GLFW)
     add_subdirectory(${PROJECT_SOURCE_DIR}/external/glfw glfw)
 endif()
 
-if(TI_AOT_DEMO_ANDROID_APP)
+if(TI_AOT_DEMO_WITH_ANDROID_APP)
     find_library(android android)
     find_library(log log)
 endif()
