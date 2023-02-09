@@ -5,7 +5,7 @@ set(RENDER_FRAMEWORK_TARGET render_framework)
 file(GLOB FRAMEWORK_SOURCES 
     ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/interop/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/draw/*.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/draws/*.cpp)
 add_library(${RENDER_FRAMEWORK_TARGET} STATIC
     ${FRAMEWORK_SOURCES})
 target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC
