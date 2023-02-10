@@ -8,7 +8,7 @@
 #define VK_USE_PLATFORM_ANDROID_KHR 1
 #include <vulkan/vulkan.h>
 
-static_assert(TI_AOT_DEMO_ANDROID_APP, "android native lib must be provided");
+static_assert(TI_AOT_DEMO_WITH_ANDROID_APP, "android native lib must be provided");
 struct Config {
   AAssetManager* asset_mgr;
 } CFG;

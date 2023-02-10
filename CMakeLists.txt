@@ -6,10 +6,37 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
-set(TI_WITH_VULKAN ON) # Vulkan is always on.
+# Entry points.
+option(TI_AOT_DEMO_WITH_HEADLESS "Generate HEADLESS entry point" OFF)
+option(TI_AOT_DEMO_WITH_GLFW "Generate GLFW windowed entry point" OFF)
+option(TI_AOT_DEMO_WITH_ANDROID_APP "Generate Android APP entry point" OFF)
+option(TI_AOT_DEMO_WITH_COCOA_APP "Generate Cocoa APP entry point" OFF)
+
+# Rendering framework.
+option(TI_FRAMEWORK_BACKEND "Rendering framework to use (`vulkan` or `metal`, case sensitive)" "vulkan")
+
+# Taichi runtime backends.
+option(TI_WITH_VULKAN "Compile with VULKAN backend" OFF)
 option(TI_WITH_CPU "Compile with CPU backend" OFF)
 option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
 option(TI_WITH_OPENGL "Compile with OPENGL backend" OFF)
+option(TI_WITH_METAL "Compile with METAL backend" OFF)
+
+if(TI_FRAMEWORK_BACKEND STREQUAL "vulkan")
+    if(NOT TI_WITH_VULKAN)
+        set(TI_WITH_VULKAN ON)
+        message("-- Forced TI_WITH_VULKAN=ON because TI_FRAMEWORK_BACKEND=vulkan")
+    endif()
+    set(TI_FRAMEWORK_BACKEND_VULKAN ON)
+endif()
+
+if(TI_FRAMEWORK_BACKEND STREQUAL "metal")
+    if(NOT TI_WITH_METAL)
+        set(TI_WITH_METAL ON)
+        message("-- Forced TI_WITH_METAL=ON because TI_FRAMEWORK_BACKEND=metal")
+    endif()
+    set(TI_FRAMEWORK_BACKEND_METAL ON)
+endif()
 
 # 1. Configure Environments and Third-party Libraries
 include("cmake/env.cmake")
@@ -41,6 +68,7 @@ set(HEADLESS_DEMO_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/headless)
 set(GLFW_DEMO_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/glfw)
 set(ANDROID_APP_DEMO_OUTPUT_DIRECTORY
     ${CMAKE_SOURCE_DIR}/framework/android/app/src/main/jniLibs/arm64-v8a)
+set(COCOA_APP_DEMO_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/cocoa)
 
 add_subdirectory(1_hello_world)
 add_subdirectory(1_hello_world_with_interop)
@@ -52,6 +80,15 @@ add_subdirectory(6_taichi_sparse)
 add_subdirectory(7_comet)
 
 # 5. Install runtime libraries
-install_shared_libraries(${GLFW_DEMO_OUTPUT_DIRECTORY})
-install_shared_libraries(${HEADLESS_DEMO_OUTPUT_DIRECTORY})
-install_shared_libraries(${ANDROID_APP_DEMO_OUTPUT_DIRECTORY})
+if(TI_AOT_DEMO_WITH_HEADLESS)
+    install_shared_libraries(${HEADLESS_DEMO_OUTPUT_DIRECTORY})
+endif()
+if(TI_AOT_DEMO_WITH_GLFW)
+    install_shared_libraries(${GLFW_DEMO_OUTPUT_DIRECTORY})
+endif()
+if(TI_AOT_DEMO_WITH_ANDROID_APP)
+    install_shared_libraries(${ANDROID_APP_DEMO_OUTPUT_DIRECTORY})
+endif()
+if(TI_AOT_DEMO_WITH_COCOA_APP)
+    install_shared_libraries(${COCOA_APP_DEMO_OUTPUT_DIRECTORY})
+endif()

@@ -1,7 +1,12 @@
 {
 
 "github": {
-    "cmake_args" : ["-DTI_WITH_CPU=ON"],
+    "cmake_args" : [
+        "-DTI_FRAMEWORK_BACKEND=vulkan",
+        "-DTI_AOT_DEMO_WITH_HEADLESS=ON",
+        "-DTI_WITH_VULKAN=ON",
+        "-DTI_WITH_CPU=ON"
+    ],
     "tests": [
         ["tutorial/E0_tutorial_cgraph",                   "",              ""],
         ["tutorial/E0_tutorial_kernel",                   "",              ""],
@@ -18,7 +23,13 @@
 },
 
 "linux": {
-    "cmake_args" : ["-DTI_WITH_CUDA=ON", "-DTI_WITH_CPU=ON"],
+    "cmake_args" : [
+        "-DTI_FRAMEWORK_BACKEND=vulkan",
+        "-DTI_AOT_DEMO_WITH_HEADLESS=ON",
+        "-DTI_WITH_VULKAN=ON",
+        "-DTI_WITH_CUDA=ON",
+        "-DTI_WITH_CPU=ON"
+    ],
     "tests": [
         ["tutorial/E0_tutorial_cgraph",                   "",              ""],
         ["tutorial/E0_tutorial_kernel",                   "",              ""],
@@ -42,7 +53,11 @@
 },
 
 "android": {
-    "cmake_args" : [],
+    "cmake_args" : [
+        "-DTI_FRAMEWORK_BACKEND=vulkan",
+        "-DTI_AOT_DEMO_WITH_HEADLESS=ON",
+        "-DTI_WITH_VULKAN=ON"
+    ],
     "tests": [
         ["tutorial/E0_tutorial_cgraph",                   "",              ""],
         ["tutorial/E0_tutorial_kernel",                   "",              ""],

@@ -5,6 +5,7 @@
 
 namespace ti {
 namespace aot_demo {
+namespace vulkan {
 
 template<class T>
 class TextureHelper {
@@ -32,5 +33,6 @@ public:
                                         ti::NdArray<T> &opengl_texture);
 };
 
+}
 }
 }

@@ -5,10 +5,7 @@ namespace ti {
 namespace aot_demo {
 
 Framework::Framework(const AppConfig& app_cfg, bool debug) {
-  renderer_ = std::make_unique<Renderer>(
-    debug,
-    app_cfg.framebuffer_width,
-    app_cfg.framebuffer_height);
+  renderer_ = std::make_shared<Renderer>(debug, app_cfg.framebuffer_width, app_cfg.framebuffer_height);
   runtime_ = GraphicsRuntime(renderer_);
   asset_mgr_ = create_asset_manager();
 
@@ -29,7 +26,7 @@ Framework::~Framework() {
 }
 
 GraphicsRuntime::GraphicsRuntime(const std::shared_ptr<Renderer>& renderer) :
-  ti::Runtime(TI_ARCH_VULKAN, renderer->runtime(), false), renderer_(renderer) {}
+  ti::Runtime(renderer->arch(), renderer->runtime(), false), renderer_(renderer) {}
 
 ti::NdArray<float> GraphicsRuntime::allocate_vertex_buffer(
   uint32_t vertex_count,

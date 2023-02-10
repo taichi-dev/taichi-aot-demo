@@ -13,11 +13,24 @@ function(configure_environment)
 endfunction()
 
 function(configure_third_party)
-    add_subdirectory(external)
+    add_library(GraphiT STATIC
+        ${PROJECT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp
+        ${PROJECT_SOURCE_DIR}/external/graphi-t/include/gft/util.hpp
+        ${PROJECT_SOURCE_DIR}/external/graphi-t/src/gft/args.cpp
+        ${PROJECT_SOURCE_DIR}/external/graphi-t/src/gft/util.cpp)
+    target_include_directories(GraphiT PUBLIC
+        ${PROJECT_SOURCE_DIR}/external/graphi-t/include)
+
+    find_package(Taichi REQUIRED)
+
+    # Request third-party libraries to build static libs only.
+    set(BUILD_TESTING OFF)
+    set(BUILD_STATIC_LIBS ON)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/external/glm glm)
 
     # Compile for Backward-cpp
-    if(NOT ANDROID)
-        add_subdirectory("${CMAKE_SOURCE_DIR}/external/backward-cpp")
+    if(NOT ANDROID AND NOT IOS)
+        add_subdirectory(${PROJECT_SOURCE_DIR}/external/backward-cpp)
     endif()
 endfunction()
 

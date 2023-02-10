@@ -1,11 +1,9 @@
 #pragma once
-#include "taichi/aot_demo/common.hpp"
+#include "taichi/aot_demo/renderer.hpp"
 
 namespace ti {
 namespace aot_demo {
 
-class Renderer;
-class GraphicsTask;
 
 class DrawTextureBuilder {
   using Self = DrawTextureBuilder;
