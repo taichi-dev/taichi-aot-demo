@@ -7,6 +7,7 @@
 
 namespace ti {
 namespace aot_demo {
+namespace vulkan {
 
 template<typename T>
 ti::NdArray<T> clone_ndarray(ti::Runtime& runtime,
@@ -129,6 +130,7 @@ template class TextureHelper<float>;
 template class TextureHelper<uint32_t>;
 template class TextureHelper<int>;
 
+}
 }
 }
 

@@ -7,8 +7,6 @@
 namespace ti {
 namespace aot_demo {
 
-class Renderer;
-
 class GraphicsRuntime : public ti::Runtime {
   template<class T>
   friend class InteropHelper;

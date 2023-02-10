@@ -6,6 +6,7 @@ file(GLOB FRAMEWORK_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/${TI_FRAMEWORK_BACKEND}/draws/*.cpp)
 add_library(${RENDER_FRAMEWORK_TARGET} STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/framework.cpp
     ${FRAMEWORK_SOURCES})
 target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -19,10 +20,6 @@ if(TI_AOT_DEMO_WITH_HEADLESS)
     target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC
         TI_AOT_DEMO_WITH_HEADLESS=1
     )
-
-    if(NOT ANDROID AND NOT IOS)
-        add_subdirectory(${PROJECT_SOURCE_DIR}/external/backward-cpp backward-cpp)
-    endif()
 endif()
 
 if(TI_AOT_DEMO_WITH_GLFW)
@@ -42,11 +39,19 @@ if(TI_AOT_DEMO_WITH_ANDROID_APP)
     find_library(log log)
 endif()
 
+if(TI_AOT_DEMO_WITH_COCOA_APP)
+    find_library(Cocoa NAMES Cocoa REQUIRED)
+endif()
+
 # Configure Taichi backends.
 if(TI_WITH_VULKAN)
     target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC
         TI_WITH_VULKAN=1
     )
+
+    if(TI_FRAMEWORK_BACKEND_VULKAN)
+        target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC TI_FRAMEWORK_BACKEND_VULKAN=1)
+    endif()
 
     add_subdirectory(${PROJECT_SOURCE_DIR}/external/VulkanMemoryAllocator VulkanMemoryAllocator)
     add_subdirectory(${PROJECT_SOURCE_DIR}/external/glslang glslang)
@@ -97,6 +102,21 @@ if(TI_WITH_OPENGL)
     target_include_directories(glad PUBLIC ${PROJECT_SOURCE_DIR}/external/glad/include)
 
     target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC glad)
+endif()
+
+if(TI_WITH_METAL)
+    target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC
+        TI_WITH_METAL=1
+    )
+
+    if(TI_FRAMEWORK_BACKEND_VULKAN)
+        target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC TI_FRAMEWORK_BACKEND_VULKAN=1)
+    endif()
+
+    find_library(Foundation NAMES Foundation REQUIRED)
+    find_library(Metal NAMES Metal REQUIRED)
+    find_library(MetalKit NAMES MetalKit REQUIRED)
+    target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC ${Foundation} ${Metal} ${MetalKit})
 endif()
 
 # Propagate to parent scope

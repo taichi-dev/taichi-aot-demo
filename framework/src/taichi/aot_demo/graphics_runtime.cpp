@@ -4,32 +4,8 @@
 namespace ti {
 namespace aot_demo {
 
-Framework::Framework(const AppConfig& app_cfg, bool debug) {
-  renderer_ = std::make_unique<Renderer>(
-    debug,
-    app_cfg.framebuffer_width,
-    app_cfg.framebuffer_height);
-  runtime_ = GraphicsRuntime(renderer_);
-  asset_mgr_ = create_asset_manager();
-
-  frame_ = 0;
-  tic0_ = std::chrono::steady_clock::now();
-  tic_ = std::chrono::steady_clock::now();
-  toc_ = std::chrono::steady_clock::now();
-  std::cout << "framework initialized" << std::endl;
-}
-Framework::~Framework() {
-  if (renderer_ != nullptr) {
-    asset_mgr_.reset();
-    runtime_.destroy();
-    renderer_.reset();
-
-    std::cout << "framework finalized" << std::endl;
-  }
-}
-
-GraphicsRuntime::GraphicsRuntime(const std::shared_ptr<Renderer>& renderer) :
-  ti::Runtime(TI_ARCH_VULKAN, renderer->runtime(), false), renderer_(renderer) {}
+GraphicsRuntime::GraphicsRuntime(TiArch arch, const std::shared_ptr<Renderer>& renderer) :
+  ti::Runtime(arch, renderer->runtime(), false), renderer_(renderer) {}
 
 ti::NdArray<float> GraphicsRuntime::allocate_vertex_buffer(
   uint32_t vertex_count,

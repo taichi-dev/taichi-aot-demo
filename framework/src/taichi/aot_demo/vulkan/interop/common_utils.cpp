@@ -3,6 +3,7 @@
 
 namespace ti {
 namespace aot_demo {
+namespace vulkan {
 
 void copyBuffer(VkDevice& device,
                 VkCommandPool& command_pool,
@@ -165,5 +166,6 @@ void copyImage2Buffer(VkDevice& device,
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 }
 
+}
 }
 }

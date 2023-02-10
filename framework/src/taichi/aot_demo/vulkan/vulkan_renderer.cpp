@@ -1,4 +1,4 @@
-// A minimalist renderer.
+// A minimalist VulkanRenderer.
 // @PENGUINLIONG
 #include <cassert>
 #include <cstdio>
@@ -6,10 +6,11 @@
 #include <stdexcept>
 #include <iostream>
 #include <set>
-#include "taichi/aot_demo/renderer.hpp"
+#include "taichi/aot_demo/vulkan/vulkan_renderer.hpp"
 
 namespace ti {
 namespace aot_demo {
+namespace vulkan {
 
 // Implemented in glslang.cpp
 std::vector<uint32_t> vert2spv(const std::string& vert);
@@ -49,7 +50,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_validation_callback(
   return VK_FALSE;
 }
 
-Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
+VulkanRenderer::VulkanRenderer(bool debug, uint32_t width, uint32_t height) {
   VkResult res = VK_SUCCESS;
 
   uint32_t nlep = 0;
@@ -423,10 +424,10 @@ try_another_physical_device:
   rect_vertex_buffer_ = std::move(rect_vertex_buffer);
   rect_texcoord_buffer_ = std::move(rect_texcoord_buffer);
 }
-Renderer::~Renderer() {
+VulkanRenderer::~VulkanRenderer() {
   destroy();
 }
-void Renderer::destroy() {
+void VulkanRenderer::destroy() {
   rect_vertex_buffer_.destroy();
   rect_texcoord_buffer_.destroy();
 
@@ -475,7 +476,7 @@ void Renderer::destroy() {
   swapchain_ = VK_NULL_HANDLE;
 }
 
-void Renderer::set_swapchain() {
+void VulkanRenderer::set_swapchain() {
   VkResult res = VK_SUCCESS;
 
   VkSurfaceCapabilitiesKHR sc {};
@@ -522,7 +523,7 @@ void Renderer::set_swapchain() {
 }
 
 #if TI_AOT_DEMO_WITH_GLFW
-void Renderer::set_surface_window(GLFWwindow* window) {
+void VulkanRenderer::set_surface_window(GLFWwindow* window) {
   VkResult res = VK_SUCCESS;
 
   VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -535,7 +536,7 @@ void Renderer::set_surface_window(GLFWwindow* window) {
 #endif // TI_AOT_DEMO_WITH_GLFW
 
 #if TI_AOT_DEMO_WITH_ANDROID_APP
-void Renderer::set_surface_window(ANativeWindow* window) {
+void VulkanRenderer::set_surface_window(ANativeWindow* window) {
   VkResult res = VK_SUCCESS;
 
   VkAndroidSurfaceCreateInfoKHR asci {};
@@ -551,7 +552,7 @@ void Renderer::set_surface_window(ANativeWindow* window) {
 }
 #endif // TI_AOT_DEMO_WITH_ANDROID_APP
 
-void Renderer::set_framebuffer_size(uint32_t width, uint32_t height) {
+void VulkanRenderer::set_framebuffer_size(uint32_t width, uint32_t height) {
   VkResult res = VK_SUCCESS;
   assert(!in_frame_);
 
@@ -660,7 +661,7 @@ void Renderer::set_framebuffer_size(uint32_t width, uint32_t height) {
   height_ = height;
 }
 
-void Renderer::begin_render() {
+void VulkanRenderer::begin_render() {
   VkResult res = VK_SUCCESS;
   assert(!in_frame_);
 
@@ -741,7 +742,7 @@ void Renderer::begin_render() {
   in_frame_ = true;
   frame_command_buffer_ = command_buffer;
 }
-void Renderer::end_render() {
+void VulkanRenderer::end_render() {
   VkResult res = VK_SUCCESS;
   assert(in_frame_);
 
@@ -761,7 +762,7 @@ void Renderer::end_render() {
   in_frame_ = false;
   frame_command_buffer_ = VK_NULL_HANDLE;
 }
-void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
+void VulkanRenderer::enqueue_graphics_task(const VulkanGraphicsTask& graphics_task) {
   assert(in_frame_);
 
   const GraphicsTaskConfig& config  = graphics_task.config_;
@@ -802,7 +803,7 @@ void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
   }
 }
 
-void Renderer::present_to_surface() {
+void VulkanRenderer::present_to_surface() {
   assert(swapchain_);
   VkResult res = VK_SUCCESS;
 
@@ -913,7 +914,7 @@ void Renderer::present_to_surface() {
   check_vulkan_result(res);
 }
 
-void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
+void VulkanRenderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
   assert(!in_frame_);
   assert(dst.shape().dim_count == 2);
   assert(dst.shape().dims[0] == width_);
@@ -966,7 +967,7 @@ void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
   check_vulkan_result(res);
 }
 
-void Renderer::next_frame() {
+void VulkanRenderer::next_frame() {
   VkResult res = VK_SUCCESS;
 
   res = VK_TIMEOUT;
@@ -982,7 +983,7 @@ void Renderer::next_frame() {
   check_vulkan_result(res);
 }
 
-const TiVulkanMemoryInteropInfo& Renderer::export_ti_memory(TiMemory memory) {
+const TiVulkanMemoryInteropInfo& VulkanRenderer::export_ti_memory(TiMemory memory) {
   auto it = ti_memory_interops_.find(memory);
   if (it == ti_memory_interops_.end()) {
     TiVulkanMemoryInteropInfo vmii {};
@@ -994,8 +995,8 @@ const TiVulkanMemoryInteropInfo& Renderer::export_ti_memory(TiMemory memory) {
   return it->second;
 }
 
-GraphicsTask::GraphicsTask(
-  const std::shared_ptr<Renderer>& renderer,
+VulkanGraphicsTask::VulkanGraphicsTask(
+  const std::shared_ptr<VulkanRenderer>& renderer,
   const GraphicsTaskConfig& config
 ) : renderer_(renderer), config_(config) {
   VkResult res = VK_SUCCESS;
@@ -1414,10 +1415,10 @@ GraphicsTask::GraphicsTask(
   uniform_buffer_allocation_ = uniform_buffer_allocation;
   texture_views_ = texture_views;
 }
-GraphicsTask::~GraphicsTask() {
+VulkanGraphicsTask::~VulkanGraphicsTask() {
   destroy();
 }
-void GraphicsTask::destroy() {
+void VulkanGraphicsTask::destroy() {
   VkDevice device = renderer_->device();
   VmaAllocator vma_allocator = renderer_->vma_allocator();
 
@@ -1441,5 +1442,6 @@ void GraphicsTask::destroy() {
   texture_views_.clear();
 }
 
+} // namespace vulkan
 } // namespace aot_demo
 } // namespace ti

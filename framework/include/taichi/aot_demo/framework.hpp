@@ -1,13 +1,13 @@
 #pragma once
 #include <chrono>
-#include <taichi/aot_demo/common.hpp>
+#include "taichi/aot_demo/common.hpp"
 #include "taichi/aot_demo/renderer.hpp"
 #include "taichi/aot_demo/graphics_runtime.hpp"
 #include "taichi/aot_demo/asset_manager.hpp"
 
 namespace ti {
 namespace aot_demo {
-    class Framework;
+  class Framework;
 }
 }
 
@@ -44,7 +44,7 @@ namespace ti {
 namespace aot_demo {
 
 class Framework {
-  std::shared_ptr<class Renderer> renderer_;
+  std::shared_ptr<Renderer> renderer_;
   GraphicsRuntime runtime_;
   std::unique_ptr<AssetManager> asset_mgr_;
 

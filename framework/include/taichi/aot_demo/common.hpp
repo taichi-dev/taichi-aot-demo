@@ -22,6 +22,7 @@
 #define VK_USE_PLATFORM_ANDROID_KHR 1
 #endif // TI_AOT_DEMO_WITH_ANDROID_APP
 
+#ifdef TI_WITH_VULKAN
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif // _WIN32
@@ -29,6 +30,7 @@
 #include "taichi/cpp/taichi.hpp"
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS
 #include <vk_mem_alloc.h>
+#endif // TI_WITH_VULKAN
 
 #if TI_AOT_DEMO_WITH_GLFW
 #include "GLFW/glfw3.h"
