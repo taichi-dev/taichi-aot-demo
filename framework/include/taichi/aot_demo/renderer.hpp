@@ -1,13 +1,44 @@
 #pragma once
 #include "taichi/aot_demo/common.hpp"
+#include "taichi/aot_demo/draws/draw_points.hpp"
+#include "taichi/aot_demo/draws/draw_particles.hpp"
+#include "taichi/aot_demo/draws/draw_mesh.hpp"
+#include "taichi/aot_demo/draws/draw_texture.hpp"
+#include "taichi/aot_demo/shadow_buffer.hpp"
+#include "taichi/aot_demo/shadow_texture.hpp"
+#include <memory>
+#include <taichi/cpp/taichi.hpp>
+
+#define check_vulkan_result(x) \
+  if (x < VK_SUCCESS) { \
+    uint32_t x2 = (uint32_t)x; \
+    std::printf("File \"%s\", line %d, in %s:\n", __FILE__, __LINE__, __func__); \
+    std::printf("  vulkan failed: %d\n", x2); \
+    std::fflush(stdout); \
+    throw std::runtime_error("vulkan failed"); \
+  }
 
 namespace ti {
 namespace aot_demo {
 
+class Renderer;
 class GraphicsTask;
+template <typename T>
+class VertexBuffer;
+template <typename T>
+class IndexBuffer;
 
-class Renderer {
+struct RendererConfig {
+  TiArch client_arch;
+  uint32_t framebuffer_width;
+  uint32_t framebuffer_height;
+  bool debug;
+};
+
+class Renderer : std::enable_shared_from_this<Renderer> {
   friend class GraphicsTask;
+  friend class ShadowBuffer;
+  friend class ShadowTexture;
 
   template<class T>
   friend class InteropHelper;
@@ -48,7 +79,11 @@ class Renderer {
   uint32_t swapchain_image_height_;
 
   PFN_vkGetInstanceProcAddr loader_;
+  // This runtime always has `TI_ARCH_VULKAN`. This is used for internal interop
+  // only. DO NOT EXPOSE AS PUBLIC.
   ti::Runtime runtime_;
+  // This runtime has `RendererConfig::client_arch`.
+  ti::Runtime client_runtime_;
 
   ti::NdArray<float> rect_vertex_buffer_;
   ti::NdArray<float> rect_texcoord_buffer_;
@@ -60,7 +95,9 @@ class Renderer {
   void set_swapchain();
 
   std::map<TiMemory, TiVulkanMemoryInteropInfo> ti_memory_interops_;
-  const TiVulkanMemoryInteropInfo& export_ti_memory(TiMemory memory);
+  std::map<TiImage, TiVulkanImageInteropInfo> ti_image_interops_;
+  const TiVulkanMemoryInteropInfo& export_ti_memory(const ShadowBuffer &shadow_buffer);
+  const TiVulkanImageInteropInfo& export_ti_image(const ShadowTexture &shadow_texture);
 
 public:
   constexpr bool is_valid() const {
@@ -68,9 +105,31 @@ public:
   }
   void destroy();
 
-  Renderer() {}
-  Renderer(bool debug, uint32_t width, uint32_t height);
+  Renderer(const RendererConfig &config);
   ~Renderer();
+
+  // Add your drawing functions here.
+  DrawPointsBuilder draw_points(
+    const ti::NdArray<float>& positions
+  ) {
+    return DrawPointsBuilder(shared_from_this(), positions);
+  }
+  DrawParticlesBuilder draw_particles(
+    const ti::NdArray<float>& positions
+  ) {
+    return DrawParticlesBuilder(shared_from_this(), positions);
+  }
+  DrawMeshBuilder draw_mesh(
+    const ti::NdArray<float>& positions,
+    const ti::NdArray<uint32_t>& indices
+  ) {
+    return DrawMeshBuilder(shared_from_this(), positions, indices);
+  }
+  DrawTextureBuilder draw_texture(
+    const ti::Texture& texture
+  ) {
+    return DrawTextureBuilder(shared_from_this(), texture);
+  }
 
   // Before a frame.
 #if TI_AOT_DEMO_WITH_GLFW
@@ -91,7 +150,7 @@ public:
   // After a frame. You MUST call one of them between frames for the renderer to
   // work properly
   void present_to_surface();
-  void present_to_ndarray(ti::NdArray<uint8_t>& dst);
+  ti::NdArray<uint8_t> present_to_ndarray();
 
   // After all the works of a frame. DO NOT call this unless you know what you
   // are doing.
@@ -105,14 +164,14 @@ public:
   }
 
   // The renderer's representation as Taichi objects.
-  constexpr TiArch arch() const {
-    return TI_ARCH_VULKAN;
-  }
   constexpr PFN_vkGetInstanceProcAddr loader() const {
     return loader_;
   }
-  constexpr TiRuntime runtime() const {
-    return runtime_;
+  constexpr ti::Runtime &client_runtime() {
+    return client_runtime_;
+  }
+  constexpr const ti::Runtime &client_runtime() const {
+    return client_runtime_;
   }
   constexpr uint32_t width() const {
     return width_;
@@ -127,70 +186,6 @@ public:
   const ti::NdArray<float>& rect_texcoord_buffer() const {
     return rect_texcoord_buffer_;
   }
-};
-
-enum GraphicsTaskResourceType {
-  L_GRAPHICS_TASK_RESOURCE_TYPE_NDARRAY,
-  L_GRAPHICS_TASK_RESOURCE_TYPE_TEXTURE,
-};
-
-struct GraphicsTaskResource {
-  GraphicsTaskResourceType type;
-  union {
-    TiNdArray ndarray;
-    TiTexture texture;
-  };
-};
-
-enum PrimitiveTopology {
-  L_PRIMITIVE_TOPOLOGY_POINT,
-  L_PRIMITIVE_TOPOLOGY_LINE,
-  L_PRIMITIVE_TOPOLOGY_TRIANGLE,
-};
-
-struct GraphicsTaskConfig {
-  std::string vertex_shader_glsl;
-  std::string fragment_shader_glsl;
-  void* uniform_buffer_data;
-  size_t uniform_buffer_size;
-  std::vector<GraphicsTaskResource> resources;
-
-  TiMemory vertex_buffer;
-  TiMemory index_buffer;
-  uint32_t vertex_component_count;
-  uint32_t vertex_count;
-  uint32_t index_count;
-  uint32_t instance_count;
-  PrimitiveTopology primitive_topology;
-};
-
-class GraphicsTask {
-  friend class Renderer;
-
-  GraphicsTaskConfig config_;
-
-  std::shared_ptr<Renderer> renderer_;
-  VkPipeline pipeline_;
-  VkPipelineLayout pipeline_layout_;
-  VkDescriptorSetLayout descriptor_set_layout_;
-  VkDescriptorPool descriptor_pool_;
-  VkDescriptorSet descriptor_set_;
-  VkBuffer uniform_buffer_;
-  VmaAllocation uniform_buffer_allocation_;
-  std::vector<VkImageView> texture_views_;
-
-public:
-  constexpr bool is_valid() const {
-    return pipeline_ != VK_NULL_HANDLE;
-  }
-  void destroy();
-
-  GraphicsTask() {}
-  GraphicsTask(
-    const std::shared_ptr<Renderer>& renderer,
-    const GraphicsTaskConfig& config
-  );
-  ~GraphicsTask();
 };
 
 

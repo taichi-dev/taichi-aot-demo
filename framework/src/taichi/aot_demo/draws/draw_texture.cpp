@@ -1,3 +1,4 @@
+#include <memory>
 #include <sstream>
 #include <vulkan/vulkan.h>
 #include "taichi/aot_demo/renderer.hpp"
@@ -18,16 +19,12 @@ std::unique_ptr<GraphicsTask> DrawTextureBuilder::build() {
 
   std::vector<GraphicsTaskResource> rscs;
   {
-    GraphicsTaskResource rsc {};
-    rsc.type = L_GRAPHICS_TASK_RESOURCE_TYPE_NDARRAY;
-    rsc.ndarray = renderer_->rect_texcoord_buffer();
-    rscs.emplace_back(std::move(rsc));
+    rect_vertices_ = create_shadow_buffer(renderer_->rect_texcoord_buffer().memory(),
+                                          ShadowBufferUsage::VertexBuffer);
+    rscs.emplace_back(rect_vertices_);
   }
   {
-    GraphicsTaskResource rsc {};
-    rsc.type = L_GRAPHICS_TASK_RESOURCE_TYPE_TEXTURE;
-    rsc.texture = texture_;
-    rscs.emplace_back(std::move(rsc));
+    rscs.emplace_back(texture_);
   }
 
   std::string vert;
@@ -65,7 +62,7 @@ std::unique_ptr<GraphicsTask> DrawTextureBuilder::build() {
   config.fragment_shader_glsl = frag;
   config.uniform_buffer_data = &u;
   config.uniform_buffer_size = sizeof(u);
-  config.vertex_buffer = renderer_->rect_vertex_buffer().memory();
+  config.vertex_buffer = rect_vertices_;
   config.resources = std::move(rscs);
   config.vertex_component_count = 2;
   config.vertex_count = 6;

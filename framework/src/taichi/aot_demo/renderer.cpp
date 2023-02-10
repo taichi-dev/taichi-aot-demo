@@ -6,7 +6,11 @@
 #include <stdexcept>
 #include <iostream>
 #include <set>
+#include "taichi/aot_demo/common.hpp"
+#include "taichi/aot_demo/graphics_task.hpp"
+#include "taichi/aot_demo/shadow_buffer.hpp"
 #include "taichi/aot_demo/renderer.hpp"
+#include "taichi/aot_demo/shadow_texture.hpp"
 
 namespace ti {
 namespace aot_demo {
@@ -14,22 +18,6 @@ namespace aot_demo {
 // Implemented in glslang.cpp
 std::vector<uint32_t> vert2spv(const std::string& vert);
 std::vector<uint32_t> frag2spv(const std::string& frag);
-
-#define check_vulkan_result(x) \
-  if (x < VK_SUCCESS) { \
-    uint32_t x2 = (uint32_t)x; \
-    std::printf("File \"%s\", line %d, in %s:\n", __FILE__, __LINE__, __func__); \
-    std::printf("  vulkan failed: %d\n", x2); \
-    std::fflush(stdout); \
-    throw std::runtime_error("vulkan failed"); \
-  }
-
-inline void check_taichi_error() {
-  TiError error = ti_get_last_error(0, nullptr);
-  if (error < TI_ERROR_SUCCESS) {
-    throw std::runtime_error("taichi failed");
-  }
-}
 
 VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_validation_callback(
   VkDebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -49,7 +37,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_validation_callback(
   return VK_FALSE;
 }
 
-Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
+Renderer::Renderer(const RendererConfig& config) {
   VkResult res = VK_SUCCESS;
 
   uint32_t nlep = 0;
@@ -64,7 +52,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
     lens.at(i) = leps.at(i).extensionName;
   }
 
-  if (debug) {
+  if (config.debug) {
     llns.emplace_back("VK_LAYER_KHRONOS_validation");
     lens.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
@@ -91,7 +79,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   ici.ppEnabledExtensionNames = lens.data();
 
   VkDebugUtilsMessengerCreateInfoEXT dumci {};
-  if (debug) {
+  if (config.debug) {
     dumci.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     dumci.messageSeverity =
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -113,7 +101,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
     VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
   };
   VkValidationFeaturesEXT vf {};
-  if (debug) {
+  if (config.debug) {
     vf.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
     vf.enabledValidationFeatureCount = vfes.size();
     vf.pEnabledValidationFeatures = vfes.data();
@@ -127,7 +115,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   check_vulkan_result(res);
 
   VkDebugUtilsMessengerEXT debug_utils_messenger = VK_NULL_HANDLE;
-  if (debug) {
+  if (config.debug) {
     dumci.pNext = nullptr;
     PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT_ = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     res = vkCreateDebugUtilsMessengerEXT_(instance, &dumci, nullptr, &debug_utils_messenger);
@@ -342,8 +330,6 @@ try_another_physical_device:
 
   TiVulkanRuntimeInteropInfo vrii {};
   vrii.get_instance_proc_addr = loader;
-  // FIXME: (penguinliong) Use the real Vulkan API version when device
-  // capability is in.
   vrii.api_version = api_version;
   vrii.instance = instance;
   vrii.physical_device = physical_device;
@@ -353,10 +339,19 @@ try_another_physical_device:
   vrii.graphics_queue = queue;
   vrii.graphics_queue_family_index = queue_family_index;
   ti::Runtime runtime =
-    ti::Runtime(TI_ARCH_VULKAN, ti_import_vulkan_runtime(&vrii), true);
+      ti::Runtime(TI_ARCH_VULKAN, ti_import_vulkan_runtime(&vrii), true);
+
+  ti::Runtime client_runtime {};
+  if (config.client_arch == TI_ARCH_VULKAN) {
+    // Borrow the Vulkan device and import Taichi runtime from the renderer.
+    client_runtime = ti::Runtime(TI_ARCH_VULKAN, runtime, false);
+  } else {
+    // Otherwise create an interop foreign runtime.
+    client_runtime = ti::Runtime(config.client_arch);
+  }
   check_taichi_error();
 
-  ti::NdArray<float> rect_vertex_buffer {};
+  ti::NdArray<float> rect_vertex_buffer;
   {
     TiMemoryAllocateInfo mai {};
     mai.size = sizeof(glm::vec2) * 6;
@@ -410,7 +405,7 @@ try_another_physical_device:
 
   render_pass_ = render_pass;
   framebuffer_ = VK_NULL_HANDLE;
-  set_framebuffer_size(width, height);
+  set_framebuffer_size(config.framebuffer_width, config.framebuffer_height);
 
   command_pool_ = command_pool;
   render_present_semaphore_ = render_present_semaphore;
@@ -418,6 +413,7 @@ try_another_physical_device:
   present_fence_ = present_fence;
 
   runtime_ = std::move(runtime);
+  client_runtime_ = std::move(client_runtime);
   loader_ = loader;
 
   rect_vertex_buffer_ = std::move(rect_vertex_buffer);
@@ -787,13 +783,13 @@ void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
     &graphics_task.descriptor_set_, 0, nullptr);
 
   {
-    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(config.vertex_buffer);
+    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(*config.vertex_buffer);
     VkDeviceSize o = 0;
     vkCmdBindVertexBuffers(frame_command_buffer_, 0, 1, &vmii.buffer, &o);
   }
 
   if (is_indexed) {
-    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(config.index_buffer);
+    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(*config.index_buffer);
     vkCmdBindIndexBuffer(frame_command_buffer_, vmii.buffer, 0, VK_INDEX_TYPE_UINT32);
 
     vkCmdDrawIndexed(frame_command_buffer_, config.index_count, config.instance_count, 0, 0, 0);
@@ -913,16 +909,15 @@ void Renderer::present_to_surface() {
   check_vulkan_result(res);
 }
 
-void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
-  assert(!in_frame_);
-  assert(dst.shape().dim_count == 2);
-  assert(dst.shape().dims[0] == width_);
-  assert(dst.shape().dims[1] == height_);
-  assert(dst.elem_shape().dim_count == 1);
-  assert(dst.elem_shape().dims[0] == 4);
+ti::NdArray<uint8_t> Renderer::present_to_ndarray() {
   VkResult res = VK_SUCCESS;
+  assert(!in_frame_);
 
-  const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(dst.memory());
+  ti::NdArray<uint8_t> dst = runtime_.allocate_ndarray<uint8_t>({height_, width_}, {4});
+
+  TiVulkanMemoryInteropInfo vmii{};
+  ti_export_vulkan_memory(runtime_, dst.memory(), &vmii);
+  check_taichi_error();
 
   VkCommandBufferAllocateInfo cbai {};
   cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -964,6 +959,8 @@ void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
   si.pWaitDstStageMask = &ps;
   res = vkQueueSubmit(queue_, 1, &si, present_fence_);
   check_vulkan_result(res);
+
+  return dst;
 }
 
 void Renderer::next_frame() {
@@ -982,7 +979,10 @@ void Renderer::next_frame() {
   check_vulkan_result(res);
 }
 
-const TiVulkanMemoryInteropInfo& Renderer::export_ti_memory(TiMemory memory) {
+const TiVulkanMemoryInteropInfo &Renderer::export_ti_memory(
+    const ShadowBuffer &shadow_buffer) {
+  TiMemory memory = shadow_buffer.memory_;
+
   auto it = ti_memory_interops_.find(memory);
   if (it == ti_memory_interops_.end()) {
     TiVulkanMemoryInteropInfo vmii {};
@@ -990,6 +990,21 @@ const TiVulkanMemoryInteropInfo& Renderer::export_ti_memory(TiMemory memory) {
     check_taichi_error();
 
     it = ti_memory_interops_.emplace(std::make_pair(memory, std::move(vmii))).first;
+  }
+  return it->second;
+}
+
+const TiVulkanImageInteropInfo &Renderer::export_ti_image(
+    const ShadowTexture &shadow_texture) {
+  TiImage image = shadow_texture.image_;
+
+  auto it = ti_image_interops_.find(image);
+  if (it == ti_image_interops_.end()) {
+    TiVulkanImageInteropInfo viii {};
+    ti_export_vulkan_image(runtime_, image, &viii);
+    check_taichi_error();
+
+    it = ti_image_interops_.emplace(std::make_pair(image, std::move(viii))).first;
   }
   return it->second;
 }
@@ -1016,7 +1031,7 @@ GraphicsTask::GraphicsTask(
   for (size_t i = 0; i < config.resources.size(); ++i) {
     VkDescriptorType dt;
     switch (config.resources.at(i).type) {
-    case L_GRAPHICS_TASK_RESOURCE_TYPE_NDARRAY:
+    case L_GRAPHICS_TASK_RESOURCE_TYPE_BUFFER:
       dt = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
       break;
     case L_GRAPHICS_TASK_RESOURCE_TYPE_TEXTURE:
@@ -1153,10 +1168,11 @@ GraphicsTask::GraphicsTask(
   for (size_t i = 0; i < config.resources.size(); ++i) {
     const GraphicsTaskResource &resource = config.resources.at(i);
     switch (resource.type) {
-    case L_GRAPHICS_TASK_RESOURCE_TYPE_NDARRAY:
+    case L_GRAPHICS_TASK_RESOURCE_TYPE_BUFFER:
     {
       const TiVulkanMemoryInteropInfo& vmii =
-        renderer_->export_ti_memory(resource.ndarray.memory);
+        renderer_->export_ti_memory(*resource.shadow_buffer);
+      check_taichi_error();
 
       VkDescriptorBufferInfo dbi {};
       dbi.buffer = vmii.buffer;
@@ -1175,8 +1191,8 @@ GraphicsTask::GraphicsTask(
     }
     case L_GRAPHICS_TASK_RESOURCE_TYPE_TEXTURE:
     {
-      TiVulkanImageInteropInfo viii {};
-      ti_export_vulkan_image(renderer_->runtime(), resource.texture.image, &viii);
+      TiVulkanImageInteropInfo viii{};
+      renderer_->export_ti_image(*resource.shadow_texture);
       check_taichi_error();
 
       VkImageViewType ivt;
@@ -1439,6 +1455,18 @@ void GraphicsTask::destroy() {
   uniform_buffer_ = VK_NULL_HANDLE;
   uniform_buffer_allocation_ = VK_NULL_HANDLE;
   texture_views_.clear();
+}
+
+
+std::shared_ptr<ShadowBuffer> GraphicsTaskBuilder::create_shadow_buffer(
+    const ti::Memory &src,
+    ShadowBufferUsage usage) {
+  return std::make_shared<ShadowBuffer>(renderer_, src, usage);
+}
+std::shared_ptr<ShadowTexture> GraphicsTaskBuilder::create_shadow_texture(
+    const ti::Image &src,
+    ShadowTextureUsage usage) {
+  return std::make_shared<ShadowTexture>(renderer_, src, usage);
 }
 
 } // namespace aot_demo
