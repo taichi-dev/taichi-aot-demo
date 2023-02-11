@@ -130,6 +130,9 @@ public:
   ) {
     return DrawTextureBuilder(shared_from_this(), texture);
   }
+  DrawTextureBuilder draw_texture(const ti::NdArray<float> &texture) {
+    return DrawTextureBuilder(shared_from_this(), texture);
+  }
 
   // Before a frame.
 #if TI_AOT_DEMO_WITH_GLFW
