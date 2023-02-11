@@ -69,8 +69,14 @@ struct App5_sph : public App {
     ti::Runtime &runtime = F_->runtime();
 
     // 2. Load AOT module
-    auto aot_file_path = get_aot_file_dir(runtime.arch());
+#ifdef TI_AOT_DEMO_WITH_ANDROID_APP
+    std::vector<uint8_t> tcm;
+    F_->asset_mgr().load_file("E5_sph.tcm", tcm);
+    module_ = runtime_.create_aot_module(tcm);
+#else
+    auto aot_file_path = get_aot_file_dir(arch_);
     module_ = runtime_.load_aot_module(aot_file_path);
+#endif
     
     // 3. Load kernels
     k_initialize_ = module_.get_kernel("initialize");
@@ -137,9 +143,10 @@ struct App5_sph : public App {
     k_boundary_handle_[2] = boundary_box_;
 
     k_initialize_.launch();
+    runtime_.wait();
     k_initialize_particle_.launch();
     runtime_.wait();
-    
+
     // 7. Run initialization kernels
     renderer.set_framebuffer_size(512, 512);
 
@@ -149,11 +156,14 @@ struct App5_sph : public App {
     // 8. Run compute kernels
     for(int i = 0; i < SUBSTEPS; i++) {
         k_update_density_.launch();
+        runtime_.wait();
         k_update_force_.launch();
+        runtime_.wait();
         k_advance_.launch();
+        runtime_.wait();
         k_boundary_handle_.launch();
+        runtime_.wait();
     }
-    runtime_.wait();
 
     std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;
