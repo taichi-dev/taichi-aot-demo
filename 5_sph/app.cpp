@@ -4,7 +4,6 @@
 #include "glm/glm.hpp"
 #include "glm/ext.hpp"
 #include "taichi/aot_demo/framework.hpp"
-#include "taichi/aot_demo/interop/cross_device_copy.hpp"
 
 using namespace ti::aot_demo;
 
@@ -25,38 +24,12 @@ static std::string get_aot_file_dir(TiArch arch) {
     }
 }
 
-template<typename T>
-static void copy_to_vulkan_ndarray(ti::NdArray<T>& dst, 
-                                   GraphicsRuntime& dst_runtime,
-                                   ti::NdArray<T>& src, 
-                                   ti::Runtime& src_runtime, TiArch src_arch) {
-    
-    switch(src_arch) {
-        case TI_ARCH_VULKAN: {
-            InteropHelper<T>::copy_from_vulkan(dst_runtime, dst, src_runtime, src);
-            break;
-        }
-        case TI_ARCH_X64: {
-            InteropHelper<T>::copy_from_cpu(dst_runtime, dst, src_runtime, src);
-            break;
-        }
-        case TI_ARCH_CUDA: {
-            InteropHelper<T>::copy_from_cuda(dst_runtime, dst, src_runtime, src);
-            break;
-        }
-        default: {
-            throw std::runtime_error("Unable to perform NdArray memory copy");
-        }
-    }
-}
-
 struct App5_sph : public App {
   static const uint32_t NR_PARTICLES = 8000;
   static const uint32_t SUBSTEPS = 5;
 
   ti::Runtime runtime_;
   ti::AotModule module_;
-  TiArch arch_;
 
   ti::Kernel k_initialize_;
   ti::Kernel k_initialize_particle_;
@@ -83,27 +56,18 @@ struct App5_sph : public App {
     out.app_name = "5_sph";
     out.framebuffer_width = 512;
     out.framebuffer_height = 512;
+    out.supported_archs = {
+      TI_ARCH_VULKAN,
+      TI_ARCH_CUDA,
+      TI_ARCH_X64,
+    };
     return out;
   }
 
-  virtual void initialize(TiArch arch) override final{
+  virtual void initialize() override final{
+    Renderer &renderer = F_->renderer();
+    ti::Runtime &runtime = F_->runtime();
 
-    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
-        std::cout << "5_sph only supports cuda, x64, vulkan backends" << std::endl;
-        exit(0);
-    }
-    arch_ = arch;
-    
-    // 1. Create runtime
-    GraphicsRuntime& g_runtime = F_->runtime();
-
-    if(arch_ == TI_ARCH_VULKAN) {
-        // Reuse the vulkan runtime from renderer framework
-        runtime_ = ti::Runtime(arch_, F_->runtime(), false);;
-    } else {
-        runtime_ = ti::Runtime(arch_);
-    }
-    
     // 2. Load AOT module
 #ifdef TI_AOT_DEMO_WITH_ANDROID_APP
     std::vector<uint8_t> tcm;
@@ -135,16 +99,13 @@ struct App5_sph : public App {
     spawn_box_ = runtime_.allocate_ndarray<float>(shape_1d, vec3_shape);
     gravity_ = runtime_.allocate_ndarray<float>({}, vec3_shape);
     pos_ = runtime_.allocate_ndarray<float>(shape_1d, vec3_shape, false/*host_access*/);
-    
-    render_pos_ = g_runtime.allocate_vertex_buffer(shape_1d[0], vec3_shape[0], false/*host_access*/);
-    
+
     // 5. Handle image presentation
-    Renderer& renderer = F_->renderer();
     glm::mat4 model2world = glm::mat4(1.0f);
     model2world = glm::scale(model2world, glm::vec3(5.0f));
     glm::mat4 world2view = glm::lookAt(glm::vec3(10, 10, 10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
     glm::mat4 view2clip = glm::perspective(glm::radians(45.0f), renderer.width() / (float)renderer.height(), 0.1f, 1000.0f);
-    draw_points = g_runtime.draw_particles(render_pos_)
+    draw_points = renderer.draw_particles(render_pos_)
       .model2world(model2world)
       .world2view(world2view)
       .view2clip(view2clip)
@@ -203,10 +164,6 @@ struct App5_sph : public App {
         k_boundary_handle_.launch();
         runtime_.wait();
     }
-
-    // 9. Update vertex buffer
-    auto& g_runtime = F_->runtime();
-    copy_to_vulkan_ndarray<float>(render_pos_, g_runtime, pos_, runtime_, arch_);
 
     std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;

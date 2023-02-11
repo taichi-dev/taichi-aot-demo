@@ -95,13 +95,16 @@ int main(int argc, const char** argv) {
 
   initialize(app_cfg.app_name, argc, argv);
 
-  auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, CFG.debug);
+  EntryPointConfig entry_point_cfg{};
+  entry_point_cfg.client_arch = CFG.arch;
+  entry_point_cfg.debug = CFG.debug;
+
+  auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, entry_point_cfg);
   app->set_framework(F);
   
-  ti::aot_demo::GraphicsRuntime& runtime = F->runtime();
   ti::aot_demo::Renderer& renderer = F->renderer();
 
-  app->initialize(CFG.arch);
+  app->initialize();
 
   GLFWwindow* glfw_window = create_glfw_window(app_cfg, renderer);
   renderer.set_surface_window(glfw_window);

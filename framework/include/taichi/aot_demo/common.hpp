@@ -37,3 +37,16 @@
 #if TI_AOT_DEMO_ANDROID_APP
 #include <android/native_window.h>
 #endif // TI_AOT_DEMO_ANDROID_APP
+
+namespace ti {
+namespace aot_demo {
+
+inline void check_taichi_error() {
+  TiError error = ti_get_last_error(0, nullptr);
+  if (error < TI_ERROR_SUCCESS) {
+    throw std::runtime_error("taichi failed");
+  }
+}
+
+} // namespace aot_demo
+} // namespace ti
