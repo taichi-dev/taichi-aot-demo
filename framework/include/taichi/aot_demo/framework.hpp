@@ -2,7 +2,6 @@
 #include <chrono>
 #include <taichi/aot_demo/common.hpp>
 #include "taichi/aot_demo/renderer.hpp"
-#include "taichi/aot_demo/graphics_runtime.hpp"
 #include "taichi/aot_demo/asset_manager.hpp"
 
 namespace ti {
@@ -15,6 +14,7 @@ struct AppConfig {
   const char* app_name = "taichi";
   uint32_t framebuffer_width = 64;
   uint32_t framebuffer_height = 32;
+  std::vector<TiArch> supported_archs;
 };
 
 // What you need to implement:
@@ -27,7 +27,7 @@ struct App {
   }
 
   virtual AppConfig cfg() const = 0;
-  virtual void initialize(TiArch arch) = 0;
+  virtual void initialize() = 0;
   virtual bool update() = 0;
   virtual void render() = 0;
 };
@@ -37,6 +37,11 @@ extern std::unique_ptr<App> create_app();
 
 // -----------------------------------------------------------------------------
 
+struct EntryPointConfig {
+  TiArch client_arch;
+  bool debug;
+};
+
 // This should be implemented in platform entry points.
 extern std::unique_ptr<ti::aot_demo::AssetManager> create_asset_manager();
 
@@ -45,7 +50,6 @@ namespace aot_demo {
 
 class Framework {
   std::shared_ptr<class Renderer> renderer_;
-  GraphicsRuntime runtime_;
   std::unique_ptr<AssetManager> asset_mgr_;
 
   uint32_t frame_;
@@ -55,11 +59,10 @@ class Framework {
 
 public:
   Framework() {}
-  Framework(const AppConfig& app_cfg, bool debug);
+  Framework(const AppConfig& app_cfg, const EntryPointConfig& client_arch);
   Framework(const Framework&) = delete;
   Framework(Framework&& b) :
     renderer_(std::move(b.renderer_)),
-    runtime_(std::move(b.runtime_)),
     asset_mgr_(std::move(b.asset_mgr_)),
     frame_(std::exchange(b.frame_, 0)),
     tic0_(std::move(b.tic0_)),
@@ -69,7 +72,6 @@ public:
 
   Framework& operator=(Framework&& b) {
     renderer_ = std::move(b.renderer_);
-    runtime_ = std::move(b.runtime_);
     asset_mgr_ = std::move(b.asset_mgr_);
     frame_ = std::exchange(b.frame_, 0);
     tic0_ = std::move(b.tic0_);
@@ -102,13 +104,11 @@ public:
   inline AssetManager& asset_mgr() {
     return *asset_mgr_;
   }
-  // You usually need this in `initialize` and `update`.
-  inline GraphicsRuntime& runtime() {
-    return runtime_;
-  }
-  // You usually need this in `render`.
   inline Renderer& renderer() {
     return *renderer_;
+  }
+  inline ti::Runtime &runtime() {
+    return renderer_->client_runtime();
   }
 };
 

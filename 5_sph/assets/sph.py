@@ -12,13 +12,22 @@ args = parser.parse_args()
 def get_save_dir(name, arch):
     curr_dir = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(curr_dir, f"{name}_{arch}")
+def get_archive_path():
+    curr_dir = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(curr_dir, f"../../framework/android/app/src/main/assets/E5_sph.tcm")
 
 if args.arch == "cuda":
     arch = ti.cuda
+    platform = None
 elif args.arch == "x64":
     arch = ti.x64
+    platform = None
 elif args.arch == "vulkan":
     arch = ti.vulkan
+    platform = None
+elif args.arch == "android-vulkan":
+    arch = ti.vulkan
+    platform = "android"
 else:
     assert False
 
@@ -208,6 +217,10 @@ if __name__ == "__main__":
     mod.add_kernel(advance,             template_args={'pos':pos, 'vel':vel, 'acc':acc})
     mod.add_kernel(boundary_handle,     template_args={'pos':pos, 'vel':vel, 'boundary_box':boundary_box})
 
-    save_dir = get_save_dir("sph", args.arch)
-    os.makedirs(save_dir, exist_ok=True)
-    mod.save(save_dir)
+
+    if platform == "android":
+        mod.archive(get_archive_path())
+    else:
+        save_dir = get_save_dir("sph", args.arch)
+        os.makedirs(save_dir, exist_ok=True)
+        mod.save(save_dir)

@@ -22,27 +22,25 @@ struct App4_texture_fractal : public App {
     out.app_name = "4_texture_fractal";
     out.framebuffer_width = 640;
     out.framebuffer_height = 320;
+    out.supported_archs = {
+      TI_ARCH_VULKAN,
+    };
     return out;
   }
-  virtual void initialize(TiArch arch) override final{
-
-    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_OPENGL) {
-        std::cout << "4_texture_fractal only supports vulkan, opengl backend" << std::endl;
-        exit(0);
-    }
-    GraphicsRuntime& runtime = F_->runtime();
+  virtual void initialize() override final{
+    ti::aot_demo::Renderer& renderer = F_->renderer();
+    ti::Runtime& runtime = F_->runtime();
 
     module_ = runtime.load_aot_module("4_texture_fractal/assets/fractal");
     graph_ = module_.get_compute_graph("fractal");
 
     canvas_ = runtime.allocate_texture2d(640, 320, TI_FORMAT_R32F, TI_NULL_HANDLE);
 
-    draw_points = runtime.draw_texture(canvas_)
+    draw_points = renderer.draw_texture(canvas_)
       .build();
 
     graph_["canvas"] = canvas_;
 
-    Renderer& renderer = F_->renderer();
     renderer.set_framebuffer_size(640, 320);
 
     std::cout << "initialized!" << std::endl;

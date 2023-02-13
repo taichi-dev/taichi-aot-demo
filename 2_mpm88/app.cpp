@@ -1,9 +1,11 @@
+#include <memory>
 #include <thread>
 #include <chrono>
 #include <iostream>
 #include "glm/glm.hpp"
+#include "taichi/aot_demo/draws/draw_points.hpp"
 #include "taichi/aot_demo/framework.hpp"
-#include "taichi/aot_demo/interop/cross_device_copy.hpp"
+#include "taichi/aot_demo/shadow_buffer.hpp"
 
 using namespace ti::aot_demo;
 
@@ -27,42 +29,11 @@ static std::string get_aot_file_dir(TiArch arch) {
     }
 }
 
-template<typename T>
-static void copy_to_vulkan_ndarray(ti::NdArray<T>& dst, 
-                                   GraphicsRuntime& dst_runtime,
-                                   ti::NdArray<T>& src, 
-                                   ti::Runtime& src_runtime, TiArch src_arch) {
-    
-    switch(src_arch) {
-        case TI_ARCH_VULKAN: {
-            InteropHelper<T>::copy_from_vulkan(dst_runtime, dst, src_runtime, src);
-            break;
-        }
-        case TI_ARCH_X64: {
-            InteropHelper<T>::copy_from_cpu(dst_runtime, dst, src_runtime, src);
-            break;
-        }
-        case TI_ARCH_CUDA: {
-            InteropHelper<T>::copy_from_cuda(dst_runtime, dst, src_runtime, src);
-            break;
-        }
-        case TI_ARCH_OPENGL: {
-            InteropHelper<T>::copy_from_opengl(dst_runtime, dst, src_runtime, src);
-            break;
-        }
-        default: {
-            throw std::runtime_error("Unable to perform NdArray memory copy");
-        }
-    }
-}
-
 struct App2_mpm88 : public App {
   static const uint32_t NPARTICLE = 8192 * 2;
   static const uint32_t GRID_SIZE = 128;
 
-  ti::Runtime runtime_;
   ti::AotModule module_;
-  TiArch arch_;
 
   ti::ComputeGraph g_init_;
   ti::ComputeGraph g_update_;
@@ -74,8 +45,6 @@ struct App2_mpm88 : public App {
   ti::NdArray<float> J_;
   ti::NdArray<float> grid_v_;
   ti::NdArray<float> grid_m_;
-  
-  ti::NdArray<float> render_x_;
 
   std::unique_ptr<GraphicsTask> draw_points;
 
@@ -84,49 +53,40 @@ struct App2_mpm88 : public App {
     out.app_name = "2_mpm88";
     out.framebuffer_width = 256;
     out.framebuffer_height = 256;
+    out.supported_archs = {
+      TI_ARCH_VULKAN,
+      TI_ARCH_CUDA,
+      TI_ARCH_X64,
+    };
     return out;
   }
 
-
-  virtual void initialize(TiArch arch) override final{
-    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA && arch != TI_ARCH_OPENGL) {
-        std::cout << "1_hello_world_with_interop only supports cuda, x64, vulkan, opengl backends" << std::endl;
-        exit(0);
-    }
-    arch_ = arch;
-    
-    GraphicsRuntime& g_runtime = F_->runtime();
-    if(arch_ == TI_ARCH_VULKAN) {
-        // Reuse the vulkan runtime from renderer framework
-        runtime_ = ti::Runtime(arch_, F_->runtime(), false);;
-    } else {
-        runtime_ = ti::Runtime(arch_);
-    }
+  virtual void initialize() override final{
+    Renderer &renderer = F_->renderer();
+    ti::Runtime &runtime = F_->runtime();
 
     // 2. Load AOT module
 #ifdef TI_AOT_DEMO_WITH_ANDROID_APP
     std::vector<uint8_t> tcm;
     F_->asset_mgr().load_file("E2_mpm88.tcm", tcm);
-    module_ = runtime_.create_aot_module(tcm);
+    module_ = runtime.create_aot_module(tcm);
 #else
-    auto aot_file_path = get_aot_file_dir(arch_);
-    module_ = runtime_.load_aot_module(aot_file_path);
+    auto aot_file_path = get_aot_file_dir(runtime.arch());
+    module_ = runtime.load_aot_module(aot_file_path);
 #endif
 
     g_init_ = module_.get_compute_graph("init");
     g_update_ = module_.get_compute_graph("update");
 
-    render_x_ = g_runtime.allocate_vertex_buffer(NPARTICLE, 2, false/*host_access*/);
+    x_ = runtime.allocate_ndarray<float>({NPARTICLE}, {2});
+    v_ = runtime.allocate_ndarray<float>({NPARTICLE}, {2});
+    pos_ = runtime.allocate_ndarray<float>({NPARTICLE}, {3});
+    C_ = runtime.allocate_ndarray<float>({NPARTICLE}, {2, 2});
+    J_ = runtime.allocate_ndarray<float>({NPARTICLE}, {});
+    grid_v_ = runtime.allocate_ndarray<float>({GRID_SIZE, GRID_SIZE}, {2});
+    grid_m_ = runtime.allocate_ndarray<float>({GRID_SIZE, GRID_SIZE}, {});
 
-    x_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {2}, false/*host_access*/);
-    v_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {2});
-    pos_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {3});
-    C_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {2, 2});
-    J_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {});
-    grid_v_ = runtime_.allocate_ndarray<float>({GRID_SIZE, GRID_SIZE}, {2});
-    grid_m_ = runtime_.allocate_ndarray<float>({GRID_SIZE, GRID_SIZE}, {});
-
-    draw_points = g_runtime.draw_points(render_x_)
+    draw_points = renderer.draw_points(x_)
       .point_size(3.0f)
       .color(glm::vec3(0,0,1))
       .build();
@@ -144,7 +104,6 @@ struct App2_mpm88 : public App {
     g_update_["grid_v"] = grid_v_;
     g_update_["grid_m"] = grid_m_;
 
-    Renderer& renderer = F_->renderer();
     renderer.set_framebuffer_size(256, 256);
 
     std::cout << "initialized!" << std::endl;
@@ -152,10 +111,6 @@ struct App2_mpm88 : public App {
   virtual bool update() override final {
     g_update_.launch();
 
-    auto& g_runtime = F_->runtime();
-    copy_to_vulkan_ndarray<float>(render_x_, g_runtime, x_, runtime_, arch_);
-    runtime_.wait();
-    
     std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;
   }

@@ -1,9 +1,5 @@
 // A minimalist renderer.
 // @PENGUINLIONG
-#include <cassert>
-#include <cstdio>
-#include <array>
-#include <stdexcept>
 #include <iostream>
 #include <set>
 #include "taichi/aot_demo/renderer.hpp"
@@ -14,22 +10,6 @@ namespace aot_demo {
 // Implemented in glslang.cpp
 std::vector<uint32_t> vert2spv(const std::string& vert);
 std::vector<uint32_t> frag2spv(const std::string& frag);
-
-#define check_vulkan_result(x) \
-  if (x < VK_SUCCESS) { \
-    uint32_t x2 = (uint32_t)x; \
-    std::printf("File \"%s\", line %d, in %s:\n", __FILE__, __LINE__, __func__); \
-    std::printf("  vulkan failed: %d\n", x2); \
-    std::fflush(stdout); \
-    throw std::runtime_error("vulkan failed"); \
-  }
-
-inline void check_taichi_error() {
-  TiError error = ti_get_last_error(0, nullptr);
-  if (error < TI_ERROR_SUCCESS) {
-    throw std::runtime_error("taichi failed");
-  }
-}
 
 VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_validation_callback(
   VkDebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -49,7 +29,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_validation_callback(
   return VK_FALSE;
 }
 
-Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
+Renderer::Renderer(const RendererConfig& config) {
   VkResult res = VK_SUCCESS;
 
   uint32_t nlep = 0;
@@ -64,7 +44,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
     lens.at(i) = leps.at(i).extensionName;
   }
 
-  if (debug) {
+  if (config.debug) {
     llns.emplace_back("VK_LAYER_KHRONOS_validation");
     lens.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
@@ -91,7 +71,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   ici.ppEnabledExtensionNames = lens.data();
 
   VkDebugUtilsMessengerCreateInfoEXT dumci {};
-  if (debug) {
+  if (config.debug) {
     dumci.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     dumci.messageSeverity =
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -113,7 +93,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
     VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
   };
   VkValidationFeaturesEXT vf {};
-  if (debug) {
+  if (config.debug) {
     vf.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
     vf.enabledValidationFeatureCount = vfes.size();
     vf.pEnabledValidationFeatures = vfes.data();
@@ -127,7 +107,7 @@ Renderer::Renderer(bool debug, uint32_t width, uint32_t height) {
   check_vulkan_result(res);
 
   VkDebugUtilsMessengerEXT debug_utils_messenger = VK_NULL_HANDLE;
-  if (debug) {
+  if (config.debug) {
     dumci.pNext = nullptr;
     PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT_ = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     res = vkCreateDebugUtilsMessengerEXT_(instance, &dumci, nullptr, &debug_utils_messenger);
@@ -342,8 +322,6 @@ try_another_physical_device:
 
   TiVulkanRuntimeInteropInfo vrii {};
   vrii.get_instance_proc_addr = loader;
-  // FIXME: (penguinliong) Use the real Vulkan API version when device
-  // capability is in.
   vrii.api_version = api_version;
   vrii.instance = instance;
   vrii.physical_device = physical_device;
@@ -353,10 +331,19 @@ try_another_physical_device:
   vrii.graphics_queue = queue;
   vrii.graphics_queue_family_index = queue_family_index;
   ti::Runtime runtime =
-    ti::Runtime(TI_ARCH_VULKAN, ti_import_vulkan_runtime(&vrii), true);
+      ti::Runtime(TI_ARCH_VULKAN, ti_import_vulkan_runtime(&vrii), true);
+
+  ti::Runtime client_runtime {};
+  if (config.client_arch == TI_ARCH_VULKAN) {
+    // Borrow the Vulkan device and import Taichi runtime from the renderer.
+    client_runtime = ti::Runtime(TI_ARCH_VULKAN, runtime, false);
+  } else {
+    // Otherwise create an interop foreign runtime.
+    client_runtime = ti::Runtime(config.client_arch);
+  }
   check_taichi_error();
 
-  ti::NdArray<float> rect_vertex_buffer {};
+  ti::NdArray<float> rect_vertex_buffer;
   {
     TiMemoryAllocateInfo mai {};
     mai.size = sizeof(glm::vec2) * 6;
@@ -410,7 +397,7 @@ try_another_physical_device:
 
   render_pass_ = render_pass;
   framebuffer_ = VK_NULL_HANDLE;
-  set_framebuffer_size(width, height);
+  set_framebuffer_size(config.framebuffer_width, config.framebuffer_height);
 
   command_pool_ = command_pool;
   render_present_semaphore_ = render_present_semaphore;
@@ -418,6 +405,7 @@ try_another_physical_device:
   present_fence_ = present_fence;
 
   runtime_ = std::move(runtime);
+  client_runtime_ = std::move(client_runtime);
   loader_ = loader;
 
   rect_vertex_buffer_ = std::move(rect_vertex_buffer);
@@ -664,6 +652,9 @@ void Renderer::begin_render() {
   VkResult res = VK_SUCCESS;
   assert(!in_frame_);
 
+  // Ensure the client runtime has finished all the pending work.
+  client_runtime_.wait();
+
   VkCommandBufferAllocateInfo cbai {};
   cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -761,10 +752,12 @@ void Renderer::end_render() {
   in_frame_ = false;
   frame_command_buffer_ = VK_NULL_HANDLE;
 }
-void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
+void Renderer::enqueue_graphics_task(GraphicsTask& graphics_task) {
   assert(in_frame_);
 
   const GraphicsTaskConfig& config  = graphics_task.config_;
+
+  graphics_task.update();
 
   bool is_indexed = config.index_buffer != VK_NULL_HANDLE;
 
@@ -787,13 +780,13 @@ void Renderer::enqueue_graphics_task(const GraphicsTask& graphics_task) {
     &graphics_task.descriptor_set_, 0, nullptr);
 
   {
-    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(config.vertex_buffer);
+    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(*config.vertex_buffer);
     VkDeviceSize o = 0;
     vkCmdBindVertexBuffers(frame_command_buffer_, 0, 1, &vmii.buffer, &o);
   }
 
   if (is_indexed) {
-    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(config.index_buffer);
+    const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(*config.index_buffer);
     vkCmdBindIndexBuffer(frame_command_buffer_, vmii.buffer, 0, VK_INDEX_TYPE_UINT32);
 
     vkCmdDrawIndexed(frame_command_buffer_, config.index_count, config.instance_count, 0, 0, 0);
@@ -913,16 +906,15 @@ void Renderer::present_to_surface() {
   check_vulkan_result(res);
 }
 
-void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
-  assert(!in_frame_);
-  assert(dst.shape().dim_count == 2);
-  assert(dst.shape().dims[0] == width_);
-  assert(dst.shape().dims[1] == height_);
-  assert(dst.elem_shape().dim_count == 1);
-  assert(dst.elem_shape().dims[0] == 4);
+ti::NdArray<uint8_t> Renderer::present_to_ndarray() {
   VkResult res = VK_SUCCESS;
+  assert(!in_frame_);
 
-  const TiVulkanMemoryInteropInfo& vmii = export_ti_memory(dst.memory());
+  ti::NdArray<uint8_t> dst = runtime_.allocate_ndarray<uint8_t>({width_, height_}, {4}, true);
+
+  TiVulkanMemoryInteropInfo vmii{};
+  ti_export_vulkan_memory(runtime_, dst.memory(), &vmii);
+  check_taichi_error();
 
   VkCommandBufferAllocateInfo cbai {};
   cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -964,6 +956,8 @@ void Renderer::present_to_ndarray(ti::NdArray<uint8_t>& dst) {
   si.pWaitDstStageMask = &ps;
   res = vkQueueSubmit(queue_, 1, &si, present_fence_);
   check_vulkan_result(res);
+
+  return dst;
 }
 
 void Renderer::next_frame() {
@@ -980,9 +974,14 @@ void Renderer::next_frame() {
 
   vkResetCommandPool(device_, command_pool_, 0);
   check_vulkan_result(res);
+
+  staging_buffers_.clear();
 }
 
-const TiVulkanMemoryInteropInfo& Renderer::export_ti_memory(TiMemory memory) {
+const TiVulkanMemoryInteropInfo &Renderer::export_ti_memory(
+    const ShadowBuffer &shadow_buffer) {
+  TiMemory memory = shadow_buffer.memory_;
+
   auto it = ti_memory_interops_.find(memory);
   if (it == ti_memory_interops_.end()) {
     TiVulkanMemoryInteropInfo vmii {};
@@ -994,451 +993,19 @@ const TiVulkanMemoryInteropInfo& Renderer::export_ti_memory(TiMemory memory) {
   return it->second;
 }
 
-GraphicsTask::GraphicsTask(
-  const std::shared_ptr<Renderer>& renderer,
-  const GraphicsTaskConfig& config
-) : renderer_(renderer), config_(config) {
-  VkResult res = VK_SUCCESS;
-  assert(renderer->is_valid());
+const TiVulkanImageInteropInfo &Renderer::export_ti_image(
+    const ShadowTexture &shadow_texture) {
+  TiImage image = shadow_texture.image_;
 
-  VkDevice device = renderer->device();
+  auto it = ti_image_interops_.find(image);
+  if (it == ti_image_interops_.end()) {
+    TiVulkanImageInteropInfo viii {};
+    ti_export_vulkan_image(runtime_, image, &viii);
+    check_taichi_error();
 
-  std::array<std::vector<uint32_t>, 2> cs {};
-  cs.at(0) = vert2spv(config.vertex_shader_glsl);
-  assert(!cs.at(0).empty());
-  cs.at(1) = frag2spv(config.fragment_shader_glsl);
-  assert(!cs.at(1).empty());
-
-
-  std::vector<VkDescriptorType> dts {};
-  dts.reserve(config.resources.size());
-  dts.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-  for (size_t i = 0; i < config.resources.size(); ++i) {
-    VkDescriptorType dt;
-    switch (config.resources.at(i).type) {
-    case L_GRAPHICS_TASK_RESOURCE_TYPE_NDARRAY:
-      dt = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      break;
-    case L_GRAPHICS_TASK_RESOURCE_TYPE_TEXTURE:
-      dt = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      break;
-    default:
-      throw std::logic_error("unknown descriptor type");
-      return;
-    }
-    dts.emplace_back(std::move(dt));
+    it = ti_image_interops_.emplace(std::make_pair(image, std::move(viii))).first;
   }
-
-  std::array<VkShaderModule, 2> sms {};
-  for (size_t i = 0; i < cs.size(); ++i) {
-    VkShaderModuleCreateInfo smci {};
-    smci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    smci.codeSize = cs.at(i).size() * sizeof(uint32_t);
-    smci.pCode = cs.at(i).data();
-
-    VkShaderModule sm = VK_NULL_HANDLE;
-    res = vkCreateShaderModule(device, &smci, nullptr, &sm);
-    check_vulkan_result(res);
-
-    sms.at(i) = sm;
-  }
-
-  std::vector<VkDescriptorPoolSize> dpss {};
-  {
-    VkDescriptorPoolSize dps {};
-    dps.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    dps.descriptorCount = 1;
-    dpss.emplace_back(std::move(dps));
-  }
-  for (size_t i = 0; i < dts.size(); ++i) {
-    VkDescriptorType dt = dts.at(i);
-
-    auto it = dpss.begin();
-    for (; it != dpss.end(); ++it) {
-      if (it->type == dt) {
-        it->descriptorCount += 1;
-      }
-    }
-    if (it == dpss.end()) {
-      VkDescriptorPoolSize dps {};
-      dps.type = dt;
-      dps.descriptorCount = 1;
-      dpss.emplace_back(std::move(dps));
-    }
-  }
-
-  VkDescriptorPoolCreateInfo dpci {};
-  dpci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  dpci.maxSets = 1;
-  dpci.pPoolSizes = dpss.data();
-  dpci.poolSizeCount = (uint32_t)dpss.size();
-
-  VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
-  res = vkCreateDescriptorPool(device, &dpci, nullptr, &descriptor_pool);
-  check_vulkan_result(res);
-
-  std::vector<VkDescriptorSetLayoutBinding> dslbs {};
-  for (size_t i = 0; i < dts.size(); ++i) {
-    VkDescriptorType dt = dts.at(i);
-
-    VkDescriptorSetLayoutBinding dslb {};
-    dslb.binding = i;
-    dslb.descriptorCount = 1;
-    dslb.descriptorType = dt;
-    dslb.stageFlags = VK_SHADER_STAGE_ALL;
-    dslbs.emplace_back(std::move(dslb));
-  }
-
-  VkDescriptorSetLayoutCreateInfo dslci {};
-  dslci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  dslci.bindingCount = (uint32_t)dslbs.size();
-  dslci.pBindings = dslbs.data();
-
-  VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
-  res = vkCreateDescriptorSetLayout(device, &dslci, nullptr, &descriptor_set_layout);
-  check_vulkan_result(res);
-
-  VkDescriptorSetAllocateInfo dsai {};
-  dsai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  dsai.descriptorPool = descriptor_pool;
-  dsai.descriptorSetCount = 1;
-  dsai.pSetLayouts = &descriptor_set_layout;
-
-  VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-  res = vkAllocateDescriptorSets(device, &dsai, &descriptor_set);
-  check_vulkan_result(res);
-
-  VkBufferCreateInfo ubbci {};
-  ubbci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  ubbci.size = config.uniform_buffer_size;
-  ubbci.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-
-  VmaAllocationCreateInfo aci {};
-  aci.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-  VkBuffer uniform_buffer = VK_NULL_HANDLE;
-  VmaAllocation uniform_buffer_allocation = VK_NULL_HANDLE;
-  res = vmaCreateBuffer(renderer->vma_allocator_, &ubbci, &aci, &uniform_buffer,
-    &uniform_buffer_allocation, nullptr);
-  check_vulkan_result(res);
-
-  void* ub;
-  res = vmaMapMemory(renderer->vma_allocator_, uniform_buffer_allocation, &ub);
-  check_vulkan_result(res);
-
-  std::memcpy(ub, config.uniform_buffer_data, config.uniform_buffer_size);
-  vmaUnmapMemory(renderer->vma_allocator_, uniform_buffer_allocation);
-
-  std::vector<VkDescriptorBufferInfo> dbis {};
-  dbis.reserve(dts.size());
-  std::vector<VkDescriptorImageInfo> diis {};
-  diis.reserve(dts.size());
-  std::vector<VkImageView> texture_views;
-  std::vector<VkWriteDescriptorSet> wdss {};
-  {
-    VkDescriptorBufferInfo dbi {};
-    dbi.buffer = uniform_buffer;
-    dbi.range = config.uniform_buffer_size;
-    dbis.emplace_back(std::move(dbi));
-
-    VkWriteDescriptorSet wds {};
-    wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    wds.descriptorCount = 1;
-    wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    wds.dstBinding = 0;
-    wds.dstSet = descriptor_set;
-    wds.pBufferInfo = &dbis.back();
-    wdss.emplace_back(std::move(wds));
-  }
-  for (size_t i = 0; i < config.resources.size(); ++i) {
-    const GraphicsTaskResource &resource = config.resources.at(i);
-    switch (resource.type) {
-    case L_GRAPHICS_TASK_RESOURCE_TYPE_NDARRAY:
-    {
-      const TiVulkanMemoryInteropInfo& vmii =
-        renderer_->export_ti_memory(resource.ndarray.memory);
-
-      VkDescriptorBufferInfo dbi {};
-      dbi.buffer = vmii.buffer;
-      dbi.range = vmii.size;
-      dbis.emplace_back(std::move(dbi));
-
-      VkWriteDescriptorSet wds {};
-      wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      wds.descriptorCount = 1;
-      wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      wds.dstBinding = i + 1;
-      wds.dstSet = descriptor_set;
-      wds.pBufferInfo = &dbis.back();
-      wdss.emplace_back(std::move(wds));
-      break;
-    }
-    case L_GRAPHICS_TASK_RESOURCE_TYPE_TEXTURE:
-    {
-      TiVulkanImageInteropInfo viii {};
-      ti_export_vulkan_image(renderer_->runtime(), resource.texture.image, &viii);
-      check_taichi_error();
-
-      VkImageViewType ivt;
-      switch (viii.image_type) {
-      case VK_IMAGE_TYPE_1D:
-        ivt = VK_IMAGE_VIEW_TYPE_1D;
-        break;
-      case VK_IMAGE_TYPE_2D:
-        ivt = VK_IMAGE_VIEW_TYPE_2D;
-        break;
-      case VK_IMAGE_TYPE_3D:
-        ivt = VK_IMAGE_VIEW_TYPE_3D;
-        break;
-      default:
-        throw std::logic_error("unsupported texture image type");
-      }
-
-      VkImageViewCreateInfo ivci {};
-      ivci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-      ivci.viewType = ivt;
-      ivci.image = viii.image;
-      ivci.format = viii.format;
-      ivci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      ivci.subresourceRange.levelCount = 1;
-      ivci.subresourceRange.layerCount = 1;
-
-      VkImageView texture_view {};
-      res = vkCreateImageView(device, &ivci, nullptr, &texture_view);
-      check_vulkan_result(res);
-      texture_views.emplace_back(texture_view);
-
-      VkDescriptorImageInfo dii {};
-      dii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      dii.imageView = texture_view;
-      // TODO: (penguinliong) Export from Taichi?
-      dii.sampler = renderer->sampler_;
-      diis.emplace_back(std::move(dii));
-
-      VkWriteDescriptorSet wds {};
-      wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      wds.descriptorCount = 1;
-      wds.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      wds.dstBinding = i + 1;
-      wds.dstSet = descriptor_set;
-      wds.pImageInfo = &diis.back();
-      wdss.emplace_back(std::move(wds));
-      break;
-    }
-    default:
-      throw std::logic_error("unexpected resource type");
-    }
-  }
-  vkUpdateDescriptorSets(device, (uint32_t)wdss.size(), wdss.data(), 0, nullptr);
-
-  VkPipelineLayoutCreateInfo plci {};
-  plci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  plci.setLayoutCount = 1;
-  plci.pSetLayouts = &descriptor_set_layout;
-
-  VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
-  res = vkCreatePipelineLayout(device, &plci, nullptr, &pipeline_layout);
-  check_vulkan_result(res);
-
-  std::array<VkPipelineShaderStageCreateInfo, 2> psscis {};
-  {
-    VkPipelineShaderStageCreateInfo& pssci = psscis.at(0);
-    pssci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    pssci.pName = "main";
-    pssci.module = sms.at(0);
-    pssci.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  }
-  {
-    VkPipelineShaderStageCreateInfo& pssci = psscis.at(1);
-    pssci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    pssci.pName = "main";
-    pssci.module = sms.at(1);
-    pssci.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  }
-
-  VkFormat vf {};
-  switch(config.vertex_component_count) {
-  case 1:
-    vf = VK_FORMAT_R32_SFLOAT;
-    break;
-  case 2:
-    vf = VK_FORMAT_R32G32_SFLOAT;
-    break;
-  case 3:
-    vf = VK_FORMAT_R32G32B32_SFLOAT;
-    break;
-  case 4:
-    vf = VK_FORMAT_R32G32B32A32_SFLOAT;
-    break;
-  default:
-    throw std::logic_error("invalid vertex component count");
-  }
-
-  VkVertexInputAttributeDescription viad {};
-  viad.location = 0;
-  viad.binding = 0;
-  viad.format = vf;
-  viad.offset = 0;
-
-  VkVertexInputBindingDescription vibd {};
-  vibd.binding = 0;
-  vibd.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-  vibd.stride = config.vertex_component_count * sizeof(float);
-
-  VkPipelineVertexInputStateCreateInfo pvisci {};
-  pvisci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  pvisci.vertexAttributeDescriptionCount = 1;
-  pvisci.pVertexAttributeDescriptions = &viad;
-  pvisci.vertexBindingDescriptionCount = 1;
-  pvisci.pVertexBindingDescriptions = &vibd;
-
-  VkPrimitiveTopology pt;
-  switch (config.primitive_topology) {
-  case L_PRIMITIVE_TOPOLOGY_POINT:
-    pt = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-    break;
-  case L_PRIMITIVE_TOPOLOGY_LINE:
-    pt = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-    break;
-  case L_PRIMITIVE_TOPOLOGY_TRIANGLE:
-    pt = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    break;
-  default:
-    throw std::logic_error("invalid primitive topology");
-  }
-
-  VkPipelineInputAssemblyStateCreateInfo piasci {};
-  piasci.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  piasci.topology = pt;
-
-  VkViewport v {};
-  v.width = 1;
-  v.height = 1;
-  v.x = 0;
-  v.y = 0;
-  v.minDepth = 0.0;
-  v.maxDepth = 1.0;
-
-  VkRect2D s {}; // Dynamic.
-  s.extent.width = 1;
-  s.extent.height = 1;
-
-  VkPipelineViewportStateCreateInfo pvsci {};
-  pvsci.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-  pvsci.viewportCount = 1;
-  pvsci.pViewports = &v;
-  pvsci.scissorCount = 1;
-  pvsci.pScissors = &s;
-
-  VkPipelineRasterizationStateCreateInfo prsci {};
-  prsci.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-  prsci.lineWidth = 1.0f;
-  prsci.polygonMode = VK_POLYGON_MODE_FILL;
-  prsci.cullMode = VK_CULL_MODE_NONE;
-  prsci.frontFace = VK_FRONT_FACE_CLOCKWISE;
-
-  VkPipelineMultisampleStateCreateInfo pmsci {};
-  pmsci.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-  pmsci.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-  VkPipelineDepthStencilStateCreateInfo pdssci {};
-  pdssci.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-  pdssci.depthTestEnable = VK_TRUE;
-  pdssci.depthWriteEnable = VK_TRUE;
-  pdssci.depthCompareOp = VK_COMPARE_OP_LESS;
-
-  VkPipelineColorBlendAttachmentState pcbas {};
-  pcbas.blendEnable = VK_TRUE;
-  pcbas.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-  pcbas.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-  pcbas.colorBlendOp = VK_BLEND_OP_ADD;
-  pcbas.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-  pcbas.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-  pcbas.alphaBlendOp = VK_BLEND_OP_ADD;
-  pcbas.colorWriteMask =
-    VK_COLOR_COMPONENT_R_BIT |
-    VK_COLOR_COMPONENT_G_BIT |
-    VK_COLOR_COMPONENT_B_BIT |
-    VK_COLOR_COMPONENT_A_BIT;
-
-  VkPipelineColorBlendStateCreateInfo pcbsci {};
-  pcbsci.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-  pcbsci.attachmentCount = 1;
-  pcbsci.pAttachments = &pcbas;
-  pcbsci.blendConstants[0] = 1.0;
-  pcbsci.blendConstants[1] = 1.0;
-  pcbsci.blendConstants[2] = 1.0;
-  pcbsci.blendConstants[3] = 1.0;
-
-  std::array<VkDynamicState, 2> dss {
-    VK_DYNAMIC_STATE_VIEWPORT,
-    VK_DYNAMIC_STATE_SCISSOR,
-  };
-
-  VkPipelineDynamicStateCreateInfo pdsci {};
-  pdsci.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  pdsci.dynamicStateCount = (uint32_t)dss.size();
-  pdsci.pDynamicStates = dss.data();
-
-  VkGraphicsPipelineCreateInfo gpci {};
-  gpci.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  gpci.stageCount = psscis.size();
-  gpci.pStages = psscis.data();
-  gpci.pVertexInputState = &pvisci;
-  gpci.pInputAssemblyState = &piasci;
-  gpci.pViewportState = &pvsci;
-  gpci.pRasterizationState = &prsci;
-  gpci.pMultisampleState = &pmsci;
-  gpci.pDepthStencilState = &pdssci;
-  gpci.pColorBlendState = &pcbsci;
-  gpci.pDynamicState = &pdsci;
-  gpci.layout = pipeline_layout;
-  gpci.renderPass = renderer->render_pass_;
-
-  VkPipeline pipeline = VK_NULL_HANDLE;
-  res = vkCreateGraphicsPipelines(device, nullptr, 1, &gpci, nullptr, &pipeline);
-  check_vulkan_result(res);
-
-  // Clean up. Shader modules can be destroyed at this point.
-  for (size_t i = 0; i < sms.size(); ++i) {
-    vkDestroyShaderModule(device, sms.at(i), nullptr);
-  }
-
-  renderer_ = renderer;
-  pipeline_ = pipeline;
-  pipeline_layout_ = pipeline_layout;
-  descriptor_set_layout_ = descriptor_set_layout;
-  descriptor_pool_ = descriptor_pool;
-  descriptor_set_ = descriptor_set;
-  uniform_buffer_ = uniform_buffer;
-  uniform_buffer_allocation_ = uniform_buffer_allocation;
-  texture_views_ = texture_views;
-}
-GraphicsTask::~GraphicsTask() {
-  destroy();
-}
-void GraphicsTask::destroy() {
-  VkDevice device = renderer_->device();
-  VmaAllocator vma_allocator = renderer_->vma_allocator();
-
-  for (size_t i = 0; i < texture_views_.size(); ++i) {
-    vkDestroyImageView(device, texture_views_.at(i), nullptr);
-  }
-  vmaDestroyBuffer(vma_allocator, uniform_buffer_, uniform_buffer_allocation_);
-  vkDestroyDescriptorPool(device, descriptor_pool_, nullptr);
-  vkDestroyDescriptorSetLayout(device, descriptor_set_layout_, nullptr);
-  vkDestroyPipelineLayout(device, pipeline_layout_, nullptr);
-  vkDestroyPipeline(device, pipeline_, nullptr);
-
-  renderer_ = nullptr;
-  pipeline_ = VK_NULL_HANDLE;
-  pipeline_layout_ = VK_NULL_HANDLE;
-  descriptor_set_layout_ = VK_NULL_HANDLE;
-  descriptor_pool_ = VK_NULL_HANDLE;
-  descriptor_set_ = VK_NULL_HANDLE;
-  uniform_buffer_ = VK_NULL_HANDLE;
-  uniform_buffer_allocation_ = VK_NULL_HANDLE;
-  texture_views_.clear();
+  return it->second;
 }
 
 } // namespace aot_demo

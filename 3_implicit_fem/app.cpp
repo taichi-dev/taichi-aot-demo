@@ -44,16 +44,16 @@ struct App3_implicit_fem : public App {
     out.app_name = "3_implicit_fem";
     out.framebuffer_width = 256;
     out.framebuffer_height = 256;
+    out.supported_archs = {
+      TI_ARCH_VULKAN,
+      TI_ARCH_CUDA,
+      TI_ARCH_X64,
+    };
     return out;
   }
-  virtual void initialize(TiArch arch) override final{
-
-    if(arch != TI_ARCH_VULKAN) {
-        std::cout << "3_implicit_fem only supports vulkan backend" << std::endl;
-        exit(0);
-    }    
-    GraphicsRuntime& runtime = F_->runtime();
-    Renderer& renderer = F_->renderer();
+  virtual void initialize() override final{
+    Renderer &renderer = F_->renderer();
+    ti::Runtime& runtime = F_->runtime();
 
 #ifdef TI_AOT_DEMO_WITH_ANDROID_APP
     std::vector<uint8_t> tcm;
@@ -84,7 +84,7 @@ struct App3_implicit_fem : public App {
 
     hes_edge_ = runtime.allocate_ndarray<float>({nedge});
     hes_vert_ = runtime.allocate_ndarray<float>({ncell});
-    x_ = runtime.allocate_vertex_buffer(nvert, 3, true);
+    x_ = runtime.allocate_ndarray<float>({nvert}, {3}, true);
     v_ = runtime.allocate_ndarray<float>({nvert}, {3});
     f_ = runtime.allocate_ndarray<float>({nvert}, {3});
     mul_ans_ = runtime.allocate_ndarray<float>({nvert}, {3});
@@ -92,7 +92,7 @@ struct App3_implicit_fem : public App {
     b_ = runtime.allocate_ndarray<float>({nvert}, {3});
     r0_ = runtime.allocate_ndarray<float>({nvert}, {3});
     p0_ = runtime.allocate_ndarray<float>({nvert}, {3});
-    indices_ = runtime.allocate_index_buffer(nface, 3, true);
+    indices_ = runtime.allocate_ndarray<uint32_t>({nface}, {3}, true);
     vertices_ = runtime.allocate_ndarray<int>({ncell}, {4}, true);
     edges_ = runtime.allocate_ndarray<int>({nedge}, {2}, true);
     ox_ = runtime.allocate_ndarray<float>({nvert}, {3}, true);
@@ -116,7 +116,7 @@ struct App3_implicit_fem : public App {
     glm::mat4 world2camera = glm::lookAt(glm::vec3(0, 0, 10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
     glm::mat4 world2view = camera2view * world2camera;
 
-    draw_mesh = runtime.draw_mesh(x_, indices_)
+    draw_mesh = renderer.draw_mesh(x_, indices_)
       .model2world(model2world)
       .world2view(world2view)
       .color(glm::vec3(0,0,1))

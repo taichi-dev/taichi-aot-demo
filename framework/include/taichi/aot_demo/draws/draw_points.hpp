@@ -1,5 +1,5 @@
 #pragma once
-#include "taichi/aot_demo/common.hpp"
+#include "taichi/aot_demo/graphics_task.hpp"
 
 namespace ti {
 namespace aot_demo {
@@ -7,30 +7,35 @@ namespace aot_demo {
 class Renderer;
 class GraphicsTask;
 
-class DrawPointsBuilder {
+class DrawPointsBuilder : public GraphicsTaskBuilder {
   using Self = DrawPointsBuilder;
-  std::shared_ptr<Renderer> renderer_;
 
-  TiNdArray positions_ = {};
+  uint32_t position_count_ = 0;
+  uint32_t position_component_count_ = 0;
+  std::shared_ptr<ShadowBuffer> positions_ = {};
 
   glm::vec4 color_ = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-  TiNdArray colors_ = {};
+  std::shared_ptr<ShadowBuffer> colors_ = {};
 
   float point_size_ = 1.0f;
-  TiNdArray point_sizes_ = {};
+  std::shared_ptr<ShadowBuffer> point_sizes_ = {};
 
-public:
+ public:
   DrawPointsBuilder(
     const std::shared_ptr<Renderer>& renderer,
     const ti::NdArray<float>& positions
-  ) : renderer_(renderer) {
+  ) : GraphicsTaskBuilder(renderer) {
     assert(positions.is_valid());
-    positions_ = positions;
+    assert(positions.shape.dim_count == 1);
+    assert(positions.shape.dims[0] != 0);
+    assert(positions.elem_shape.dim_count == 1);
+    assert(positions.elem_shape.dims[0] > 0 &&
+           positions.elem_shape.dims[0] <= 4);
 
-    assert(positions_.shape.dim_count == 1);
-    assert(positions_.shape.dims[0] != 0);
-    assert(positions_.elem_shape.dim_count == 1);
-    assert(positions_.elem_shape.dims[0] > 0 && positions_.elem_shape.dims[0] <= 4);
+    position_count_ = positions.shape().dims[0];
+    position_component_count_ = positions.elem_shape().dims[0];
+    positions_ = create_shadow_buffer(positions.memory(),
+                                      ShadowBufferUsage::VertexBuffer);
   }
 
   Self& color(const glm::vec3& color) {
@@ -43,12 +48,13 @@ public:
   }
   Self& color(const ti::NdArray<float>& colors) {
     assert(colors.is_valid());
-    colors_ = colors;
+    assert(colors.shape.dim_count == 1);
+    assert(colors.shape.dims[0] == position_count_);
+    assert(colors.elem_shape.dim_count == 1);
+    assert(colors.elem_shape.dims[0] == 4);
 
-    assert(colors_.shape.dim_count == 1);
-    assert(colors_.shape.dims[0] != 0);
-    assert(colors_.elem_shape.dim_count == 1);
-    assert(colors_.elem_shape.dims[0] == 4);
+    colors_ =
+        create_shadow_buffer(colors.memory(), ShadowBufferUsage::StorageBuffer);
     return *this;
   }
 
@@ -58,11 +64,12 @@ public:
   }
   Self& point_size(const ti::NdArray<float>& point_sizes) {
     assert(point_sizes.is_valid());
-    point_sizes_ = point_sizes;
+    assert(point_sizes.shape.dim_count == 1);
+    assert(point_sizes.shape.dims[0] == position_count_);
+    assert(point_sizes.elem_shape.dim_count == 0);
 
-    assert(colors_.shape.dim_count == 1);
-    assert(colors_.shape.dims[0] != 0);
-    assert(colors_.elem_shape.dim_count == 0);
+    point_sizes_ = create_shadow_buffer(point_sizes.memory(),
+                                        ShadowBufferUsage::StorageBuffer);
     return *this;
   }
 
