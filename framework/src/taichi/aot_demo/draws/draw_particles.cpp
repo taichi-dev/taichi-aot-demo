@@ -8,11 +8,10 @@
 namespace ti {
 namespace aot_demo {
 
-std::unique_ptr<GraphicsTask> DrawParticlesBuilder::build() {
-  uint32_t ncomp = positions_.elem_shape.dims[0];
+std::shared_ptr<GraphicsTask> DrawParticlesBuilder::build() {
   const char* vertex_declr;
   const char* vertex_get;
-  switch (ncomp) {
+  switch (position_component_count_) {
   case 1:
     vertex_declr = "layout(location=0) in float pos;";
     vertex_get = "vec4(pos * 2.0 - 1.0, 0.0f, 0.0f, 1.0f)";
@@ -54,7 +53,7 @@ std::unique_ptr<GraphicsTask> DrawParticlesBuilder::build() {
 
   std::vector<GraphicsTaskResource> rscs;
 
-  bool is_color_per_vertex = colors_.memory != TI_NULL_HANDLE;
+  bool is_color_per_vertex = colors_ != nullptr;
   std::string color_buffer_declr;
   const char* color_get;
   if (is_color_per_vertex) {
@@ -68,10 +67,7 @@ std::unique_ptr<GraphicsTask> DrawParticlesBuilder::build() {
     }
     color_get = "colors[gl_VertexIndex]";
 
-    GraphicsTaskResource rsc {};
-    rsc.type = L_GRAPHICS_TASK_RESOURCE_TYPE_NDARRAY;
-    rsc.ndarray = colors_;
-    rscs.emplace_back(std::move(rsc));
+    rscs.emplace_back(colors_);
   } else {
     color_get = "u.color";
   }
@@ -107,14 +103,13 @@ std::unique_ptr<GraphicsTask> DrawParticlesBuilder::build() {
   config.fragment_shader_glsl = frag;
   config.uniform_buffer_data = &u;
   config.uniform_buffer_size = sizeof(u);
-  config.vertex_buffer = positions_.memory;
+  config.vertex_buffer = positions_;
   config.resources = std::move(rscs);
-  config.vertex_component_count = ncomp;
-  config.vertex_count = positions_.shape.dims[0];
+  config.vertex_component_count = position_component_count_;
+  config.vertex_count = position_count_;
   config.instance_count = 1;
   config.primitive_topology = L_PRIMITIVE_TOPOLOGY_POINT;
-
-  return std::make_unique<GraphicsTask>(renderer_, config);
+  return std::make_shared<GraphicsTask>(renderer_, config);
 }
 
 } // namespace aot_demo

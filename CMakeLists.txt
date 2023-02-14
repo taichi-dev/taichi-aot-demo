@@ -11,6 +11,8 @@ option(TI_WITH_CPU "Compile with CPU backend" OFF)
 option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
 option(TI_WITH_OPENGL "Compile with OPENGL backend" OFF)
 
+set(TI_AOT_DEMO_RENDER_WITH_VULKAN ON)
+
 # 1. Configure Environments and Third-party Libraries
 include("cmake/env.cmake")
 

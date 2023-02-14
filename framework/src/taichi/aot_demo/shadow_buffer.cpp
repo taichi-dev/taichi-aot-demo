@@ -1,74 +1,40 @@
-#include "taichi/aot_demo/interop/cross_device_copy.hpp"
-#include "taichi/aot_demo/interop/common_utils.hpp"
+#pragma once
+#include "taichi/aot_demo/shadow_buffer.hpp"
 #include "taichi/aot_demo/renderer.hpp"
-
 
 namespace ti {
 namespace aot_demo {
 
-template<class T>
-void InteropHelper<T>::copy_from_vulkan(GraphicsRuntime& dst_runtime, 
-                                     ti::NdArray<T>& dst_vulkan_ndarray, 
-                                     ti::Runtime& src_runtime,
-                                     ti::NdArray<T>& src_vulkan_ndarray) {
-    // Get Dst Vulkan Interop Info 
-    TiVulkanMemoryInteropInfo dst_vulkan_interop_info;
-    ti_export_vulkan_memory(dst_runtime.runtime(),
-                            dst_vulkan_ndarray.memory().memory(),
-                            &dst_vulkan_interop_info);
-    
-    TiVulkanMemoryInteropInfo src_vulkan_interop_info;
-    ti_export_vulkan_memory(src_runtime, src_vulkan_ndarray.memory().memory(), &src_vulkan_interop_info);
-    
-    VkBuffer src_buffer = src_vulkan_interop_info.buffer;
-    VkBuffer dst_buffer = dst_vulkan_interop_info.buffer;
-    
-    VkDeviceSize buffer_size = dst_vulkan_interop_info.size;
+ShadowBuffer::ShadowBuffer(const std::shared_ptr<Renderer> &renderer,
+               const ti::Memory &client_memory,
+               ShadowBufferUsage usage)
+    : renderer_(renderer) {
+  TiMemoryAllocateInfo mai {};
+  mai.size = client_memory.size();
+#ifndef ANDROID
+  mai.export_sharing = TI_TRUE;
+#endif  // ANDROID
+  switch (usage) {
+    case ShadowBufferUsage::VertexBuffer:
+      mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_VERTEX_BIT;
+      break;
+    case ShadowBufferUsage::IndexBuffer:
+      mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | TI_MEMORY_USAGE_INDEX_BIT;
+      break;
+    case ShadowBufferUsage::StorageBuffer:
+      mai.usage = TI_MEMORY_USAGE_STORAGE_BIT;
+      break;
+  }
+  ti::Memory memory = renderer->runtime_.allocate_memory(mai);
 
-    VkDevice vk_device = dst_runtime.renderer_->device_;
-    VkCommandPool cmd_pool = dst_runtime.renderer_->command_pool_;
-    VkQueue graphics_queue = dst_runtime.renderer_->queue_;
-    copyBuffer(vk_device, cmd_pool, graphics_queue, src_buffer, dst_buffer, buffer_size);
+  usage_ = usage;
+  memory_ = std::move(memory);
+  client_memory_ = ti::Memory(renderer_->client_runtime_, client_memory,
+                              client_memory.size(), false);
 }
 
-// TiMemory does not expose interface to check whether it's host accessible
-// Therefore we'll copy via staging buffer anyway.
-template<class T>
-void InteropHelper<T>::copy_from_cpu(GraphicsRuntime& runtime, 
-                                     ti::NdArray<T>& vulkan_ndarray, 
-                                     ti::Runtime& cpu_runtime,
-                                     ti::NdArray<T>& cpu_ndarray) {
-#ifdef TI_WITH_CPU
-    // Get Interop Info 
-    TiVulkanMemoryInteropInfo vulkan_interop_info;
-    ti_export_vulkan_memory(runtime.runtime(),
-                            vulkan_ndarray.memory().memory(),
-                            &vulkan_interop_info);
-    
-    TiCpuMemoryInteropInfo cpu_interop_info;
-    ti_export_cpu_memory(cpu_runtime, cpu_ndarray.memory().memory(), &cpu_interop_info);
-    
-    // Create staging buffer
-    VkDevice vk_device = runtime.renderer_->device_;
-    VkPhysicalDevice physical_device = runtime.renderer_->physical_device_;
-    VkBuffer staging_buffer;
-    VkDeviceMemory staging_buffer_memory;
-    VkDeviceSize buffer_size = cpu_interop_info.size;
-    createBuffer(vk_device, physical_device, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging_buffer, staging_buffer_memory);
-    
-    // Copy CPU data to staging buffer
-    void* data;
-    vkMapMemory(vk_device, staging_buffer_memory, 0, buffer_size, 0, &data);
-        memcpy(data, cpu_interop_info.ptr, (size_t) buffer_size);
-    vkUnmapMemory(vk_device, staging_buffer_memory);
-
-    // Copy data from staging buffer to vertex buffer
-    VkCommandPool cmd_pool = runtime.renderer_->command_pool_;
-    VkQueue graphics_queue = runtime.renderer_->queue_;
-    copyBuffer(vk_device, cmd_pool, graphics_queue, staging_buffer, vulkan_interop_info.buffer, buffer_size);
-#else
-    throw std::runtime_error("Unable to perform copy_from_cpu<T>() with TI_WITH_CPU=OFF");
-#endif // TI_WITH_CPU
+ShadowBuffer::~ShadowBuffer() {
+  memory_.destroy();
 }
 
 struct DeviceMemoryHandle {
@@ -151,9 +117,28 @@ DeviceMemoryHandle get_device_mem_handle(VkDeviceMemory mem, VkDevice device) {
 #endif // _WIN32
 }
 
-/*---------------------*/
-/* CUDA Implementation */
-/*---------------------*/
+
+
+void ShadowBuffer::copy_from_vulkan_() {
+  const ti::Runtime &client_runtime = renderer_->client_runtime();
+
+  assert(client_runtime.arch() == TI_ARCH_VULKAN);
+  client_memory_.copy_to(memory_);
+}
+
+void ShadowBuffer::copy_from_cpu_() {
+#if TI_WITH_CPU
+  const ti::Runtime &client_runtime = renderer_->client_runtime();
+
+  TiCpuMemoryInteropInfo cmii{};
+  ti_export_cpu_memory(client_runtime, client_memory_.memory(), &cmii);
+
+  ti::Memory staging_buffer = renderer_.allocate_staging_buffer(memory_.size());
+  staging_buffer.write(cmii.ptr, cmii.size);
+  staging_buffer.copy_to(memory_);
+#endif // TI_WITH_CPU
+}
+
 #ifdef TI_WITH_CUDA
 
 CUexternalMemory import_cuda_memory_object_from_handle(const DeviceMemoryHandle& handle,
@@ -193,38 +178,35 @@ void *map_buffer_onto_external_memory(CUexternalMemory ext_mem,
   return ptr;
 }
 #endif // TI_WITH_CUDA
-
-template<class T>
-void InteropHelper<T>::copy_from_cuda(GraphicsRuntime& runtime, 
-                                     ti::NdArray<T>& vulkan_ndarray, 
-                                     ti::Runtime& cuda_runtime,
-                                     ti::NdArray<T>& cuda_ndarray) {
+void ShadowBuffer::copy_from_cuda_() {
 #ifdef TI_WITH_CUDA
-    // Get Interop Info
-    TiVulkanMemoryInteropInfo vulkan_interop_info;
-    ti_export_vulkan_memory(runtime.runtime(),
-                            vulkan_ndarray.memory().memory(),
-                            &vulkan_interop_info);
-    
-    TiCudaMemoryInteropInfo cuda_interop_info;
-    ti_export_cuda_memory(cuda_runtime, cuda_ndarray.memory().memory(), &cuda_interop_info);
+  ti::Runtime &runtime = renderer_->runtime_;
+  ti::Runtime &cuda_runtime = renderer_->client_runtime();
+  // Get Interop Info
+  TiVulkanMemoryInteropInfo vulkan_interop_info;
+  ti_export_vulkan_memory(runtime.runtime(),
+                          memory_.memory(),
+                          &vulkan_interop_info);
+  
+  TiCudaMemoryInteropInfo cuda_interop_info;
+  ti_export_cuda_memory(cuda_runtime, client_memory_.memory(), &cuda_interop_info);
 
-    // Get binded VkDeviceMemory from VkBuffer
-    VkDevice vk_device = runtime.renderer_->device_;
-    VkDeviceMemory vertex_buffer_mem = vulkan_interop_info.memory;
+  // Get binded VkDeviceMemory from VkBuffer
+  VkDevice vk_device = runtime.renderer_->state()->device_;
+  VkDeviceMemory vertex_buffer_mem = vulkan_interop_info.memory;
 
-    size_t alloc_offset = vulkan_interop_info.offset;
-    size_t alloc_size   = vulkan_interop_info.size;
-    size_t mem_size = alloc_offset + alloc_size;
-    auto handle = get_device_mem_handle(vertex_buffer_mem, vk_device);
-    CUexternalMemory externalMem =
-          import_cuda_memory_object_from_handle(handle, mem_size, false);
-    CUdeviceptr dst_cuda_ptr = reinterpret_cast<CUdeviceptr>(map_buffer_onto_external_memory(externalMem, alloc_offset, vulkan_interop_info.size));
-    CUdeviceptr src_cuda_ptr = reinterpret_cast<CUdeviceptr>(cuda_interop_info.ptr);
+  size_t alloc_offset = vulkan_interop_info.offset;
+  size_t alloc_size   = vulkan_interop_info.size;
+  size_t mem_size = alloc_offset + alloc_size;
+  auto handle = get_device_mem_handle(vertex_buffer_mem, vk_device);
+  CUexternalMemory externalMem =
+        import_cuda_memory_object_from_handle(handle, mem_size, false);
+  CUdeviceptr dst_cuda_ptr = reinterpret_cast<CUdeviceptr>(map_buffer_onto_external_memory(externalMem, alloc_offset, vulkan_interop_info.size));
+  CUdeviceptr client_memory__cuda_ptr = reinterpret_cast<CUdeviceptr>(cuda_interop_info.ptr);
 
-    cuMemcpyDtoD_v2(dst_cuda_ptr, src_cuda_ptr, vulkan_interop_info.size);
+  cuMemcpyDtoD_v2(dst_cuda_ptr, client_memory__cuda_ptr, vulkan_interop_info.size);
 #else
-    throw std::runtime_error("Unable to perform copy_from_cuda<T>() with TI_WITH_CUDA=OFF");
+  assert(false);
 #endif // TI_WITH_CUDA
 }
 
@@ -263,13 +245,10 @@ OpenglMemoryObject import_opengl_memory_object_from_handle(
 }
 #endif // TI_WITH_OPENGL
 
-template <class T>
-void InteropHelper<T>::copy_from_opengl(GraphicsRuntime &runtime,
-                                        ti::NdArray<T> &vulkan_ndarray,
-                                        ti::Runtime &opengl_runtime,
-                                        ti::NdArray<T> &opengl_ndarray)
-{
+void ShadowBuffer::copy_from_opengl_() {
 #ifdef TI_WITH_OPENGL
+  ti::Runtime &runtime = renderer_->runtime_;
+  ti::Runtime &opengl_runtime = renderer_->client_runtime();
   static bool initialized = false;
   if (!initialized) {
     TiOpenglRuntimeInteropInfo orii{};
@@ -283,14 +262,14 @@ void InteropHelper<T>::copy_from_opengl(GraphicsRuntime &runtime,
   // Get Interop Info
   TiVulkanMemoryInteropInfo vulkan_interop_info{};
   ti_export_vulkan_memory(runtime.runtime(),
-                          vulkan_ndarray.memory().memory(),
+                          memory_.memory(),
                           &vulkan_interop_info);
 
   TiOpenglMemoryInteropInfo opengl_interop_info{};
   ti_export_opengl_memory(opengl_runtime.runtime(),
-                          opengl_ndarray.memory().memory(), &opengl_interop_info);
+                          client_memory_.memory(), &opengl_interop_info);
 
-  VkDevice vk_device = runtime.renderer_->device_;
+  VkDevice vk_device = runtime.renderer_->state()->device_;
   VkDeviceMemory vertex_buffer_mem = vulkan_interop_info.memory;
 
   size_t alloc_offset = vulkan_interop_info.offset;
@@ -332,14 +311,30 @@ void InteropHelper<T>::copy_from_opengl(GraphicsRuntime &runtime,
     throw std::runtime_error("opengl failed");
   }
 #else
-  throw std::runtime_error("Unable to perform copy_from_opengl<T>() with TI_WITH_OPENGL=OFF");
+  assert(false);
 #endif // TI_WITH_OPENGL
 }
 
-template class InteropHelper<double>;
-template class InteropHelper<float>;
-template class InteropHelper<uint32_t>;
-template class InteropHelper<int>;
+void ShadowBuffer::update() {
+  switch (renderer_->client_runtime_.arch()) {
+    case TI_ARCH_VULKAN:
+      copy_from_vulkan_();
+      break;
+    case TI_ARCH_X64:
+    case TI_ARCH_ARM64:
+      copy_from_cpu_();
+      break;
+    case TI_ARCH_CUDA:
+      copy_from_cuda_();
+      break;
+    case TI_ARCH_OPENGL:
+      copy_from_opengl_();
+      break;
+    default:
+      assert(false);
+  }
+}
 
-}
-}
+
+} // namespace aot_demo
+} // namespace ti

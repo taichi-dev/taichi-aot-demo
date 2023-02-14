@@ -4,7 +4,6 @@
 #include "glm/glm.hpp"
 #include "glm/ext.hpp"
 #include "taichi/aot_demo/framework.hpp"
-#include "taichi/aot_demo/interop/cross_device_copy.hpp"
 
 using namespace ti::aot_demo;
 
@@ -25,38 +24,13 @@ static std::string get_aot_file_dir(TiArch arch) {
     }
 }
 
-template<typename T>
-static void copy_to_vulkan_ndarray(ti::NdArray<T>& dst, 
-                                   GraphicsRuntime& dst_runtime,
-                                   ti::NdArray<T>& src, 
-                                   ti::Runtime& src_runtime, TiArch src_arch) {
-    
-    switch(src_arch) {
-        case TI_ARCH_VULKAN: {
-            InteropHelper<T>::copy_from_vulkan(dst_runtime, dst, src_runtime, src);
-            break;
-        }
-        case TI_ARCH_X64: {
-            InteropHelper<T>::copy_from_cpu(dst_runtime, dst, src_runtime, src);
-            break;
-        }
-        case TI_ARCH_CUDA: {
-            InteropHelper<T>::copy_from_cuda(dst_runtime, dst, src_runtime, src);
-            break;
-        }
-        default: {
-            throw std::runtime_error("Unable to perform NdArray memory copy");
-        }
-    }
-}
-
 struct App5_sph : public App {
+  static const uint32_t WIDTH = 512;
+  static const uint32_t HEIGHT = 512;
   static const uint32_t NR_PARTICLES = 8000;
   static const uint32_t SUBSTEPS = 5;
 
-  ti::Runtime runtime_;
   ti::AotModule module_;
-  TiArch arch_;
 
   ti::Kernel k_initialize_;
   ti::Kernel k_initialize_particle_;
@@ -75,38 +49,34 @@ struct App5_sph : public App {
   ti::NdArray<float> gravity_;
   ti::NdArray<float> pos_;
 
-  ti::NdArray<float> render_pos_;
-  std::unique_ptr<GraphicsTask> draw_points;
+  std::shared_ptr<GraphicsTask> draw_points;
 
   virtual AppConfig cfg() const override final {
     AppConfig out {};
     out.app_name = "5_sph";
-    out.framebuffer_width = 512;
-    out.framebuffer_height = 512;
+    out.framebuffer_width = WIDTH;
+    out.framebuffer_height = HEIGHT;
+    out.supported_archs = {
+      TI_ARCH_VULKAN,
+      TI_ARCH_CUDA,
+      TI_ARCH_X64,
+    };
     return out;
   }
 
-  virtual void initialize(TiArch arch) override final{
+  virtual void initialize() override final{
+    Renderer &renderer = F_->renderer();
+    const ti::Runtime &runtime = F_->runtime();
 
-    if(arch != TI_ARCH_VULKAN && arch != TI_ARCH_X64 && arch != TI_ARCH_CUDA) {
-        std::cout << "5_sph only supports cuda, x64, vulkan backends" << std::endl;
-        exit(0);
-    }
-    arch_ = arch;
-    
-    // 1. Create runtime
-    GraphicsRuntime& g_runtime = F_->runtime();
-
-    if(arch_ == TI_ARCH_VULKAN) {
-        // Reuse the vulkan runtime from renderer framework
-        runtime_ = ti::Runtime(arch_, F_->runtime(), false);;
-    } else {
-        runtime_ = ti::Runtime(arch_);
-    }
-    
     // 2. Load AOT module
-    auto aot_file_path = get_aot_file_dir(arch_);
-    module_ = runtime_.load_aot_module(aot_file_path);
+#ifdef TI_AOT_DEMO_WITH_ANDROID_APP
+    std::vector<uint8_t> tcm;
+    F_->asset_mgr().load_file("E5_sph.tcm", tcm);
+    module_ = runtime.create_aot_module(tcm);
+#else
+    auto aot_file_path = get_aot_file_dir(runtime.arch());
+    module_ = runtime.load_aot_module(aot_file_path);
+#endif
     
     // 3. Load kernels
     k_initialize_ = module_.get_kernel("initialize");
@@ -120,25 +90,22 @@ struct App5_sph : public App {
     const std::vector<uint32_t> shape_1d = {NR_PARTICLES};
     const std::vector<uint32_t> vec3_shape = {3};
   
-    N_   = runtime_.allocate_ndarray<int>(shape_1d, vec3_shape);
-    den_ = runtime_.allocate_ndarray<float>(shape_1d, {});
-    pre_ = runtime_.allocate_ndarray<float>(shape_1d, {});
-    vel_ = runtime_.allocate_ndarray<float>(shape_1d, vec3_shape);
-    acc_ = runtime_.allocate_ndarray<float>(shape_1d, vec3_shape);
-    boundary_box_ = runtime_.allocate_ndarray<float>(shape_1d, vec3_shape);
-    spawn_box_ = runtime_.allocate_ndarray<float>(shape_1d, vec3_shape);
-    gravity_ = runtime_.allocate_ndarray<float>({}, vec3_shape);
-    pos_ = runtime_.allocate_ndarray<float>(shape_1d, vec3_shape, false/*host_access*/);
-    
-    render_pos_ = g_runtime.allocate_vertex_buffer(shape_1d[0], vec3_shape[0], false/*host_access*/);
-    
+    N_   = runtime.allocate_ndarray<int>(shape_1d, vec3_shape);
+    den_ = runtime.allocate_ndarray<float>(shape_1d, {});
+    pre_ = runtime.allocate_ndarray<float>(shape_1d, {});
+    vel_ = runtime.allocate_ndarray<float>(shape_1d, vec3_shape);
+    acc_ = runtime.allocate_ndarray<float>(shape_1d, vec3_shape);
+    boundary_box_ = runtime.allocate_ndarray<float>(shape_1d, vec3_shape);
+    spawn_box_ = runtime.allocate_ndarray<float>(shape_1d, vec3_shape);
+    gravity_ = runtime.allocate_ndarray<float>({}, vec3_shape);
+    pos_ = runtime.allocate_ndarray<float>(shape_1d, vec3_shape, false/*host_access*/);
+
     // 5. Handle image presentation
-    Renderer& renderer = F_->renderer();
     glm::mat4 model2world = glm::mat4(1.0f);
     model2world = glm::scale(model2world, glm::vec3(5.0f));
     glm::mat4 world2view = glm::lookAt(glm::vec3(10, 10, 10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
-    glm::mat4 view2clip = glm::perspective(glm::radians(45.0f), renderer.width() / (float)renderer.height(), 0.1f, 1000.0f);
-    draw_points = g_runtime.draw_particles(render_pos_)
+    glm::mat4 view2clip = glm::perspective(glm::radians(45.0f), WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
+    draw_points = renderer.draw_particles(pos_)
       .model2world(model2world)
       .world2view(world2view)
       .view2clip(view2clip)
@@ -175,35 +142,35 @@ struct App5_sph : public App {
     k_boundary_handle_[1] = vel_;
     k_boundary_handle_[2] = boundary_box_;
 
-    k_initialize_.launch();
-    k_initialize_particle_.launch();
-    runtime_.wait();
-    
     // 7. Run initialization kernels
-    renderer.set_framebuffer_size(512, 512);
+    k_initialize_.launch();
+    runtime.wait();
+    k_initialize_particle_.launch();
+    runtime.wait();
 
     std::cout << "initialized!" << std::endl;
   }
   virtual bool update() override final {
+    const ti::Runtime &runtime = F_->runtime();
+
     // 8. Run compute kernels
     for(int i = 0; i < SUBSTEPS; i++) {
         k_update_density_.launch();
+        runtime.wait();
         k_update_force_.launch();
+        runtime.wait();
         k_advance_.launch();
+        runtime.wait();
         k_boundary_handle_.launch();
+        runtime.wait();
     }
-    runtime_.wait();
-
-    // 9. Update vertex buffer
-    auto& g_runtime = F_->runtime();
-    copy_to_vulkan_ndarray<float>(render_pos_, g_runtime, pos_, runtime_, arch_);
 
     std::cout << "stepped! (fps=" << F_->fps() << ")" << std::endl;
     return true;
   }
   virtual void render() override final {
     Renderer& renderer = F_->renderer();
-    renderer.enqueue_graphics_task(*draw_points);
+    renderer.enqueue_graphics_task(draw_points);
   }
 };
 
