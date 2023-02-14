@@ -1,6 +1,8 @@
 #include <iostream>
 #include <chrono>
+#include "taichi/aot_demo/common.hpp"
 #include "taichi/aot_demo/framework.hpp"
+#include "taichi/aot_demo/vulkan/vulkan_renderer.hpp"
 #include "gft/args.hpp"
 #include "gft/util.hpp"
 
@@ -57,7 +59,11 @@ GLFWwindow* create_glfw_window(const AppConfig& app_cfg, const ti::aot_demo::Ren
     std::abort();
   }
 
-  glfwInitVulkanLoader(renderer.loader());
+  TiVulkanRuntimeInteropInfo vrii{};
+  ti_export_vulkan_runtime(renderer.renderer_runtime(), &vrii);
+  ti::check_last_error();
+
+  glfwInitVulkanLoader(vrii.get_instance_proc_addr);
   glfwSetErrorCallback(glfw_error_callback);
 
   if (glfwVulkanSupported() != GLFW_TRUE) {
@@ -95,16 +101,19 @@ int main(int argc, const char** argv) {
 
   initialize(app_cfg.app_name, argc, argv);
 
-  auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, CFG.debug);
+  EntryPointConfig entry_point_cfg{};
+  entry_point_cfg.client_arch = CFG.arch;
+  entry_point_cfg.debug = CFG.debug;
+
+  auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, entry_point_cfg);
   app->set_framework(F);
   
-  ti::aot_demo::GraphicsRuntime& runtime = F->runtime();
   ti::aot_demo::Renderer& renderer = F->renderer();
 
-  app->initialize(CFG.arch);
+  app->initialize();
 
   GLFWwindow* glfw_window = create_glfw_window(app_cfg, renderer);
-  renderer.set_surface_window(glfw_window);
+  renderer.state()->set_surface_window(glfw_window);
 
   while (!glfwWindowShouldClose(glfw_window)) {
     if (!app->update()) {

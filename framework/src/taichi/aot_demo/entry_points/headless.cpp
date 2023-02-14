@@ -5,6 +5,7 @@
 #include "gft/util.hpp"
 
 #include <iostream>
+#include <taichi/cpp/taichi.hpp>
 
 struct Config {
   std::string output_path = "";
@@ -75,18 +76,16 @@ int main(int argc, const char** argv) {
 
   initialize(app_cfg.app_name, argc, argv);
 
-  auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, CFG.debug);
+  EntryPointConfig entry_point_cfg{};
+  entry_point_cfg.client_arch = CFG.arch;
+  entry_point_cfg.debug = CFG.debug;
+
+  auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, entry_point_cfg);
   app->set_framework(F);
   
-  ti::aot_demo::GraphicsRuntime& runtime = F->runtime();
   ti::aot_demo::Renderer& renderer = F->renderer();
 
-  app->initialize(CFG.arch);
-
-  uint32_t width = renderer.width();
-  uint32_t height = renderer.height();
-  ti::NdArray<uint8_t> framebuffer =
-    runtime.allocate_ndarray<uint8_t>({width, height}, {4}, true);
+  app->initialize();
 
   for (uint32_t i = 0; i < CFG.frame_count; ++i) {
     if (!app->update()) {
@@ -98,7 +97,7 @@ int main(int argc, const char** argv) {
     app->render();
     renderer.end_render();
 
-    renderer.present_to_ndarray(framebuffer);
+    ti::NdArray<uint8_t> framebuffer = renderer.present_to_ndarray();
     F->next_frame();
 
     save_framebuffer_to_bmp(framebuffer, i);

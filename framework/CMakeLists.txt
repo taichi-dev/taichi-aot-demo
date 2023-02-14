@@ -1,17 +1,22 @@
 set(RENDER_FRAMEWORK_TARGET render_framework)
 
-file(GLOB TaichiAotDemoFramework_SOURCES 
+file(GLOB FRAMEWORK_SOURCES 
      ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/interop/*.cpp
      ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/*.cpp
      ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/draws/*.cpp
      )
 
+if(TI_AOT_DEMO_RENDER_WITH_VULKAN)
+    file(GLOB FRAMEWORK_RENDERER_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/taichi/aot_demo/vulkan/*.cpp)
+endif()
+
 find_package(Taichi REQUIRED)
-find_package(Vulkan REQUIRED)
 
 # Compile for renderer framework
 add_library(${RENDER_FRAMEWORK_TARGET}
-    ${TaichiAotDemoFramework_SOURCES}
+    ${FRAMEWORK_SOURCES}
+    ${FRAMEWORK_RENDERER_SOURCES}
     "${PROJECT_SOURCE_DIR}/external/graphi-t/include/gft/args.hpp"
     "${PROJECT_SOURCE_DIR}/external/graphi-t/include/gft/util.hpp"
     "${PROJECT_SOURCE_DIR}/external/graphi-t/src/gft/args.cpp"
@@ -20,20 +25,36 @@ add_library(${RENDER_FRAMEWORK_TARGET}
 
 target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/external/Vulkan-Headers/include
-    ${PROJECT_SOURCE_DIR}/external/VulkanMemoryAllocator/include
     ${PROJECT_SOURCE_DIR}/external/glslang/glslang/Include
     ${PROJECT_SOURCE_DIR}/external/glm
     ${PROJECT_SOURCE_DIR}/external/graphi-t/include
 )
 target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC
-    Vulkan::Vulkan
     Taichi::Runtime
     glm
-    VulkanMemoryAllocator
     glslang
     SPIRV
 )
+
+
+
+if(TI_AOT_DEMO_RENDER_WITH_VULKAN)
+    target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC
+        TI_AOT_DEMO_RENDER_WITH_VULKAN=1
+        )
+        
+    find_package(Vulkan REQUIRED)
+    target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC
+        Vulkan::Vulkan
+        VulkanMemoryAllocator
+        )
+    target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC
+        ${PROJECT_SOURCE_DIR}/external/Vulkan-Headers/include
+        ${PROJECT_SOURCE_DIR}/external/VulkanMemoryAllocator/include
+        )
+endif()
+
+
 
 if(TI_WITH_VULKAN)
     target_compile_definitions(${RENDER_FRAMEWORK_TARGET} PUBLIC

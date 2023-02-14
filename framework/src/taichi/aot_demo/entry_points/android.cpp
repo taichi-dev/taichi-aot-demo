@@ -1,6 +1,7 @@
 #include <iostream>
 #include <chrono>
 #include "taichi/aot_demo/framework.hpp"
+#include "taichi/aot_demo/vulkan/vulkan_renderer.hpp"
 #include "gft/args.hpp"
 #include "gft/util.hpp"
 #include <android/log.h>
@@ -71,14 +72,18 @@ static void on_app_cmd_callback(struct android_app* state, int32_t cmd) {
       std::unique_ptr<App> app2 = create_app();
       const AppConfig app_cfg = app2->cfg();
 
-      auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, false);
+      EntryPointConfig entry_point_cfg{};
+      entry_point_cfg.debug = false;
+      entry_point_cfg.client_arch = TI_ARCH_VULKAN;
+
+      auto F = std::make_shared<ti::aot_demo::Framework>(app_cfg, entry_point_cfg);
       app2->set_framework(F);
 
       ti::aot_demo::Renderer& renderer = F->renderer();
 
-      app2->initialize(TI_ARCH_VULKAN);
+      app2->initialize();
 
-      renderer.set_surface_window(state->window);
+      renderer.state()->set_surface_window(state->window);
 
       app->app = std::move(app2);
       app->is_active = true;
