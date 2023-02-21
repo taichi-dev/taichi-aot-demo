@@ -4,7 +4,7 @@
 #include "glm/glm.hpp"
 #include "glm/ext.hpp"
 #include "taichi/aot_demo/framework.hpp"
-#include "taichi/aot_demo/interop/cross_device_copy.hpp"
+#include "taichi/aot_demo/vulkan/interop/cross_device_copy.hpp"
 
 using namespace ti::aot_demo;
 
@@ -105,7 +105,7 @@ struct App5_sph : public App {
     }
     
     // 2. Load AOT module
-#ifdef TI_AOT_DEMO_WITH_ANDROID_APP
+#ifdef TI_AOT_DEMO_ANDROID_APP
     std::vector<uint8_t> tcm;
     F_->asset_mgr().load_file("E5_sph.tcm", tcm);
     module_ = runtime_.create_aot_module(tcm);

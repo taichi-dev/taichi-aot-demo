@@ -3,15 +3,6 @@
 #include <numeric>
 #include <taichi/cpp/taichi.hpp>
 
-namespace {
-void check_taichi_error(const std::string& msg) {
-  TiError error = ti_get_last_error(0, nullptr);
-  if (error < TI_ERROR_SUCCESS) {
-    throw std::runtime_error(msg);
-  }
-}
-}
-
 struct App0_tutorial {
   // This is different from what used in python script since compiled shaders are compatible with dynamic ndarray shape
   static const uint32_t NPARTICLE = 8192 * 2;
@@ -26,12 +17,12 @@ struct App0_tutorial {
   App0_tutorial() {
     runtime_ = ti::Runtime(TI_ARCH_VULKAN);
     module_ = runtime_.load_aot_module("0_tutorial_kernel/assets/tutorial");
-    check_taichi_error("load_aot_module failed");
+    ti::check_last_error();
     k_init_ = module_.get_kernel("init");
     k_add_base_ = module_.get_kernel("add_base");
-    check_taichi_error("get_kernel failed");
+    ti::check_last_error();
     x_ = runtime_.allocate_ndarray<float>({NPARTICLE}, {}, /*host_accessible=*/true);
-    check_taichi_error("allocate_ndarray failed");
+    ti::check_last_error();
     std::cout << "Initialized!" << std::endl;
   }
 
@@ -46,7 +37,7 @@ struct App0_tutorial {
       k_add_base_.launch();
     }
     runtime_.wait();
-    check_taichi_error("kernel launch failed");
+    ti::check_last_error();
 
     std::vector<float> dst(NPARTICLE);
     x_.read(dst);

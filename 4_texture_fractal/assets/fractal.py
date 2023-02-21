@@ -26,6 +26,10 @@ def complex_sqr(z):
     return ti.Vector([z[0]**2 - z[1]**2, z[1] * z[0] * 2])
 
 
+ti.types.rw_texture(num_dimensions=2,
+                                                   fmt=ti.Format.r32f,
+                                                   lod=0)
+
 @ti.kernel
 def fractal(t: ti.f32, canvas: ti.types.rw_texture(num_dimensions=2,
                                                    fmt=ti.Format.r32f,
