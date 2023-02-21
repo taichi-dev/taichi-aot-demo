@@ -11,6 +11,14 @@ option(TI_WITH_CPU "Compile with CPU backend" OFF)
 option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
 option(TI_WITH_OPENGL "Compile with OPENGL backend" OFF)
 
+option(TI_AOT_DEMO_HEADLESS "Build headless apps" ON)
+option(TI_AOT_DEMO_GLFW "Build GLFW windowed apps" ON)
+option(TI_AOT_DEMO_ANDROID_APP "Build Android native apps" OFF)
+
+if(ANDROID)
+    set(TI_AOT_DEMO_GLFW OFF)
+endif()
+
 # 1. Configure Environments and Third-party Libraries
 include("cmake/env.cmake")
 
