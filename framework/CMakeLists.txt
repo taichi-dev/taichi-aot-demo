@@ -21,9 +21,9 @@ add_library(${RENDER_FRAMEWORK_TARGET}
 target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/external/Vulkan-Headers/include
-    ${PROJECT_SOURCE_DIR}/external/VulkanMemoryAllocator/include
-    ${PROJECT_SOURCE_DIR}/external/glslang/glslang/Include
-    ${PROJECT_SOURCE_DIR}/external/glm
+    ${PROJECT_SOURCE_DIR}/external/graphi-t/third/VulkanMemoryAllocator/include
+    ${PROJECT_SOURCE_DIR}/external/graphi-t/third/glslang/glslang/Include
+    ${PROJECT_SOURCE_DIR}/external/graphi-t/third/glm
     ${PROJECT_SOURCE_DIR}/external/graphi-t/include
 )
 target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC
