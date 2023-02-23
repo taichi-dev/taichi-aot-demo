@@ -8,6 +8,7 @@ TAICHI_C_API_INSTALL_DIR="${PWD}/../build-taichi-android-aarch64/install/c_api" 
     -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
     -DANDROID_PLATFORM=android-29 \
     -DANDROID_ABI="arm64-v8a" \
+    -DTI_AOT_DEMO_ANDROID_APP=ON \
     -G "Ninja"
 if [ $? -ne 0 ]; then
     echo "Configuration failed"

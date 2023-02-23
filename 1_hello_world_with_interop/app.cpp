@@ -3,7 +3,7 @@
 #include <iostream>
 #include "glm/glm.hpp"
 #include "taichi/aot_demo/framework.hpp"
-#include "taichi/aot_demo/interop/cross_device_copy.hpp"
+#include "taichi/aot_demo/vulkan/interop/cross_device_copy.hpp"
 
 using namespace ti::aot_demo;
   

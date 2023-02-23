@@ -4,8 +4,8 @@
 #include "glm/glm.hpp"
 #include "glm/ext.hpp"
 #include "taichi/aot_demo/framework.hpp"
-#include "taichi/aot_demo/interop/texture_utils.hpp"
-#include "taichi/aot_demo/interop/cross_device_copy.hpp"
+#include "taichi/aot_demo/vulkan/interop/texture_utils.hpp"
+#include "taichi/aot_demo/vulkan/interop/cross_device_copy.hpp"
 
 using namespace ti::aot_demo;
 

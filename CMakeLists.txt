@@ -6,10 +6,20 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
-set(TI_WITH_VULKAN ON) # Vulkan is always on.
+option(TI_WITH_VULKAN "Compile with Vulkan backend" ON)
 option(TI_WITH_CPU "Compile with CPU backend" OFF)
 option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
 option(TI_WITH_OPENGL "Compile with OPENGL backend" OFF)
+
+option(TI_AOT_DEMO_HEADLESS "Build headless apps" ON)
+option(TI_AOT_DEMO_GLFW "Build GLFW windowed apps" ON)
+option(TI_AOT_DEMO_ANDROID_APP "Build Android native apps" OFF)
+
+option(TI_AOT_DEMO_RENDER_WITH_VULKAN "Use Vulkan for rendering" ON)
+
+if(ANDROID)
+    set(TI_AOT_DEMO_GLFW OFF)
+endif()
 
 # 1. Configure Environments and Third-party Libraries
 include("cmake/env.cmake")

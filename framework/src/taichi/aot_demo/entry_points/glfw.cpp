@@ -4,7 +4,7 @@
 #include "gft/args.hpp"
 #include "gft/util.hpp"
 
-static_assert(TI_AOT_DEMO_WITH_GLFW, "glfw must be provided");
+static_assert(TI_AOT_DEMO_GLFW, "glfw must be provided");
 
 struct Config {
   TiArch arch = TI_ARCH_VULKAN;

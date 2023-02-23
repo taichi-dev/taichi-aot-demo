@@ -1,4 +1,4 @@
-#include "taichi/aot_demo/interop/common_utils.hpp"
+#include "taichi/aot_demo/vulkan/interop/common_utils.hpp"
 #include <stdexcept>
 
 namespace ti {

@@ -24,13 +24,6 @@ std::vector<uint32_t> frag2spv(const std::string& frag);
     throw std::runtime_error("vulkan failed"); \
   }
 
-inline void check_taichi_error() {
-  TiError error = ti_get_last_error(0, nullptr);
-  if (error < TI_ERROR_SUCCESS) {
-    throw std::runtime_error("taichi failed");
-  }
-}
-
 VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_validation_callback(
   VkDebugUtilsMessageSeverityFlagBitsEXT severity,
   VkDebugUtilsMessageTypeFlagsEXT type,
@@ -354,7 +347,7 @@ try_another_physical_device:
   vrii.graphics_queue_family_index = queue_family_index;
   ti::Runtime runtime =
     ti::Runtime(TI_ARCH_VULKAN, ti_import_vulkan_runtime(&vrii), true);
-  check_taichi_error();
+  ti::check_last_error();
 
   ti::NdArray<float> rect_vertex_buffer {};
   {
@@ -521,7 +514,7 @@ void Renderer::set_swapchain() {
   swapchain_image_height_ = swapchain_image_height;
 }
 
-#if TI_AOT_DEMO_WITH_GLFW
+#if TI_AOT_DEMO_GLFW
 void Renderer::set_surface_window(GLFWwindow* window) {
   VkResult res = VK_SUCCESS;
 
@@ -532,7 +525,7 @@ void Renderer::set_surface_window(GLFWwindow* window) {
   surface_ = surface;
   set_swapchain();
 }
-#endif // TI_AOT_DEMO_WITH_GLFW
+#endif // TI_AOT_DEMO_GLFW
 
 #if TI_AOT_DEMO_ANDROID_APP
 void Renderer::set_surface_window(ANativeWindow* window) {
@@ -987,7 +980,7 @@ const TiVulkanMemoryInteropInfo& Renderer::export_ti_memory(TiMemory memory) {
   if (it == ti_memory_interops_.end()) {
     TiVulkanMemoryInteropInfo vmii {};
     ti_export_vulkan_memory(runtime_, memory, &vmii);
-    check_taichi_error();
+    ti::check_last_error();
 
     it = ti_memory_interops_.emplace(std::make_pair(memory, std::move(vmii))).first;
   }
@@ -1177,7 +1170,7 @@ GraphicsTask::GraphicsTask(
     {
       TiVulkanImageInteropInfo viii {};
       ti_export_vulkan_image(renderer_->runtime(), resource.texture.image, &viii);
-      check_taichi_error();
+      ti::check_last_error();
 
       VkImageViewType ivt;
       switch (viii.image_type) {

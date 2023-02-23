@@ -16,8 +16,14 @@ endfunction()
 
 # Internal
 function(add_headless_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
+    if(NOT TI_AOT_DEMO_HEADLESS)
+        return()
+    endif()
+
     set(ENTRY_PATH ${PROJECT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/headless.cpp)
     add_entrance(${ENTRY_PATH} ${DEMO_PATH} ${HEADLESS_DEMO_OUTPUT_DIRECTORY} ${TAICHI_AOT_DEMO_TARGET})
+
+    target_compile_definitions(${TAICHI_AOT_DEMO_TARGET} PUBLIC TI_AOT_DEMO_HEADLESS=1)
 endfunction()
 
 
@@ -29,11 +35,15 @@ function(add_glfw_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
     target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC glfw)
     target_include_directories(${TAICHI_AOT_DEMO_TARGET} PUBLIC
         ${PROJECT_SOURCE_DIR}/external/glfw/include)
-    target_compile_definitions(${TAICHI_AOT_DEMO_TARGET} PUBLIC TI_AOT_DEMO_WITH_GLFW=1)
+    target_compile_definitions(${TAICHI_AOT_DEMO_TARGET} PUBLIC TI_AOT_DEMO_GLFW=1)
 endfunction()
 
 #Internal
 function(add_android_app_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
+    if(NOT TI_AOT_DEMO_ANDROID_APP)
+        return()
+    endif()
+
     # (penguinliong) Note that android app build have two steps:
     #   1. Build the entry point native library.
     #   2. Build the app and import the native library.
@@ -50,7 +60,7 @@ function(add_android_app_demo NAME DEMO_PATH TAICHI_AOT_DEMO_TARGET)
     target_link_libraries(${TAICHI_AOT_DEMO_TARGET} PUBLIC android log ${RENDER_FRAMEWORK_TARGET})
     target_include_directories(${TAICHI_AOT_DEMO_TARGET} PUBLIC
         ${ANDROID_NDK}/sources/android/native_app_glue)
-    target_compile_definitions(${TAICHI_AOT_DEMO_TARGET} PUBLIC TI_AOT_DEMO_WITH_ANDROID_APP=1)
+    target_compile_definitions(${TAICHI_AOT_DEMO_TARGET} PUBLIC TI_AOT_DEMO_ANDROID_APP=1)
 endfunction()
 
 
@@ -59,17 +69,23 @@ function(add_demo NAME DEMO_PATH)
     set(GLFW_AOT_DEMO_TARGET E${NAME}_glfw)
     set(ANDROID_APP_AOT_DEMO_TARGET E${NAME}_android)
 
-    add_headless_demo(${NAME} ${DEMO_PATH} ${HEADLESS_AOT_DEMO_TARGET})
-    if(NOT ANDROID)
+    if(TI_AOT_DEMO_HEADLESS)
+        add_headless_demo(${NAME} ${DEMO_PATH} ${HEADLESS_AOT_DEMO_TARGET})
+    endif()
+    if(TI_AOT_DEMO_GLFW)
         add_glfw_demo(${NAME} ${DEMO_PATH} ${GLFW_AOT_DEMO_TARGET})
     endif()
-    if (ANDROID)
+    if(TI_AOT_DEMO_ANDROID_APP)
         add_android_app_demo(${NAME} ${DEMO_PATH} ${ANDROID_APP_AOT_DEMO_TARGET})
     endif()
 endfunction()
 
 
 function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
+    if(NOT TI_WITH_VULKAN AND ARCH STREQUAL "vulkan")
+        return()
+    endif()
+
     if(NOT TI_WITH_CUDA AND ARCH STREQUAL "cuda")
         return()
     endif()
