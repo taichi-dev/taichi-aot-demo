@@ -103,27 +103,39 @@ function(generate_aot_files NAME PYTHON_SCRIPT_PATH ARCH)
     endif()
 
     # Generate AOT files
-    set(DUMMY_TARGET ${NAME}_${ARCH}_DUMMY_TARGET)
-    add_custom_target(${DUMMY_TARGET} ALL)
+    set(DUMMY_FILE CHECK_COMPLETE_${NAME}_${ARCH})
     if(NOT PYTHON_SCRIPT_PATH STREQUAL "")
         add_custom_command(
-            TARGET ${DUMMY_TARGET}
+            OUTPUT ${DUMMY_FILE}
             COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_SCRIPT_PATH}
             ARGS --arch=${ARCH}
             VERBATIM)
+
+        # Symbolic file to add dependency between two custom commands
+        set_source_files_properties(${DUMMY_FILE} PROPERTIES SYMBOLIC 1)
+
+        set(DUMMY_TARGET TARGET_${NAME}_${ARCH})
+        add_custom_target(${DUMMY_TARGET} ALL
+            DEPENDS ${DUMMY_FILE})
     endif()
 
+
     # Copy binary assets to android asset directory.
-    set(DUMMY_TARGET2 ${NAME}_${ARCH}_DUMMY_TARGET2)
-    add_custom_target(${DUMMY_TARGET2} ALL)
+    set(DUMMY_OUTPUT OUTPUT_${NAME}_${ARCH})
     if(ANDROID)
         add_custom_command(
-            TARGET ${DUMMY_TARGET2}
-            DEPENDS ${DUMMY_TARGET}
+            OUTPUT ${DUMMY_OUTPUT}
+            DEPENDS ${DUMMY_FILE}
             COMMAND ${CMAKE_COMMAND}
             ARGS -E copy_directory
                 ${CMAKE_CURRENT_SOURCE_DIR}/assets
                 ${PROJECT_SOURCE_DIR}/framework/android/app/src/main/assets/${NAME}/assets
             VERBATIM)
+        set_source_files_properties(${DUMMY_OUTPUT} PROPERTIES SYMBOLIC 1)
+
+        set(DUMMY_TARGET2 TARGET2_${NAME}_${ARCH})
+        add_custom_target(${DUMMY_TARGET2} ALL
+            DEPENDS ${DUMMY_OUTPUT})
     endif()
+
 endfunction()
