@@ -32,15 +32,15 @@
       "ret_buf_size": 0,
       "scalar_args": {},
       "arr_args": {"2": {
-          "field_dim": 1,
+          "ndim": 1,
           "is_scalar": false,
           "element_shape": [2],
           "shape_offset_in_bytes_in_args_buf": 128},"1": {
-          "field_dim": 1,
+          "ndim": 1,
           "is_scalar": false,
           "element_shape": [2],
           "shape_offset_in_bytes_in_args_buf": 96},"0": {
-          "field_dim": 1,
+          "ndim": 1,
           "is_scalar": false,
           "element_shape": [2],
           "shape_offset_in_bytes_in_args_buf": 64}},
@@ -60,11 +60,11 @@
       "ret_buf_size": 0,
       "scalar_args": {},
       "arr_args": {"1": {
-          "field_dim": 1,
+          "ndim": 1,
           "is_scalar": false,
           "element_shape": [2],
           "shape_offset_in_bytes_in_args_buf": 96},"0": {
-          "field_dim": 1,
+          "ndim": 1,
           "is_scalar": false,
           "element_shape": [2],
           "shape_offset_in_bytes_in_args_buf": 64}},

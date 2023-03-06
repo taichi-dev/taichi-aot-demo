@@ -20,12 +20,12 @@ def compile_demo(arch, aot):
     n_particles = 8192
 
     @ti.kernel
-    def init(x: ti.types.ndarray(field_dim=1)):
+    def init(x: ti.types.ndarray(ndim=1)):
         for i in x:
             x[i] = 0
 
     @ti.kernel
-    def add_base(x: ti.types.ndarray(field_dim=1), base: ti.f32):
+    def add_base(x: ti.types.ndarray(ndim=1), base: ti.f32):
         for i in range(x.shape[0]):
             x[i] += base
 

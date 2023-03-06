@@ -126,7 +126,7 @@ public class NbodyNdarray implements GLSurfaceView.Renderer {
             JSONObject json_cur_ndarrays = (JSONObject) cur_json_program.get("arr_args");
             for (int j = 0; j < json_cur_ndarrays.size(); j++) {
                 JSONObject json_ndarray = (JSONObject) json_cur_ndarrays.get(String.valueOf(j));
-                int dim = ((Long) json_ndarray.get("field_dim")).intValue();
+                int dim = ((Long) json_ndarray.get("ndim")).intValue();
                 int[] shape = new int[dim];
                 // Hardcode every shape you want to the specific ndarray.
                 for (int d = 0; d < dim; d++) {

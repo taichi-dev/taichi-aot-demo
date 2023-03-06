@@ -87,7 +87,7 @@ c2e.from_numpy(c2e_np)
 
 
 @ti.kernel
-def clear_ndarray(hes_edge: ti.types.ndarray(field_dim=1), hes_vert: ti.types.ndarray(field_dim=1)):
+def clear_ndarray(hes_edge: ti.types.ndarray(ndim=1), hes_vert: ti.types.ndarray(ndim=1)):
     for I in ti.grouped(hes_edge):
         hes_edge[I] = 0
     for I in ti.grouped(hes_vert):
@@ -129,8 +129,8 @@ def get_force_func(c, verts, x: ti.template(), f: ti.template(), B: ti.template(
 
 @ti.kernel
 def get_force(
-        x: ti.types.ndarray(field_dim=1), f: ti.types.ndarray(field_dim=1),
-        vertices: ti.types.ndarray(field_dim=1), g_x: ti.f32, g_y: ti.f32, g_z: ti.f32, m: ti.types.ndarray(field_dim=1), B: ti.types.ndarray(field_dim=1), W: ti.types.ndarray(field_dim=1)):
+        x: ti.types.ndarray(ndim=1), f: ti.types.ndarray(ndim=1),
+        vertices: ti.types.ndarray(ndim=1), g_x: ti.f32, g_y: ti.f32, g_z: ti.f32, m: ti.types.ndarray(ndim=1), B: ti.types.ndarray(ndim=1), W: ti.types.ndarray(ndim=1)):
     for c in vertices:
         get_force_func(c, vertices[c], x, f, B, W)
     for u in f:
@@ -139,7 +139,7 @@ def get_force(
 
 
 @ti.kernel
-def get_matrix(c2e: ti.types.ndarray(field_dim=1), vertices: ti.types.ndarray(field_dim=1), B: ti.types.ndarray(field_dim=1), W: ti.types.ndarray(field_dim=1), hes_edge: ti.types.ndarray(field_dim=1), hes_vert: ti.types.ndarray(field_dim=1)):
+def get_matrix(c2e: ti.types.ndarray(ndim=1), vertices: ti.types.ndarray(ndim=1), B: ti.types.ndarray(ndim=1), W: ti.types.ndarray(ndim=1), hes_edge: ti.types.ndarray(ndim=1), hes_vert: ti.types.ndarray(ndim=1)):
     for c in vertices:
         verts = vertices[c]
         W_c = W[c]
@@ -174,8 +174,8 @@ def get_matrix(c2e: ti.types.ndarray(field_dim=1), vertices: ti.types.ndarray(fi
 
 
 @ti.kernel
-def matmul_edge(ret: ti.types.ndarray(field_dim=1), vel: ti.types.ndarray(field_dim=1),
-        edges: ti.types.ndarray(field_dim=1), m: ti.types.ndarray(field_dim=1), hes_edge: ti.types.ndarray(field_dim=1), hes_vert: ti.types.ndarray(field_dim=1)):
+def matmul_edge(ret: ti.types.ndarray(ndim=1), vel: ti.types.ndarray(ndim=1),
+        edges: ti.types.ndarray(ndim=1), m: ti.types.ndarray(ndim=1), hes_edge: ti.types.ndarray(ndim=1), hes_vert: ti.types.ndarray(ndim=1)):
     for i in ret:
         ret[i] = vel[i] * m[i] + hes_vert[i] * vel[i]
     for e in edges:
@@ -186,57 +186,57 @@ def matmul_edge(ret: ti.types.ndarray(field_dim=1), vel: ti.types.ndarray(field_
 
 
 @ti.kernel
-def add(ans: ti.types.ndarray(field_dim=1), a: ti.types.ndarray(field_dim=1), k: ti.f32,
-        b: ti.types.ndarray(field_dim=1)):
+def add(ans: ti.types.ndarray(ndim=1), a: ti.types.ndarray(ndim=1), k: ti.f32,
+        b: ti.types.ndarray(ndim=1)):
     for i in ans:
         ans[i] = a[i] + k * b[i]
 
 
 @ti.kernel
-def add_scalar_ndarray(ans: ti.types.ndarray(field_dim=1), a: ti.types.ndarray(field_dim=1),
-                       k: ti.f32, scalar: ti.types.ndarray(field_dim=0),
-                       b: ti.types.ndarray(field_dim=1)):
+def add_scalar_ndarray(ans: ti.types.ndarray(ndim=1), a: ti.types.ndarray(ndim=1),
+                       k: ti.f32, scalar: ti.types.ndarray(ndim=0),
+                       b: ti.types.ndarray(ndim=1)):
     for i in ans:
         ans[i] = a[i] + k * scalar[None] * b[i]
 
 
 @ti.kernel
-def dot2scalar(a: ti.types.ndarray(field_dim=1), b: ti.types.ndarray(field_dim=1), dot_ans: ti.types.ndarray(field_dim=0)):
+def dot2scalar(a: ti.types.ndarray(ndim=1), b: ti.types.ndarray(ndim=1), dot_ans: ti.types.ndarray(ndim=0)):
     dot_ans[None] = 0.0
     for i in a:
         dot_ans[None] += a[i].dot(b[i])
 
 
 @ti.kernel
-def get_b(v: ti.types.ndarray(field_dim=1), b: ti.types.ndarray(field_dim=1), f: ti.types.ndarray(field_dim=1), m: ti.types.ndarray(field_dim=1)):
+def get_b(v: ti.types.ndarray(ndim=1), b: ti.types.ndarray(ndim=1), f: ti.types.ndarray(ndim=1), m: ti.types.ndarray(ndim=1)):
     for i in b:
         b[i] = m[i] * v[i] + dt * f[i]
 
 
 @ti.kernel
-def ndarray_to_ndarray(ndarray: ti.types.ndarray(field_dim=1), other: ti.types.ndarray(field_dim=1)):
+def ndarray_to_ndarray(ndarray: ti.types.ndarray(ndim=1), other: ti.types.ndarray(ndim=1)):
     for I in ti.grouped(ndarray):
         ndarray[I] = other[I]
 
 
 @ti.kernel
-def fill_ndarray(ndarray: ti.types.ndarray(field_dim=1), val: ti.f32):
+def fill_ndarray(ndarray: ti.types.ndarray(ndim=1), val: ti.f32):
     for I in ti.grouped(ndarray):
         ndarray[I] = [val, val, val]
 
 
 @ti.kernel
-def init_r_2(dot_ans: ti.types.ndarray(field_dim=0), r_2_scalar: ti.types.ndarray(field_dim=0)):
+def init_r_2(dot_ans: ti.types.ndarray(ndim=0), r_2_scalar: ti.types.ndarray(ndim=0)):
     r_2_scalar[None] = dot_ans[None]
 
 
 @ti.kernel
-def update_alpha(alpha_scalar: ti.types.ndarray(field_dim=0), dot_ans: ti.types.ndarray(field_dim=0), r_2_scalar: ti.types.ndarray(field_dim=0)):
+def update_alpha(alpha_scalar: ti.types.ndarray(ndim=0), dot_ans: ti.types.ndarray(ndim=0), r_2_scalar: ti.types.ndarray(ndim=0)):
     alpha_scalar[None] = r_2_scalar[None] / (dot_ans[None] + epsilon)
 
 
 @ti.kernel
-def update_beta_r_2(beta_scalar: ti.types.ndarray(field_dim=0), dot_ans: ti.types.ndarray(field_dim=0), r_2_scalar: ti.types.ndarray(field_dim=0)):
+def update_beta_r_2(beta_scalar: ti.types.ndarray(ndim=0), dot_ans: ti.types.ndarray(ndim=0), r_2_scalar: ti.types.ndarray(ndim=0)):
     beta_scalar[None] = dot_ans[None] / (r_2_scalar[None] + epsilon)
     r_2_scalar[None] = dot_ans[None]
 
@@ -266,8 +266,8 @@ def cg(it):
 
 
 @ti.kernel
-def init(x: ti.types.ndarray(field_dim=1), v: ti.types.ndarray(field_dim=1), f: ti.types.ndarray(field_dim=1),
-        ox: ti.types.ndarray(field_dim=1), vertices: ti.types.ndarray(field_dim=1, element_shape=(4,)), m: ti.types.ndarray(field_dim=1), B: ti.types.ndarray(field_dim=1), W: ti.types.ndarray(field_dim=1)):
+def init(x: ti.types.ndarray(ndim=1), v: ti.types.ndarray(ndim=1), f: ti.types.ndarray(ndim=1),
+        ox: ti.types.ndarray(ndim=1), vertices: ti.types.ndarray(ndim=1, element_shape=(4,)), m: ti.types.ndarray(ndim=1), B: ti.types.ndarray(ndim=1), W: ti.types.ndarray(ndim=1)):
     for u in x:
         x[u] = ox[u]
         v[u] = [0.0] * 3
@@ -282,7 +282,7 @@ def init(x: ti.types.ndarray(field_dim=1), v: ti.types.ndarray(field_dim=1), f: 
 
 
 @ti.kernel
-def floor_bound(x: ti.types.ndarray(field_dim=1), v: ti.types.ndarray(field_dim=1)):
+def floor_bound(x: ti.types.ndarray(ndim=1), v: ti.types.ndarray(ndim=1)):
     bounds = ti.Vector([1, aspect_ratio, 1])
     for u in x:
         for i in ti.static(range(3)):
@@ -320,22 +320,22 @@ def run_aot():
 
 
 @ti.kernel
-def convert_to_field(x: ti.types.ndarray(field_dim=1), y: ti.template()):
+def convert_to_field(x: ti.types.ndarray(ndim=1), y: ti.template()):
     for I in ti.grouped(x):
         y[I] = x[I]
 
 
-sym_hes_edge = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'hes_edge', ti.f32, field_dim=len(edges.shape))
-sym_hes_vert = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'hes_vert', ti.f32, field_dim=len(ox.shape))
-sym_x = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'x', ti.f32, field_dim=1, element_shape=(args.dim,))
-sym_v = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'v', ti.f32, field_dim=1, element_shape=(args.dim,))
-sym_f = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'f', ti.f32, field_dim=1, element_shape=(args.dim,))
-sym_ox = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'ox', ti.f32, field_dim=1, element_shape=(args.dim,))
-sym_vertices = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'vertices', ti.i32, field_dim=1, element_shape=(4,))
-sym_m = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'm', ti.f32, field_dim=1)
-sym_B = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'B', ti.f32, field_dim=1, element_shape=(args.dim, args.dim))
-sym_W = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'W', ti.f32, field_dim=1)
-sym_c2e = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'c2e', ti.i32, field_dim=1, element_shape=(6,))
+sym_hes_edge = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'hes_edge', ti.f32, ndim=len(edges.shape))
+sym_hes_vert = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'hes_vert', ti.f32, ndim=len(ox.shape))
+sym_x = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'x', ti.f32, ndim=1, element_shape=(args.dim,))
+sym_v = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'v', ti.f32, ndim=1, element_shape=(args.dim,))
+sym_f = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'f', ti.f32, ndim=1, element_shape=(args.dim,))
+sym_ox = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'ox', ti.f32, ndim=1, element_shape=(args.dim,))
+sym_vertices = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'vertices', ti.i32, ndim=1, element_shape=(4,))
+sym_m = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'm', ti.f32, ndim=1)
+sym_B = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'B', ti.f32, ndim=1, element_shape=(args.dim, args.dim))
+sym_W = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'W', ti.f32, ndim=1)
+sym_c2e = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'c2e', ti.i32, ndim=1, element_shape=(6,))
 
 g_init_builder = ti.graph.GraphBuilder()
 g_init_builder.dispatch(clear_ndarray, sym_hes_edge, sym_hes_vert)
@@ -347,19 +347,19 @@ g_init = g_init_builder.compile()
 sym_gravity_x = ti.graph.Arg(ti.graph.ArgKind.SCALAR, 'gravity_x', ti.f32)
 sym_gravity_y = ti.graph.Arg(ti.graph.ArgKind.SCALAR, 'gravity_y', ti.f32)
 sym_gravity_z = ti.graph.Arg(ti.graph.ArgKind.SCALAR, 'gravity_z', ti.f32)
-sym_b = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'b', ti.f32, field_dim=1, element_shape=(3,))
-sym_mul_ans = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'mul_ans', ti.f32, field_dim=1, element_shape=(args.dim,))
-sym_edges = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'edges', ti.i32, field_dim=1, element_shape=(2,))
-sym_r0 = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'r0', ti.f32, field_dim=1, element_shape=(3,))
+sym_b = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'b', ti.f32, ndim=1, element_shape=(3,))
+sym_mul_ans = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'mul_ans', ti.f32, ndim=1, element_shape=(args.dim,))
+sym_edges = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'edges', ti.i32, ndim=1, element_shape=(2,))
+sym_r0 = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'r0', ti.f32, ndim=1, element_shape=(3,))
 
 sym_k0 = ti.graph.Arg(ti.graph.ArgKind.SCALAR, 'k0', ti.f32)
 sym_k1 = ti.graph.Arg(ti.graph.ArgKind.SCALAR, 'k1', ti.f32)
 sym_k2 = ti.graph.Arg(ti.graph.ArgKind.SCALAR, 'k2', ti.f32)
-sym_p0 = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'p0', ti.f32, field_dim=1, element_shape=(3,))
-sym_dot_ans = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'dot_ans', ti.f32, field_dim=0)
-sym_r_2_scalar = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'r_2_scalar', ti.f32, field_dim=0)
-sym_alpha_scalar = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'alpha_scalar', ti.f32, field_dim=0)
-sym_beta_scalar = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'beta_scalar', ti.f32, field_dim=0)
+sym_p0 = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'p0', ti.f32, ndim=1, element_shape=(3,))
+sym_dot_ans = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'dot_ans', ti.f32, ndim=0)
+sym_r_2_scalar = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'r_2_scalar', ti.f32, ndim=0)
+sym_alpha_scalar = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'alpha_scalar', ti.f32, ndim=0)
+sym_beta_scalar = ti.graph.Arg(ti.graph.ArgKind.NDARRAY, 'beta_scalar', ti.f32, ndim=0)
 sym_dt = ti.graph.Arg(ti.graph.ArgKind.SCALAR, 'dt', ti.f32)
 
 g_substep_builder = ti.graph.GraphBuilder()
