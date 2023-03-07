@@ -25,11 +25,11 @@ Taichi supports the following argument types:
 
 Despite integers and floating-point numbers, we have a commonly-used data container called [`Ndarray`](https://docs.taichi-lang.org/api/taichi/lang/_ndarray/#taichi.lang._ndarray.Ndarray). It's similar to an [`ndarray`](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html) in NumPy, or a [`Tensor`](https://pytorch.org/docs/stable/tensors.html) in PyTorch. It has multiple dimensions to index and the data is laid out continuously in memory. If you have more experience with C++ than Python, You can treat it as a nested array type like `float[6][14]`.
 
-To give an example, the following `init` kernel accepts an ND-array argument called `x`. We want to inform the compiler that the ND-array stores floating-point data and it only has a single dimension to index, so `dtype` is `ti.f32`, and `field_dim` is set to 1. When executed, every element in `x` will be assigned with a constant 0.
+To give an example, the following `init` kernel accepts an ND-array argument called `x`. We want to inform the compiler that the ND-array stores floating-point data and it only has a single dimension to index, so `dtype` is `ti.f32`, and `ndim` is set to 1. When executed, every element in `x` will be assigned with a constant 0.
 
 ```python
 @ti.kernel
-def init(x: ti.types.ndarray(ti.f32, element_shape=tuple(), field_dim=1)):
+def init(x: ti.types.ndarray(ti.f32, element_shape=tuple(), ndim=1)):
     for i in x:
         x[i] = 0
 ```
@@ -38,7 +38,7 @@ After initialization, in kernel `add_base`, we want to add a floating-point numb
 
 ```python
 @ti.kernel
-def add_base(x: ti.types.ndarray(field_dim=1), base: ti.f32):
+def add_base(x: ti.types.ndarray(ndim=1), base: ti.f32):
     for i in range(x.shape[0]):
         x[i] += base
 ```

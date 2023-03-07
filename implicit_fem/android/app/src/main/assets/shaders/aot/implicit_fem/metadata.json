@@ -20,7 +20,7 @@
       "scalar_args": {},
       "arr_args": {"0": {
           "dtype_name": "f32",
-          "field_dim": 0,
+          "ndim": 0,
           "element_shape": [],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0}}},"init_r_2": {
@@ -94,12 +94,12 @@
       "scalar_args": {},
       "arr_args": {"1": {
           "dtype_name": "i32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [4],
           "shape_offset_in_args_buf": 4,
           "bind_index": 0},"0": {
           "dtype_name": "i32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [6],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0}}},"get_force": {
@@ -147,17 +147,17 @@
           "offset_in_args_buf": 16}},
       "arr_args": {"2": {
           "dtype_name": "i32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [4],
           "shape_offset_in_args_buf": 8,
           "bind_index": 0},"0": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0},"1": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 4,
           "bind_index": 0}}},"floor_bound": {
@@ -180,12 +180,12 @@
       "scalar_args": {},
       "arr_args": {"1": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 4,
           "bind_index": 0},"0": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0}}},"add_scalar_ndarray": {
@@ -210,22 +210,22 @@
           "offset_in_args_buf": 8}},
       "arr_args": {"4": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 16,
           "bind_index": 0},"3": {
           "dtype_name": "f32",
-          "field_dim": 0,
+          "ndim": 0,
           "element_shape": [],
           "shape_offset_in_args_buf": 12,
           "bind_index": 0},"0": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0},"1": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 4,
           "bind_index": 0}}},"dot2scalar": {
@@ -263,12 +263,12 @@
       "scalar_args": {},
       "arr_args": {"1": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 4,
           "bind_index": 0},"0": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0}}},"update_beta_r_2": {
@@ -291,7 +291,7 @@
       "scalar_args": {},
       "arr_args": {"0": {
           "dtype_name": "f32",
-          "field_dim": 0,
+          "ndim": 0,
           "element_shape": [],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0}}},"init": {
@@ -333,27 +333,27 @@
       "scalar_args": {},
       "arr_args": {"4": {
           "dtype_name": "i32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [4],
           "shape_offset_in_args_buf": 16,
           "bind_index": 0},"3": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 12,
           "bind_index": 0},"2": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 8,
           "bind_index": 0},"0": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0},"1": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 4,
           "bind_index": 0}}},"get_b": {
@@ -380,17 +380,17 @@
       "scalar_args": {},
       "arr_args": {"2": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 8,
           "bind_index": 0},"0": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0},"1": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 4,
           "bind_index": 0}}},"matmul_edge": {
@@ -432,17 +432,17 @@
       "scalar_args": {},
       "arr_args": {"2": {
           "dtype_name": "i32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [2],
           "shape_offset_in_args_buf": 8,
           "bind_index": 0},"0": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0},"1": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 4,
           "bind_index": 0}}},"add": {
@@ -467,17 +467,17 @@
           "offset_in_args_buf": 8}},
       "arr_args": {"3": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 12,
           "bind_index": 0},"0": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0},"1": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 4,
           "bind_index": 0}}},"ndarray_to_ndarray": {
@@ -500,12 +500,12 @@
       "scalar_args": {},
       "arr_args": {"1": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 4,
           "bind_index": 0},"0": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0}}},"fill_ndarray": {
@@ -530,7 +530,7 @@
           "offset_in_args_buf": 4}},
       "arr_args": {"0": {
           "dtype_name": "f32",
-          "field_dim": 1,
+          "ndim": 1,
           "element_shape": [3],
           "shape_offset_in_args_buf": 0,
           "bind_index": 0}}}},

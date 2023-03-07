@@ -48,7 +48,7 @@ img = ti.field(ti.f32, (res, res))
 sym_arr = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
                        'arr',
                        ti.f32,
-                       field_dim=2,
+                       ndim=2,
                        element_shape=())
 @ti.kernel
 def img_to_ndarray(arr: ti.types.ndarray()):
