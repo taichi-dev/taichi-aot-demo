@@ -18,7 +18,8 @@
 #define VK_USE_PLATFORM_ANDROID_KHR 1
 #endif // ANDROID
 #include <vulkan/vulkan.h>
-#define VMA_DYNAMIC_VULKAN_FUNCTIONS
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include <vk_mem_alloc.h>
 #endif  // TI_WITH_VULKAN
 

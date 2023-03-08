@@ -1,6 +1,7 @@
 if (NOT ANDROID)
     add_subdirectory(glfw)
 endif()
+find_package(Vulkan REQUIRED)
 add_subdirectory(graphi-t/third/VulkanMemoryAllocator VulkanMemoryAllocator)
 add_subdirectory(graphi-t/third/glslang glslang)
 

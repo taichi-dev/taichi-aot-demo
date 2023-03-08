@@ -45,8 +45,7 @@ if(TI_AOT_DEMO_RENDER_WITH_VULKAN)
 
     find_package(Vulkan REQUIRED)
     target_link_libraries(${RENDER_FRAMEWORK_TARGET} PUBLIC
-        Vulkan::Vulkan
-        VulkanMemoryAllocator)
+        Vulkan::Vulkan)
     target_include_directories(${RENDER_FRAMEWORK_TARGET} PUBLIC
         ${PROJECT_SOURCE_DIR}/external/Vulkan-Headers/include
         ${PROJECT_SOURCE_DIR}/external/graphi-t/third/VulkanMemoryAllocator/include
