@@ -118,39 +118,32 @@ def compile_mpm88(arch, platform=None):
 
     sym_x = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
                             'x',
-                            ti.f32,
                             ndim=1,
-                            element_shape=(2, ))
+                            dtype=ti.types.vector(2, ti.f32))
     sym_v = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
                             'v',
-                            ti.f32,
                             ndim=1,
-                            element_shape=(2, ))
+                            dtype=ti.types.vector(2, ti.f32))
     sym_C = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
                             'C',
-                            ti.f32,
                             ndim=1,
-                            element_shape=(2, 2))
+                            dtype=ti.types.matrix(2, 2, ti.f32))
     sym_J = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
                             'J',
                             ti.f32,
-                            ndim=1,
-                            element_shape=())
+                            ndim=1)
     sym_grid_v = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
                                 'grid_v',
-                                ti.f32,
                                 ndim=2,
-                                element_shape=(2, ))
+                                dtype=ti.types.vector(2, ti.f32))
     sym_grid_m = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
                                 'grid_m',
                                 ti.f32,
-                                ndim=2,
-                                element_shape=())
+                                ndim=2)
     sym_pos = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
                             'pos',
-                            ti.f32,
                             ndim=1,
-                            element_shape=(3, ))
+                            dtype=ti.types.vector(3, ti.f32))
 
     g_init_builder = ti.graph.GraphBuilder()
     g_init_builder.dispatch(init_particles, sym_x, sym_v, sym_J)
