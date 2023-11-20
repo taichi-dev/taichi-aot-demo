@@ -51,7 +51,7 @@ sym_t = ti.graph.Arg(ti.graph.ArgKind.SCALAR,
                      ti.f32)
 sym_canvas = ti.graph.Arg(ti.graph.ArgKind.RWTEXTURE,
                           'canvas',
-                          fmt=ti.Format.r32f
+                          fmt=ti.Format.r32f,
                           ndim=2,
                          )
 
