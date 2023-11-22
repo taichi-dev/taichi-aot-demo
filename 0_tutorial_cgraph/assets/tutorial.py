@@ -35,8 +35,7 @@ def compile_demo(arch, aot):
     sym_x = ti.graph.Arg(ti.graph.ArgKind.NDARRAY,
                             'x',
                             ti.f32,
-                            ndim=1,
-                            element_shape=())
+                            ndim=1)
 
     sym_base = ti.graph.Arg(ti.graph.ArgKind.SCALAR, 'base', ti.f32)
 

@@ -48,13 +48,12 @@ def fractal(t: ti.f32, canvas: ti.types.rw_texture(num_dimensions=2,
 
 sym_t = ti.graph.Arg(ti.graph.ArgKind.SCALAR,
                      "t",
-                     ti.f32,
-                     element_shape=())
+                     ti.f32)
 sym_canvas = ti.graph.Arg(ti.graph.ArgKind.RWTEXTURE,
                           'canvas',
-                          channel_format=ti.f32,
-                          shape=(n * 2, n),
-                          num_channels=1)
+                          fmt=ti.Format.r32f,
+                          ndim=2,
+                         )
 
 gb = ti.graph.GraphBuilder()
 gb.dispatch(fractal, sym_t, sym_canvas)
